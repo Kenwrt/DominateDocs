@@ -1,0 +1,92 @@
+﻿using DominateDocsData.Enums;
+using MongoDB.Bson;
+using MongoDB.Bson.Serialization.Attributes;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Converters;
+using System.ComponentModel.DataAnnotations;
+
+namespace DominateDocsData.Models;
+
+[BsonIgnoreExtraElements]
+public class ConstructionContract : IPartyNames
+{
+    [Key]
+    [BsonIgnoreIfDefault]
+    [BsonId]
+    public Guid Id { get; set; } = Guid.NewGuid();
+
+    [JsonConverter(typeof(StringEnumConverter))]
+    [BsonRepresentation(BsonType.String)]
+    [DataType(DataType.Text)]
+    public DominateDocsData.Enums.ConstructionContracts.EntityType ConstructionEntityType { get; set; } = DominateDocsData.Enums.ConstructionContracts.EntityType.Contractor;
+
+    [JsonConverter(typeof(StringEnumConverter))]
+    [BsonRepresentation(BsonType.String)]
+    [DataType(DataType.Text)]
+    public Entity.ContactRoles ContactsRole { get; set; }
+
+    [JsonConverter(typeof(StringEnumConverter))]
+    [BsonRepresentation(BsonType.String)]
+    [DataType(DataType.Text)]
+    public Entity.Structures EntityStructureType { get; set; }
+
+    public string EntityStructureDescription => EntityStructureType.GetDescription();
+
+    [JsonConverter(typeof(StringEnumConverter))]
+    [BsonRepresentation(BsonType.String)]
+    [DataType(DataType.Text)]
+    public Entity.Types EntityType { get; set; }
+
+    [JsonConverter(typeof(StringEnumConverter))]
+    [BsonRepresentation(BsonType.String)]
+    [DataType(DataType.Text)]
+    public UsStates.UsState StateOfIncorporationType { get; set; }
+
+    public string StateOfIncorporationDescription => StateOfIncorporationType.GetDescription();
+
+    public string EntityName { get; set; }
+
+    public string ContactName { get; set; }
+
+    public string ContactEmail { get; set; }
+
+    public string ContactPhoneNumber { get; set; }
+
+    public string SSN { get; set; }  // Encrypt or mask in production.
+
+    public string FullAddress { get; set; }
+
+    public string StreetAddress { get; set; }
+
+    public string City { get; set; }
+
+    public string State { get; set; }
+
+    public string ZipCode { get; set; }
+
+    public string County { get; set; }
+
+    public string Country { get; set; }
+
+    public double? Lat { get; set; }
+
+    public double? Lng { get; set; }
+
+    public string? EIN { get; set; }
+
+    public bool IsLanuageTranslatorRequired { get; set; } = false;
+
+    public bool IsSignatureAuthority { get; set; } = false;
+
+    public List<SigningAuthority> SigningAuthorities { get; set; } = new();
+
+    public string SigningAuthoritiesFormatted { get; set; }
+
+    public List<EntityOwner> EntityOwners { get; set; } = new();
+
+    public string EntityOwnersFormatted { get; set; }
+
+    public string SignatureLinesFormatted { get; set; }
+
+    public bool IsActive { get; set; } = true;
+}

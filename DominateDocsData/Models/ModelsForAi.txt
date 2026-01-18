@@ -1,0 +1,186 @@
+﻿public class LoanAgreement
+{   
+    public Guid Id { get; set; }
+    public Guid UserId { get; set; }
+    public Guid LenderId { get; set; }  
+    public Lender Lender { get; set; };
+    public string? LoanNumber { get; set; }
+    public LoanTypes.Type LoanType { get; set; } = LoanTypes.Type.Construction;
+    public LoanFinanceTypes.Type  LoanFinanceType { get; set; } = LoanFinanceTypes.Type.InterestOnly;
+    public DateTime StartDate { get; set;}
+    public DateTime MaturityDate { get; set; }
+    public decimal PrincipalAmount { get; set; }
+    public decimal AnnualInterestRate { get; set; }
+    public int TermInMonths { get; set; }
+    public PaymentSchedules.Schedule RepaymentSchedule { get; set; } = PaymentSchedules.Schedule.Monthly;
+    public bool PrepaymentAllowed { get; set; }
+    public string? TermsAndConditions { get; set; }
+    public string? SigningAuthoriotyName { get; set; }
+    public string? SigningAuthoriotyPosition { get; set; }
+    public DateTime? SignedDate { get; set; }
+    public List<Borrower> Borrowers { get; set; } = new();
+    public List<Guarantor> Guarantors { get; set; } = new();
+    public List<Trustee> Trustees { get; set; } = new();
+    public List<PropertyRecord> Properties { get; set; } = new();
+    public List<Security> Securities { get; set; } = new();
+}
+
+
+public class Lender
+{
+    public Guid Id { get; set; }
+    public string? EntityName { get; set; }
+    public string ContactName { get; set; }
+    public string ContactEmail { get; set; }
+    public string ContactPhoneNumber { get; set; }
+    public string SigingAuthorityName { get; set; }
+    public string SigingAuthorityPostion { get; set; }
+    public string LicenseNumber { get; set; }
+    public string RegulatoryAuthority { get; set; }
+    public string StreetAddress { get; set; }
+    public string City { get; set; }
+    public string State { get; set; }
+    public string ZipCode { get; set; }
+    public string County { get; set; }
+    public string FullAddress => $"{StreetAddress} {City} {State} {ZipCode}".Trim();
+    public string Country { get; set; }
+    public string EIN { get; set; }
+    public string SSN { get; set; }
+    public string PreferredStateVenue { get; set; }
+    public LenderTypes.Type LenderType { get; set; }
+    public bool IsCorporateEntity { get; set; } = false;
+    public bool IsActive { get; set; } = true;
+    public ICollection<LendingProduct> Products { get; set; }
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+}
+
+
+public class Guarantor
+{
+    public Guid Id { get; set; }
+    public string? EntityName { get; set; }
+    public string? ContactName { get; set; }
+    public string? ContactEmail { get; set; }
+    public string? ContactPhoneNumber { get; set; }
+    public string? SSN { get; set; }  // Encrypt or mask in production.
+    public string StreetAddress { get; set; }
+    public string City { get; set; }
+    public string State { get; set; }
+    public string ZipCode { get; set; }
+    public string Country { get; set; }
+    public string County { get; set; }
+    public string SigningAuthorityName { get; set; }
+    public string SigningAuthorityPostion { get; set; }
+    public string? EIN { get; set; }
+    public bool IsCorporateEntity { get; set; } = true;
+    public string FullAddress => $"{StreetAddress} {City} {State} {ZipCode}".Trim();
+    public string? RelationshipToBorrower { get; set; }  // e.g. Parent, Business Partner
+    public decimal CreditScore { get; set; }
+    public decimal MonthlyDebt { get; set; }
+    public decimal MonthlyIncome { get; set; }
+    public decimal Assets { get; set; }
+    public decimal Liabilities { get; set; }
+    public string EmployerName { get; set; }
+    public string JobTitle { get; set; }
+    public decimal AnnualIncome { get; set; }
+    public DateTime EmploymentStartDate { get; set; }
+    public bool IsSelfEmployed { get; set; }
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+}
+
+public class Borrower
+{
+    public Guid Id { get; set; }
+    public string? EntityName { get; set; }
+    public string ContactName { get; set; }
+    public string ContactEmail { get; set; }
+    public string ContactPhoneNumber { get; set; }
+    public string StreetAddress { get; set; }
+    public string City { get; set; }
+    public string State { get; set; }
+    public string County { get; set; }
+    public string FullAddress => $"{StreetAddress} {City} {State} {ZipCode}".Trim();
+    public string ZipCode { get; set; }
+    public string Country { get; set; }
+    public string SSN { get; set; }
+    public string EIN { get; set; }
+    public bool IsCorporateEntity { get; set; } = true;
+    public string EmployerName { get; set; }
+    public string JobTitle { get; set; }
+    public string SigningAuthorityName { get; set; }
+    public string SigningAuthorityPostion { get; set; }
+    public decimal AnnualIncome { get; set; }
+    public DateTime EmploymentStartDate { get; set; }
+    public bool IsSelfEmployed { get; set; }
+    public decimal CreditScore { get; set; }
+    public decimal MonthlyDebt { get; set; }
+    public decimal MonthlyIncome { get; set; }
+    public List<Security> Securities { get; set; } = new();
+    public decimal Liabilities { get; set; }
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public bool IsActive { get; set; }
+}
+
+public class Security
+{
+    public Guid Id { get; set; }
+    public SecurityTypes SecurityType { get; set; } // e.g., Stock, Bond, Mutual Fund, ETF, Crypto, Real Estate
+    public string AssetName { get; set; }    // e.g., "Tesla Inc." or address for Real Estate
+    public string TickerSymbol { get; set; } // May be empty/null for non-traded assets
+    public int Quantity { get; set; }
+    public decimal MarketValue { get; set; }
+    public string? Issuer { get; set; }      // Optional for traded instruments
+    public string? Notes { get; set; }
+}
+
+
+public class Trustee
+{
+    public Guid Id { get; set; }
+    public string EntityName { get; set; }
+    public string ContactName { get; set; }
+    public string ContactEmail { get; set; }
+    public string ContactPhoneNumber { get; set; }
+    public string StreetAddress { get; set; }
+    public string City { get; set; }
+    public string State { get; set; }
+    public string County { get; set; }
+    public string FullAddress => $"{StreetAddress} {City} {State} {ZipCode}".Trim();
+    public string ZipCode { get; set; }
+    public string Country { get; set; }
+    public string SSN { get; set; }
+    public string EIN { get; set; }
+    public string SigingAuthorityName { get; set; }
+    public string SigingAuthorityPostion { get; set; }
+    public bool IsCorporateEntity { get; set; } = false;
+    public TrusteeRoles.TrustRole TrustRole { get; set; } 
+    public bool IsActive { get; set; } = true;
+}
+
+public class PropertyRecord
+{
+    public Guid Id { get; set; }
+    public string LegalDescription { get; set; }
+    public string StreetAddress { get; set; }
+    public string City { get; set; }
+    public string State { get; set; }
+    public string ZipCode { get; set; }
+    public string County { get; set; }
+    public string ParcelNumber { get; set; }
+    public string FullAddress => $"{StreetAddress} {City} {State} {ZipCode}".Trim();
+    public string Country { get; set; }
+    public decimal EstimatedValue { get; set; }
+    public decimal? LastAppraisedValue { get; set; }
+    public PropertyTypes.Type PropertyType { get; set; }
+    public double SquareFootage { get; set; }
+    public int YearBuilt { get; set; }
+    public List<string> Liens { get; set; }
+    public DateTime? LastAppraisalDate { get; set; }
+    public bool IsOwnerOccupied { get; set; } = false;
+    public bool IsCorporateEntity { get; set; } = false;
+    public string SigingAuthorityName { get; set; }
+    public string SigingAuthorityPostion { get; set; }
+    public LienStatus.Status LienStatus { get; set; }
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public string? Notes { get; set; }
+}
