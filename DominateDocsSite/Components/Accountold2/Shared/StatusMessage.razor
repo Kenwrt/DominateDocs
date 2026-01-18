@@ -1,0 +1,44 @@
+﻿@namespace LiquidDocsSite.Components.Account.Shared
+
+@inject IHttpContextAccessor httpContextAccessor
+
+@if (httpContextAccessor.HttpContext is not null)
+
+
+@if (!string.IsNullOrEmpty(DisplayMessage))
+{
+    var severity = DisplayMessage.StartsWith("Error") ? Severity.Error : Severity.Success;
+
+    <MudAlert Variant="Variant.Outlined" Severity="@severity">@DisplayMessage</MudAlert>
+}
+
+}
+
+@code {
+
+    private string? messageFromCookie;
+
+    [Parameter]
+    public string? Message { get; set; }
+
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; }
+
+    private string? DisplayMessage => Message ?? messageFromCookie;
+
+    protected override void OnInitialized()
+    {
+        if (httpContextAccessor.HttpContext is not null)
+        {
+            var messageFromCookie = httpContextAccessor.HttpContext.Request.Cookies[IdentityRedirectManager.StatusCookieName];
+
+            if (messageFromCookie is not null)
+            {
+                httpContextAccessor.HttpContext.Response.Cookies.Delete(IdentityRedirectManager.StatusCookieName);
+            }
+        }
+        
+    }
+
+    
+}

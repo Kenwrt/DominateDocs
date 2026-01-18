@@ -1,0 +1,197 @@
+﻿@page "/loantypecreate"
+
+@using MudBlazor
+@using DominateDocsData.Models
+@using DominateDocsData.Models.DTOs
+@using DominateDocsSite.ViewModels
+@using Microsoft.AspNetCore.Components.Web
+
+@inject IDialogService DialogService
+@inject LoanTypeViewModel vm
+
+<MudContainer MaxWidth="MaxWidth.False" Class="pa-4">
+
+    <MudText Typo="Typo.h6">Create conditional logic on output documents</MudText>
+    <MudText Typo="Typo.body2" Class="mb-3 mud-text-secondary">
+        Use logic to determine which documents are generated. If nothing is configured here, all documents will generate each time this workflow is completed.
+    </MudText>
+
+    <MudPaper Outlined="true" Class="pa-4 mb-4">
+
+        <MudText Typo="Typo.subtitle2" Class="mb-1">Loan Type</MudText>
+
+        <MudTextField @bind-Value="vm.Editing.Name"
+                      Label="Display Name"
+                      Variant="Variant.Outlined"
+                      Class="mb-4"
+                      FullWidth="true" />
+
+        <MudTextField @bind-Value="vm.Editing.Description"
+                      Label="Description"
+                      Variant="Variant.Outlined"
+                      Class="mb-4"
+                      FullWidth="true" />
+
+        <MudTextField @bind-Value="vm.Editing.IconKey"
+                      Label="Icon"
+                      Variant="Variant.Outlined"
+                      Class="mb-4"
+                      FullWidth="true" />
+
+        <MudText Typo="Typo.subtitle2" Class="mb-1">
+            Default Documents (@(vm.Editing.DefaultDocumentIds?.Count ?? 0))
+        </MudText>
+
+        <MudButton Variant="Variant.Text"
+                   Class="mb-2 d-inline-block"
+                   Style="cursor:pointer; padding:0; min-width:unset;"
+                   OnClick="OpenAvailableDocsDialog">
+            Select Documents
+        </MudButton>
+
+        <MudPaper Outlined="true"
+                  Style="width:100%; min-height:400px;"
+                  Class="mb-4 pa-2">
+            <div style="min-height:360px; overflow:auto; display:flex; flex-wrap:wrap; gap:6px; align-content:flex-start;">
+                @if (vm.Editing.DefaultDocumentIds is not null && vm.Editing.DefaultDocumentIds.Count > 0)
+                {
+                    @foreach (var d in vm.Editing.DefaultDocumentIds)
+                    {
+                        var doc = vm.MasterDocuments.FirstOrDefault(x => x.Id == d);
+                        if (doc is not null)
+                        {
+                            <MudChip T="string" Closeable="true" OnClose="@(() => RemoveDefaultDoc(doc.Id))">
+                                @doc.Name
+                            </MudChip>
+                        }
+                    }
+                }
+            </div>
+        </MudPaper>
+    </MudPaper>
+
+    <MudDivider Class="my-4" />
+
+    <MudButton Variant="Variant.Filled"
+               Color="Color.Primary"
+               Disabled="@(!CanAddRule)"
+               OnClick="AddRuleClicked">
+        Add Rule
+    </MudButton>
+
+    @if (!CanAddRule)
+    {
+        <MudText Typo="Typo.caption" Class="mt-1 mud-text-secondary">
+            Select at least one Available Document before adding rules.
+        </MudText>
+    }
+
+    <MudDivider Class="my-4" />
+
+    @if (vm.OutputRulesUi.Count > 0)
+    {
+        <MudExpansionPanels MultiExpansion="true">
+            @foreach (var rule in vm.OutputRulesUi)
+            {
+                <MudExpansionPanel Expanded="true" Text="Output Rule(s)">
+                    <div class="d-flex justify-space-between align-center mb-2">
+                        <MudText Class="ml-2" Typo="Typo.subtitle2">@rule.Name</MudText>
+                        <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                       Color="Color.Error"
+                                       OnClick="@(() => { vm.RemoveRule(rule); StateHasChanged(); })" />
+                    </div>
+
+                    <RuleGroupEditor Vm="vm"
+                                     Rule="rule"
+                                     Group="rule.If"
+                                     Depth="0"
+                                     OnChanged="@(() => InvokeAsync(StateHasChanged))" />
+                </MudExpansionPanel>
+            }
+        </MudExpansionPanels>
+    }
+
+    <MudButton Class="mt-5" Variant="Variant.Filled" Color="Color.Success" OnClick="SaveAsync">
+        Save Loan Type
+    </MudButton>
+
+    <MudButton Class="ml-2 mt-5" Variant="Variant.Text" Color="Color.Secondary" OnClick="CancelAsync">
+        Cancel
+    </MudButton>
+
+</MudContainer>
+
+@code {
+    [Parameter] public EventCallback<LoanType> OnLoanTypeComplete { get; set; }
+    [Parameter] public EventCallback OnLoanTypeCancel { get; set; }
+    [Parameter] public LoanTypeListDTO? SelectedLoanType { get; set; }
+
+    private HashSet<Guid> _availableSelected = new();
+
+    private bool CanAddRule => vm.Editing.DefaultDocumentIds is not null && vm.Editing.DefaultDocumentIds.Count > 0;
+
+    protected override void OnInitialized()
+    {
+        vm.LoadForCreate();
+
+        if (SelectedLoanType is not null)
+            vm.LoadForEdit(SelectedLoanType.Id);
+    }
+
+    private async Task OpenAvailableDocsDialog(MouseEventArgs _)
+    {
+        var parameters = new DialogParameters
+        {
+            ["Title"] = "Select Documents",
+            ["AllDocuments"] = vm.MasterDocuments,
+            ["SelectedIds"] = new HashSet<Guid>(_availableSelected)
+        };
+
+        var options = new DialogOptions
+        {
+            CloseButton = true,
+            FullWidth = true,
+            MaxWidth = MaxWidth.Medium,
+            BackdropClick = false,
+            CloseOnEscapeKey = true
+        };
+
+        var dialog = DialogService.Show<DocumentPickerDialog>("Select Documents", parameters, options);
+        var result = await dialog.Result;
+
+        if (result.Canceled) return;
+
+        if (result.Data is IEnumerable<Guid> ids)
+        {
+            var distinct = ids.Where(id => id != Guid.Empty).Distinct().ToList();
+
+            vm.SetDefaultDocuments(distinct);
+            _availableSelected = distinct.ToHashSet();
+
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private void RemoveDefaultDoc(Guid id)
+    {
+        vm.RemoveDefaultDocument(id);
+        StateHasChanged();
+    }
+
+    private async Task SaveAsync()
+    {
+        vm.CommitUiToModel();
+        await OnLoanTypeComplete.InvokeAsync(vm.Editing);
+    }
+
+    private async Task CancelAsync()
+    {
+        await OnLoanTypeCancel.InvokeAsync();
+    }
+
+    private void AddRuleClicked()
+    {
+        vm.AddRule();
+        StateHasChanged();
+    }
+}

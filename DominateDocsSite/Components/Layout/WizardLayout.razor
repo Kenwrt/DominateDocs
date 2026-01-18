@@ -1,0 +1,56 @@
+﻿@using DominateDocsSite.State
+@using MudBlazor.StaticInput
+@using MudBlazor
+
+@inherits LayoutComponentBase
+
+@inject AuthenticationStateProvider AuthProvider
+@inject NavigationManager NavigationManager
+@inject UserSession Session
+@inject IApplicationStateManager appState
+
+<style>
+    .menu-item-spaced {
+        margin-right: 24px; /* or any value you prefer */
+    }
+
+        .menu-item-spaced:last-child {
+            margin-right: 0;
+        }
+
+    .menu-items {
+        display: flex;
+        justify-content: space-evenly;
+        flex: 1;
+        align-items: center;
+    }
+
+    .menu-link {
+        color: white !important; /* ensure white font */
+        text-decoration: none;
+        font-weight: 500;
+        padding: 0 12px;
+        font-size: 16px;
+    }
+
+        .menu-link:hover {
+            text-decoration: underline;
+        }
+</style>
+
+
+<MudThemeProvider />
+<MudPopoverProvider />
+<MudDialogProvider />
+<MudSnackbarProvider />
+
+
+<MudLayout>
+
+    <!-- NO app drawer here -->
+
+    <MudMainContent>
+        @Body
+    </MudMainContent>
+
+</MudLayout>

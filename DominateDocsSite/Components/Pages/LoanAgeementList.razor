@@ -1,0 +1,98 @@
+﻿@page "/loanagreementlist"
+
+@using System.Collections.ObjectModel
+@inject NavigationManager Nav
+@inject AuthenticationStateProvider AuthProvider
+@inject LoanAgreementViewModel loanViewModel
+@inject UserSession Session
+
+<MudPaper Class="pa-4">
+    <MudText Typo="Typo.h5" Class="mb-2">Loan Agreements</MudText>
+    <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="OnCreateAgreement">New Loan Agreement</MudButton>
+    <div style="height:32px"></div>
+    <div  style="display:flex;flex-direction:column;gap:12px;max-height:400px;overflow-y:auto;padding-right:8px;">
+        
+        @if (!loanViewModel.AgreementList.Any())
+        {
+            <MudAlert Severity="Severity.Info">No loan agreements found.</MudAlert>
+        }
+        else
+        {
+
+            <MudTable Items="loanViewModel.AgreementList" Dense="true" Hover="true" @bind-SelectedItem="loanViewModel.SelectedAgreement" RowClick="OnSelectAgreement">
+                <ToolBarContent>
+                    <MudTextField @bind-Value="_search" Placeholder="Search..." />
+                </ToolBarContent>
+                <HeaderContent>
+                    <MudTh>Agreemenet #</MudTh>
+                    <MudTh>Address</MudTh>
+                    <MudTh>Loan Type</MudTh>
+                    <MudTh>Status</MudTh>
+                    <MudTh>Actions</MudTh>
+
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd DataLabel="Loan Number">@context.LoanNumber</MudTd>
+                    <MudTd DataLabel="Address">@context.Properties.FirstOrDefault().FullAddress</MudTd>
+                   @*  <MudTd DataLabel="Type">@context.LoanType.ToString()</MudTd> *@
+                    <MudTd DataLabel=" "> </MudTd>
+                    <MudTd>
+                        <MudButton Variant="Variant.Text"
+                                   Size="Size.Small"
+                                   Color="Color.Info"
+                                   StartIcon="@Icons.Material.Filled.Edit"
+                                   OnClick="@(() => OnSelectedAgreement(context))">
+                            Edit
+                        </MudButton>
+
+                        <MudButton Variant="Variant.Text"
+                                   Size="Size.Small"
+                                   Color="Color.Error"
+                                   StartIcon="@Icons.Material.Filled.Delete"
+                                   OnClick="@(() => OnDeleteAgreement(context))">
+                            Delete
+                        </MudButton>
+                    </MudTd>
+
+                </RowTemplate>
+            </MudTable>
+                
+        }
+    </div>
+</MudPaper>
+
+@code {
+    
+    private string _search = "";
+
+    Guid userId;
+
+    protected override async Task OnInitializedAsync()
+    {
+     
+        // loanViewModel.Agreements = new ObservableCollection<DominateDocsData.Models.LoanAgreement>(flData.FakeLoanAgreements);
+
+        // var authState = await AuthProvider.GetAuthenticationStateAsync();
+        // userId = authState.User.FindFirst(c => c.Type == "sub")?.Value != null ? Guid.Parse(authState.User.FindFirst(c => c.Type == "sub").Value) : Guid.Empty;
+    }
+
+    private void OnDeleteAgreement(DominateDocsData.Models.LoanAgreement agreement)
+    {
+        loanViewModel.DeleteAgreementCommand.Execute(agreement);
+    }
+           
+    private void OnSelectedAgreement(DominateDocsData.Models.LoanAgreement agreement)
+    {
+        if (agreement != null) loanViewModel.SelectAgreementCommand.Execute(agreement);
+        Nav.NavigateTo("/loanagreement");
+    }
+    
+    private void OnCreateAgreement()
+    {
+        loanViewModel.SelectedAgreement = new();
+        loanViewModel.SelectedAgreement.UserId = Session.UserId;
+        Nav.NavigateTo("/loanagreement");
+    }
+
+   
+}

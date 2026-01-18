@@ -1,0 +1,375 @@
+﻿
+@using System.Text
+@using DominateDocsData.Models
+@using System.Globalization
+@using System.Collections.ObjectModel
+
+@rendermode InteractiveServer
+@inject UserProfileViewModel vm
+@inject NavigationManager NavigationManager
+@inject ISnackbar Snackbar
+@inject BorrowerValidator BorrowerValidator
+@inject SigningAuthorityValidator SigningAuthorityValidator
+@inject AliasValidator AliasValidator
+@inject EntityOwnerValidator EntityOwnerValidator
+@inject UserSession Session
+
+
+<MudText class="pl-4 mt-5" Typo="Typo.h4">Borrower Add/Edit</MudText>
+
+    @if (!String.IsNullOrEmpty(searchString))
+    {
+        <MudText class="pl-4 mt-5" Typo="Typo.h6">Existing Borrowers</MudText>
+        <MudTable Items="FilteredList" Context="Context" Hover="true" Bordered="true" Dense="true" @bind-SelectedItem="vm.EditingUser" @ref="searchTable" RowClick="OnSelectedUser" T="DominateDocsSite.Data.ApplicationUser">
+            <ToolBarContent>
+                <MudTextField @bind-Value="searchString"
+                              Placeholder="Search..."
+                              Immediate="true" />
+            </ToolBarContent>
+            <HeaderContent>
+                <MudTh>Name</MudTh>
+                <MudTh>Address</MudTh>
+                <MudTh>Phone</MudTh>
+                <MudTh>Email</MudTh>
+                <MudTh>Add</MudTh>
+                <MudTh>
+                <MudButton Class="rounded-4"
+                           Variant="Variant.Text"
+                           Size="Size.Small"
+                           Color="Color.Primary"
+                           StartIcon="@Icons.Material.Filled.ArrowBack"
+                           OnClick="SearchBackAsync">
+                    Back
+                </MudButton>
+                </MudTh>
+               
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="Name">@Context.Name</MudTd>
+                <MudTd DataLabel="Address">@Context.StreetAddress</MudTd>
+                <MudTd DataLabel="Phone">@Context.PhoneNumber</MudTd>
+                <MudTd DataLabel="Email">@Context.Email</MudTd>
+                <MudTd>
+                    <MudButton Class="rounded-4"
+                               Variant="Variant.Text"
+                               Size="Size.Small"
+                               Color="Color.Primary"
+                               StartIcon="@Icons.Material.Filled.Add"
+                               OnClick="@(() => AddRecordForEditAsync(Context))">
+                        Add
+                    </MudButton>
+                
+                </MudTd>
+            </RowTemplate>
+            <NoRecordsContent>
+                <MudText Color="Color.Secondary" Class="pa-4">
+                    🚫 No Active Users Found!
+                </MudText>
+            </NoRecordsContent>
+        </MudTable>
+    }
+    else
+    {
+            <MudButton Class="rounded-4 mt-5 ml-4"
+                       Disabled="@AddButtonDisabled"
+                       Variant="Variant.Filled"
+                       Size="Size.Small"
+                       Color="Color.Primary"
+                       OnClick="AddButton">
+                Add Borrower
+            </MudButton>
+
+            <MudTextField T="string"
+                          @bind-Value="searchString"
+                          Immediate="true"
+                          Placeholder="Search for Existing Lenders"
+                          Adornment="Adornment.Start"
+                          AdornmentIcon="@Icons.Material.Filled.Search"
+                          IconSize="Size.Medium"
+                          Class="pa-4 mt-5" />
+
+               <MudForm Context="context" Model="@vm.EditingUser" @ref="@formEditRecord" Validation="@BorrowerValidator" ValidationDelay="0">
+                    <MudGrid GutterSize="3">
+                        <MudItem md="4">
+                            <div class="d-flex flex-column gap-2">
+
+
+
+
+                    <MudTextField Class="pl-4" Style="background-color: white;" Variant="Variant.Outlined" @bind-Value="vm.EditingUser.Name" For="@(() => vm.EditingUser.Name)" Label="Entity Name" Required="true" />
+
+                      
+
+                    
+                    
+                        
+                                <MudTextField Class="pl-4" Style="background-color: white;" Variant="Variant.Outlined" @bind-Value="vm.EditingUser.StreetAddress" Label="EIN#" Required="false" />
+                      
+
+
+                    <MudTextField Class="pl-4" @bind-Value="vm.EditingUser.Email" Style="background-color: white;" Variant="Variant.Outlined"
+                                                Label="Email"
+                                                Placeholder="example@domain.com"
+                                                Required="true"
+                                                RequiredError="Email is required"
+                                                Pattern="@emailPattern"
+                                                PatternErrorMessage="Invalid email format"
+                                                Immediate="true" />
+
+
+                                <MudTextField Label="Phone" Class="pl-4" Style="background-color: white;" Variant="Variant.Outlined"
+                                      @bind-Value="vm.EditingUser.PhoneNumber"
+                                                Mask="@phoneMask"
+                                                Placeholder="(___) ___-____"
+                                                Required="true"
+                                                Immediate="true" />
+                                                               
+                                                   
+                            @* <AddressCompleteMap OnAddressChange="OnAddressComplete" Row="false" MultipleAddress = "false" AddressList="@addresDTOList" /> *@
+                                         
+                            </div>
+                        </MudItem>
+                        <MudItem md="4">
+                          
+
+                            
+
+                            @if (vm.SelectedUser != null)
+                            {
+                                <MudGrid Justify="Justify.Center" AlignItems="AlignItems.Center" Class="mt-4 mb-5">
+                                    <MudItem md="2">
+                                        <MudButton Class="" Type="Submit" OnClick="HandleSubmit" Color="Color.Success" Variant="Variant.Filled"> @(vm.SelectedUser == null ? "Add" : "Save")</MudButton>
+                                    </MudItem>
+                                    <MudItem md="2">
+                                        <MudButton Class="" OnClick="ClearSelection" Color="Color.Secondary" Variant="Variant.Filled">Clear</MudButton>
+                                    </MudItem>
+                                </MudGrid>
+
+                            }
+                            else
+                            {
+                                <MudGrid Justify="Justify.Center" AlignItems="AlignItems.Center" Class="mt-4 mb-5">
+                                    <MudItem md="3">
+                                        <MudButton Class="" Type="Submit" OnClick="HandleSubmit" Color="Color.Success" Variant="Variant.Filled"> @(!editRecord ? "Add" : "Save")</MudButton>
+                                    </MudItem>
+                                    <MudItem md="3">
+                                        <MudButton Class="" OnClick="ClearSelection" Color="Color.Secondary" Variant="Variant.Filled">Clear</MudButton>
+                                    </MudItem>
+                                </MudGrid>
+                            }
+                      
+                           
+                        </MudItem>
+
+                    </MudGrid>
+                </MudForm>
+   }
+
+
+
+
+
+@code
+{
+    [Parameter] public EventCallback<DominateDocsSite.Data.ApplicationUser> OnUserProfileComplete { get; set; }
+    [Parameter] public EventCallback OnUserProfileCanceled { get; set; }
+    [Parameter] public bool AllowRecordEdit { get; set; } = false;
+    [Parameter] public DominateDocsSite.Data.ApplicationUser SelectedUser { get; set; }
+
+    private bool editRecord = false;
+
+
+    private List<AddressDTO> addresDTOList = new();
+
+    private MudForm formEditRecord;
+
+    private MudTable<DominateDocsSite.Data.ApplicationUser> searchTable = new();
+
+    private List<DominateDocsSite.Data.ApplicationUser> searchList = new();
+
+    private bool AddButtonDisabled = false;
+
+    private readonly PatternMask phoneMask = new("(000)000-0000");
+
+    private readonly PatternMask socialMask = new("000-00-0000");
+
+    private string emailPattern = @"^[\w\-\.]+@([\w\-]+\.)+[\w\-]{2,4}$";
+
+    private string searchString = "";
+
+    // Filtered view of the borrowers based on searchString
+    private IEnumerable<DominateDocsSite.Data.ApplicationUser> FilteredList =>
+        string.IsNullOrWhiteSpace(searchString)
+            ? vm.RecordList
+            : vm.RecordList.Where(l =>
+                   (!string.IsNullOrEmpty(l.Name) &&  l.Name.Contains(searchString, StringComparison.OrdinalIgnoreCase)) || 
+                   (!string.IsNullOrEmpty(l.StreetAddress) && l.StreetAddress.Contains(searchString, StringComparison.OrdinalIgnoreCase)) || 
+                   (!string.IsNullOrEmpty(l.PhoneNumber) && l.PhoneNumber.Contains(searchString, StringComparison.OrdinalIgnoreCase)) || 
+                   (!string.IsNullOrEmpty(l.Email) && l.Email.Contains(searchString, StringComparison.OrdinalIgnoreCase)));
+
+
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        vm.InitializePageCommand.Execute(null);
+
+        if (SelectedUser is not null)
+        {
+
+            vm.EditingUser = SelectedUser;
+            editRecord = true;  
+        }
+
+        // if (!String.IsNullOrEmpty(vm.EditingUser.StreetAddress))
+        // {
+        //     AddressDTO dto = new()
+        //         {
+        //             FullAddress = vm.EditingRecord.FullAddress,
+        //             StreetAddress = vm.EditingRecord.StreetAddress,
+        //             State = vm.EditingRecord.State,
+        //             City = vm.EditingRecord.City,
+        //             ZipCode = vm.EditingRecord.ZipCode,
+        //             County = vm.EditingRecord.County,
+        //             Country = vm.EditingRecord.Country,
+        //             Lat = vm.EditingRecord.Lat, 
+        //             Lng = vm.EditingRecord.Lng
+
+        //         };
+
+        //     addresDTOList.Add(dto);
+        // }
+    }
+
+    private async Task HandleSubmit()
+    {
+        await formEditRecord.Validate();
+
+        if (!formEditRecord.IsValid)
+        {
+            Snackbar.Add("Please correct the errors in the form.", Severity.Error);
+            return;
+        }
+        else
+        {
+            if (!editRecord)
+            {
+                // if (vm.RecordList.Any(x => (x.SSN == vm.EditingRecord.SSN && vm.EditingRecord.SSN != null) || (x.EIN == vm.EditingRecord.EIN && vm.EditingRecord.EIN != null)))
+                // {
+
+                //     Snackbar.Add("A Borrower already exists choose from the list of Borrowers.", Severity.Error);
+                //     return;
+                // }
+            }
+
+            vm.UpdateApplicationUserCommand.Execute(null);
+
+            await OnUserProfileComplete.InvokeAsync(vm.EditingUser);
+                       
+            AddButtonDisabled = false;
+
+            vm.GetNewRecordCommand.Execute(null);
+
+            StateHasChanged();
+        }
+    }
+
+    // private void OnAddressComplete(List<AddressDTO> addressList)
+    // {
+    //     if (addressList == null || addressList.Count == 0)
+    //     {
+    //         vm.EditingRecord.FullAddress = string.Empty;
+    //         vm.EditingRecord.StreetAddress = string.Empty;
+    //         vm.EditingRecord.City = string.Empty;
+    //         vm.EditingRecord.State = string.Empty;
+    //         vm.EditingRecord.ZipCode = string.Empty;
+    //         vm.EditingRecord.County = string.Empty;
+    //         vm.EditingRecord.Country = string.Empty;
+    //     }
+    //     else
+    //     {
+    //         var addressDTO = addressList.FirstOrDefault();
+
+    //         vm.EditingRecord.FullAddress = addressDTO.FullAddress;
+    //         vm.EditingRecord.StreetAddress = addressDTO.StreetAddress;
+    //         vm.EditingRecord.City = addressDTO.City;
+    //         vm.EditingRecord.State = addressDTO.State;
+    //         vm.EditingRecord.ZipCode = addressDTO.ZipCode;
+    //         vm.EditingRecord.County = addressDTO.County;
+    //         vm.EditingRecord.Country = addressDTO.Country;
+    //         vm.EditingRecord.Lat = addressDTO.Lat;
+    //         vm.EditingRecord.Lng = addressDTO.Lng;  
+    //     }
+    // }
+
+    private async Task AddRecordForEditAsync(DominateDocsSite.Data.ApplicationUser r)
+    {
+       
+        vm.EditingUser = r;
+
+        editRecord = true;
+
+        searchString = "";
+
+        AddButtonDisabled = false;
+       
+       
+        StateHasChanged();
+    }
+
+    private async Task SearchBackAsync()
+    {
+        searchString = "";
+        
+    }
+
+    private void ClearSelection()
+    {
+        vm.ClearSelectionCommand.Execute(null);
+        vm.GetNewRecordCommand.Execute(null);
+
+        StateHasChanged();
+    }
+
+    private void AddButton()
+    {
+        vm.GetNewRecordCommand.Execute(null);
+
+        AddButtonDisabled = true;
+    }
+
+    private void OnSelectedUserRecord(DominateDocsSite.Data.ApplicationUser r)
+    {
+        searchString = "";
+
+        vm.SelectUserCommand.Execute(r);
+
+        editRecord = true;
+        
+            // if (!String.IsNullOrEmpty(vm.EditingRecord.FullAddress))
+            // {
+            //     AddressDTO dto = new()
+            //     {
+            //         FullAddress = vm.EditingRecord.FullAddress,
+            //         StreetAddress = vm.EditingRecord.StreetAddress,
+            //         State = vm.EditingRecord.State,
+            //         City = vm.EditingRecord.City,
+            //         ZipCode = vm.EditingRecord.ZipCode,
+            //         County = vm.EditingRecord.County,
+            //         Country = vm.EditingRecord.Country,
+            //         Lat = vm.EditingRecord.Lat,
+            //         Lng = vm.EditingRecord.Lng
+            //     };
+
+            //     addresDTOList.Add(dto);
+            // }
+        
+       
+    }
+       
+   
+
+   
+   
+
+}

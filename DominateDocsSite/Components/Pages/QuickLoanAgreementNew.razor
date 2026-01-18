@@ -1,0 +1,738 @@
+﻿@page "/quickloanagreementnew"
+
+@using MudBlazor
+@using System.Globalization
+
+@inject NavigationManager Nav
+@inject QuickLoanAgreementViewModel vm
+@inject QuickLoanAgreementValidator loanValidator
+@inject UserSession Session
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="py-10">
+    <!-- HEADER -->
+    <div class="d-flex flex-column align-center text-center">
+        <MudText Typo="Typo.h3">Create Loan Documents</MudText>
+        <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mt-2">
+            Three quick steps to generate your documents
+        </MudText>
+
+        <!-- STEP INDICATOR -->
+        <div class="d-flex align-center justify-center mt-6" style="gap: 14px;">
+            @StepDot(1, "Loan Type", active: true)
+            <div style="width: 60px; height: 2px; background: var(--mud-palette-lines-default); border-radius: 2px;"></div>
+            @StepDot(2, "Details", active: false)
+            <div style="width: 60px; height: 2px; background: var(--mud-palette-lines-default); border-radius: 2px;"></div>
+            @StepDot(3, "Generate", active: false)
+        </div>
+    </div>
+
+    <!-- MAIN CARD -->
+    <MudPaper Elevation="0"
+              Class="mx-auto mt-10"
+              Style="max-width: 920px; border-radius: 16px; border: 1px solid var(--mud-palette-lines-default); overflow: hidden;">
+
+        <div class="pa-7">
+          
+
+            <!-- Stepper -->
+            <div class="pa-6">
+
+                <MudStepper @ref="stepper" Color="Color.Primary" Variant="Variant.Filled" HeaderTextView="HeaderTextView.All" OnPreviewInteraction="OnPreviewInteraction" Class="mb-6">
+
+                    <!-- Step 1: Loan Type -->
+                    <MudStep Class="mt-5" Title="Loan Type" Icon="Icons.Material.Filled.Category">
+
+                      
+
+                        <ChildContent>
+                            
+                            <MudText Typo="Typo.h6">What type of loan is this?</MudText>
+                            <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mt-1">
+                                Select the loan type to load the right document package.
+                            </MudText>
+
+                            <MudGrid Class="mt-6" GutterSize="3">
+
+                                <div class="d-flex flex-column gap-2">
+
+                                    <MudTextField Class="" Style="background-color: white;" Variant="Variant.Outlined" @bind-Value="vm.EditingAgreement.ReferenceName" For="@(() => vm.EditingAgreement.ReferenceName)" Label="Give your Project a name!" Required="true" />
+
+                                    @foreach (var type in vm.LoanTypes)
+                                    {
+                                        <MudItem xs="12" sm="6" md="4">
+                                            <MudPaper Elevation="0"
+                                                      Class="rounded-lg"
+                                                      Style="@GetTileStyle(SelectedLoanType == type.Name)"
+                                                      @onclick="() => vm.EditingAgreement.LoanTypeId = type.Id">
+                                                <div class="d-flex flex-column align-center justify-center"
+                                                     style="height: 120px; padding: 18px;">
+                                                    <MudAvatar Variant="Variant.Outlined"
+                                                               Size="Size.Large"
+                                                               Color="Color.Default"
+                                                               Class="mb-3">
+                                                        <MudIcon Icon="@ResolveIcon(type.IconKey)" />
+                                                    </MudAvatar>
+
+                                                    <MudText Typo="Typo.subtitle2">@type.Name</MudText>
+                                                    <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mt-1">
+                                                        @type.Description
+                                                    </MudText>
+                                                </div>
+                                            </MudPaper>
+                                        </MudItem>
+                                    }
+                                </div>
+                            </MudGrid>
+                                                      
+
+                        </ChildContent>
+                    </MudStep>
+
+                    <!-- Step 2: Loan Information -->
+                @*    <MudStep Class="mt-5" Title="Loan Info" Icon="Icons.Material.Filled.Info">
+
+                        <ChildContent>
+
+                            <MudAlert Severity="Severity.Success" Variant="Variant.Outlined" Class="mb-4">
+                                <MudText Typo="Typo.h6" Class="mb-2">
+                                    <MudIcon Icon="Icons.Material.Filled.ThumbUp" Class="mr-2" />
+                                    Perfect choice!
+                                </MudText>
+                                <MudText>Now, let's get some basic details on the loan. This helps us understand what you're looking for.</MudText>
+                            </MudAlert>
+
+                            <MudGrid Spacing="3">
+
+                                <MudItem xs="12" sm="6">
+                                    <div class="d-flex flex-column gap-2">
+
+
+                                        <MudNumericField Class="" Style="background-color: white;" HideSpinButtons="true" Adornment="Adornment.Start" AdornmentText="$" Culture="CultureInfo.InvariantCulture"
+                                                         Format="N2" @bind-Value="vm.EditingAgreement.PrincipalAmount" Label="Principal Amount" Variant="Variant.Outlined" Step=".2M" />
+
+                                        <MudSelect Variant="Variant.Outlined" T="Payment.RateTypes" @bind-Value="vm.EditingAgreement.RateType" Label="Interest Rate Type">
+                                            @foreach (var v in Enum.GetValues<Payment.RateTypes>())
+                                            {
+                                                <MudSelectItem Value="v">@v</MudSelectItem>
+                                            }
+                                        </MudSelect>
+
+
+                                        <MudNumericField Immediate="false" Class="" Variant="Variant.Outlined" HideSpinButtons="true" T="decimal" @bind-Value="vm.EditingAgreement.InterestRate" Format="N2" Label="Interest Rate (%)" />
+
+                                        <MudSelect Class="" Variant="Variant.Outlined" T="Payment.AmortizationTypes" @bind-Value="vm.EditingAgreement.AmorizationType" Label="Payment Type">
+                                            @foreach (var v in Enum.GetValues<Payment.AmortizationTypes>())
+                                            {
+                                                <MudSelectItem Value="v">@v</MudSelectItem>
+                                            }
+                                        </MudSelect>
+
+                                        <MudNumericField Immediate="false" Class="" Variant="Variant.Outlined" T="int" HideSpinButtons="true" @bind-Value="vm.EditingAgreement.TermInMonths" Label="Term (months)" />
+                                                                                                 
+
+                                </div>
+
+                                </MudItem>
+
+                                <MudItem xs="12" sm="6">
+
+                                    <div class="d-flex flex-column gap-2">
+                                        @if (vm.EditingAgreement.RateType == Payment.RateTypes.Variable)
+                                        {
+                                            <MudNumericField Immediate="false" Class="" Variant="Variant.Outlined" HideSpinButtons="true" T="decimal" @bind-Value="vm.EditingAgreement.InitialMargin" Format="N2" Label="Initial Margin (%)" />
+                                        }
+                                        <MudSelect Class="" Variant="Variant.Outlined" T="Payment.Schedules" @bind-Value="vm.EditingAgreement.RepaymentSchedule" Label="Repayment Schedule">
+                                            @foreach (var v in Enum.GetValues<Payment.Schedules>())
+                                            {
+                                                <MudSelectItem Value="v">@v</MudSelectItem>
+                                            }
+                                        </MudSelect>
+
+                                        @if (vm.EditingAgreement.RateType == Payment.RateTypes.Variable)
+                                        {
+
+                                            <MudSelect Class="" Variant="Variant.Outlined" T="Payment.Schedules" @bind-Value="vm.EditingAgreement.VariableInterestProperties.AdjustmentInterval" Label="Adjustment Intervals">
+                                                @foreach (var v in Enum.GetValues<Payment.Schedules>())
+                                                {
+                                                    <MudSelectItem Value="v">@v</MudSelectItem>
+                                                }
+                                            </MudSelect>
+
+
+
+                                            <MudSelect Class="" Variant="Variant.Outlined" T="Payment.IndexPaths" @bind-Value="vm.EditingAgreement.VariableInterestProperties.AssumedIndexPath" Label="Assumed Index Path">
+                                                @foreach (var v in Enum.GetValues<Payment.IndexPaths>())
+                                                {
+                                                    <MudSelectItem Value="v">@v</MudSelectItem>
+                                                }
+                                            </MudSelect>
+                                        }
+
+
+                                        <MudDatePicker Variant="Variant.Outlined" @bind-Date="vm.EditingAgreement.OriginationDate" Label="Origination Date" />
+
+                                    </div>
+
+                                </MudItem>
+
+                            </MudGrid>
+
+
+
+                        </ChildContent>
+                    </MudStep>
+
+                    <!-- Step 3: Property Information -->
+                    <MudStep Class="mt-5" Title="Property Info" Icon="Icons.Material.Filled.ContactMail">
+
+                        <ChildContent>
+
+                            <MudAlert Severity="Severity.Success" Variant="Variant.Outlined" Class="mb-4">
+                                <MudText Typo="Typo.h6" Class="mb-2">
+                                    <MudIcon Icon="Icons.Material.Filled.Star" Class="mr-2" />
+                                    You're doing great! Is this loan about a Property?
+                                </MudText>
+                                <MudText>Lets get a good picture of the Property(s) you're looking to fund.</MudText>
+                            </MudAlert>
+
+                            <AddressCompleteMap OnAddressChange="OnPropertyAddressComplete" Row="true" MultipleAddress="true" AddressList="@PropertyAddressesToDTO()" />
+
+                        </ChildContent>
+
+                    </MudStep>
+
+                    <!-- Step 4: Borrower Information -->
+                    <MudStep Class="mt-5" Title="Borrower Info" Icon="Icons.Material.Filled.CheckCircle">
+
+                        <ChildContent>
+
+                            <MudAlert Severity="Severity.Success" Variant="Variant.Outlined" Class="mb-4">
+                                <MudText Typo="Typo.h6" Class="mb-2">
+                                    <MudIcon Icon="Icons.Material.Filled.Celebration" Class="mr-2" />
+                                    Almost there!
+                                </MudText>
+                                <MudText>Let's Get some basic information on the Borrower(s). Remember, this is just the beginning - we'll gather more details as we move forward.</MudText>
+                            </MudAlert>
+
+                            <MudText Typo="Typo.h6">Borrower(s)</MudText>
+
+                            <QuickLoanBorrower OnBorrowerComplete="OnBorrowerCompleteAsync" OnBorrowerCanceled="OnBorrowerCanceled" />
+
+                            <MudAlert Severity="Severity.Info" Variant="Variant.Outlined">
+                                <MudText Typo="Typo.subtitle2" Class="mb-2">
+                                    <MudIcon Icon="Icons.Material.Filled.Info" Class="mr-2" />
+                                    What's next?
+                                </MudText>
+                                <MudText>After you submit this, we'll guide you through additional details like income verification, documentation, and loan terms. Take your time - we're here to help every step of the way!</MudText>
+                            </MudAlert>
+
+                        </ChildContent>
+
+                    </MudStep>
+
+                    <!-- Step 5: Lender Information -->
+                    <MudStep Class="mt-5" Title="Lender Info" Icon="Icons.Material.Filled.CheckCircle">
+                        <ChildContent>
+                            <MudAlert Severity="Severity.Success" Variant="Variant.Outlined" Class="mb-4">
+                                <MudText Typo="Typo.h6" Class="mb-2">
+                                    <MudIcon Icon="Icons.Material.Filled.Celebration" Class="mr-2" />
+                                    Keep going!
+                                </MudText>
+                                <MudText>Let's Gets some basic information on the Lender(s). As with the Borrower keep the Lender Info simple for now - we'll deal with the details late.</MudText>
+                            </MudAlert>
+
+                            <MudText Typo="Typo.h6">Lender(s)</MudText>
+
+                            <QuickLoanLender OnLenderComplete="OnLenderComplete" OnLenderCanceled="OnLenderCanceled" />
+
+                            <MudAlert Severity="Severity.Info" Variant="Variant.Outlined">
+                                <MudText Typo="Typo.subtitle2" Class="mb-2">
+                                    <MudIcon Icon="Icons.Material.Filled.Info" Class="mr-2" />
+                                    What's next?
+                                </MudText>
+                                <MudText>After you submit this, we'll guide you through additional details like income verification, documentation, and loan terms. Take your time - we're here to help every step of the way!</MudText>
+                            </MudAlert>
+                        </ChildContent>
+                    </MudStep>
+
+                    <!-- Step 6: Broker Information -->
+                    <MudStep Class="mt-5" Title="Broker Info" Icon="Icons.Material.Filled.CheckCircle">
+                        <ChildContent>
+                            <MudAlert Severity="Severity.Success" Variant="Variant.Outlined" Class="mb-4">
+                                <MudText Typo="Typo.h6" Class="mb-2">
+                                    <MudIcon Icon="Icons.Material.Filled.Celebration" Class="mr-2" />
+                                    You're close to the end!
+                                </MudText>
+                                <MudText>Now add Broker information if you have it. if now we can enter it later.</MudText>
+                            </MudAlert>
+                            <MudText Typo="Typo.h6">Broker(s)</MudText>
+
+                            <QuickLoanBroker OnBrokerComplete="OnBrokerComplete" OnBrokerCanceled="OnBrokerCanceled" />
+
+
+                            <MudAlert Severity="Severity.Info" Variant="Variant.Outlined">
+                                <MudText Typo="Typo.subtitle2" Class="mb-2">
+                                    <MudIcon Icon="Icons.Material.Filled.Info" Class="mr-2" />
+                                    What's next?
+                                </MudText>
+                                <MudText>After you submit this, we'll guide you through additional details like income verification, documentation, and loan terms. Take your time - we're here to help every step of the way!</MudText>
+                            </MudAlert>
+                        </ChildContent>
+                    </MudStep>
+
+                    <!-- Step 7: Guarantor Information -->
+                    <MudStep Class="mt-5" Title="Guarantor Info" Icon="Icons.Material.Filled.CheckCircle">
+                        <ChildContent>
+                            <MudAlert Severity="Severity.Success" Variant="Variant.Outlined" Class="mb-4">
+                                <MudText Typo="Typo.h6" Class="mb-2">
+                                    <MudIcon Icon="Icons.Material.Filled.Celebration" Class="mr-2" />
+                                    You're down to the end!
+                                </MudText>
+                                <MudText>Add Guarantor information if you have it. if now we can enter it later.</MudText>
+                            </MudAlert>
+                            <MudText Typo="Typo.h6">Gurantor(s)</MudText>
+
+                            <QuickLoanGuarantor OnGuarantorComplete="OnGuarantorComplete" OnGuarantorCanceled="OnGuarantorCanceled" />
+
+                            <MudAlert Severity="Severity.Info" Variant="Variant.Outlined">
+                                <MudText Typo="Typo.subtitle2" Class="mb-2">
+                                    <MudIcon Icon="Icons.Material.Filled.Info" Class="mr-2" />
+                                    What's next?
+                                </MudText>
+                                <MudText>After you submit this, we'll guide you through additional details like income verification, documentation, and loan terms. Take your time - we're here to help every step of the way!</MudText>
+                            </MudAlert>
+                        </ChildContent>
+                    </MudStep>
+
+                    <!-- Step 8: Summary -->
+                    <MudStep Class="mt-5" Title="Summary" Icon="Icons.Material.Filled.CheckCircle">
+                        <ChildContent>
+                            <MudAlert Severity="Severity.Success" Variant="Variant.Outlined" Class="mb-4">
+                                <MudText Typo="Typo.h6" Class="mb-2">
+                                    <MudIcon Icon="Icons.Material.Filled.Celebration" Class="mr-2" />
+                                    You're Done!
+                                </MudText>
+                                <MudText>Here's quick summary!  If you need to edit any you'll be able to do that shortly.</MudText>
+                            </MudAlert>
+
+                            <MudCard Elevation="2" Class="mb-4">
+                                <MudCardHeader>
+                                    <CardHeaderContent>
+                                        <MudText Typo="Typo.h6">Your Loan Summary</MudText>
+                                    </CardHeaderContent>
+                                </MudCardHeader>
+                                <MudCardContent>
+                                    <MudGrid Spacing="3">
+                                        <MudItem xs="12" sm="6">
+                                            <div class="d-flex flex-column gap-2">
+                                                <MudText Typo="Typo.subtitle2" Class="mb-1">Here's you summary lets give this loan a name so you can reference it in the future:</MudText>
+                                                <MudTextField @bind-Value="vm.EditingAgreement.ReferenceName "
+                                                              Label="Reference Name"
+                                                              Variant="Variant.Outlined"
+                                                              Adornment="Adornment.Start"
+                                                              AdornmentIcon="Icons.Material.Filled.AttachMoney"
+                                                              AdornmentColor="Color.Primary"
+                                                              HelperText="Provide a Reference Name for your loan so we can track it!" />
+
+                                                <MudText Typo="Typo.subtitle2" Class="mb-1">Loan Type:</MudText>
+                                                                                                
+                                                <MudText Typo="Typo.subtitle2" Class="mb-1 mt-3">Amount:</MudText>
+                                                <MudText>@(vm.EditingAgreement.PrincipalAmount.ToString("C") ?? "Not specified")</MudText>
+
+                                                <MudText Typo="Typo.subtitle2">Properties</MudText>
+                                                @foreach (var p in vm.EditingAgreement.Properties)
+                                                {
+                                                    <MudText Typo="Typo.subtitle2" Class="mb-1 mt-3">Property Address:</MudText>
+                                                    <MudText>@(string.IsNullOrEmpty(p.FullAddress) ? "Not specified" : p.FullAddress)</MudText>
+                                                }
+
+                                                <MudText Typo="Typo.subtitle2">Borrower(s)</MudText>
+                                                @foreach (var p in vm.EditingAgreement.Borrowers)
+                                                {
+                                                    <MudText Typo="Typo.subtitle2" Class="mb-1 mt-3">Entity Name:</MudText>
+                                                    <MudText>@(string.IsNullOrEmpty(p.EntityName) ? "Not specified" : p.EntityName)</MudText>
+                                                }
+
+                                                <MudText Typo="Typo.subtitle2">Lender(s)</MudText>
+                                                @foreach (var p in vm.EditingAgreement.Lenders)
+                                                {
+                                                    <MudText Typo="Typo.subtitle2" Class="mb-1 mt-3">Entity Name:</MudText>
+                                                    <MudText>@(string.IsNullOrEmpty(p.EntityName) ? "Not specified" : p.EntityName)</MudText>
+                                                }
+
+                                                <MudText Typo="Typo.subtitle2">Broker(s)</MudText>
+                                                @foreach (var p in vm.EditingAgreement.Brokers)
+                                                {
+                                                    <MudText Typo="Typo.subtitle2" Class="mb-1 mt-3">Entity Name:</MudText>
+                                                    <MudText>@(string.IsNullOrEmpty(p.EntityName) ? "Not specified" : p.EntityName)</MudText>
+                                                }
+
+                                                <MudText Typo="Typo.subtitle2">Guarantor(s)</MudText>
+                                                @foreach (var p in vm.EditingAgreement.Guarantors)
+                                                {
+                                                    <MudText Typo="Typo.subtitle2" Class="mb-1 mt-3">Entity Name:</MudText>
+                                                    <MudText>@(string.IsNullOrEmpty(p.EntityName) ? "Not specified" : p.EntityName)</MudText>
+                                                }
+                                            </div>
+                                        </MudItem>
+
+                                    </MudGrid>
+
+                                </MudCardContent>
+
+                            </MudCard>
+
+                            <MudAlert Severity="Severity.Info" Variant="Variant.Outlined">
+                                <MudText Typo="Typo.subtitle2" Class="mb-2">
+                                    <MudIcon Icon="Icons.Material.Filled.Info" Class="mr-2" />
+                                    What's next?
+                                </MudText>
+                                <MudText>After you submit this, we'll guide you through additional details like income verification, documentation, and loan terms. Take your time - we're here to help every step of the way!</MudText>
+                            </MudAlert>
+                        </ChildContent>
+                    </MudStep>*@
+
+                </MudStepper> 
+            </div>
+
+
+            
+        </div>
+
+        <!-- FOOTER BAR -->
+        <div class="px-7 py-5 d-flex align-center justify-end"
+             style="border-top: 1px solid var(--mud-palette-lines-default); background: rgba(0,0,0,0.01);">
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Dark"
+                       Disabled="@(!CanGoNext)"
+                       EndIcon="@Icons.Material.Filled.ArrowForward"
+                       OnClick="GoNext"
+                       Class="rounded-lg"
+                       Style="min-width: 120px;">
+                Next
+            </MudButton>
+        </div>
+    </MudPaper>
+</MudContainer>
+
+@code {
+
+    private string? SelectedLoanType { get; set; }
+
+    private MudStepper stepper = default!;
+
+    private bool CanGoNext => !string.IsNullOrWhiteSpace(SelectedLoanType);
+
+    public decimal RateFraction { get; set; } = 0.075m;
+
+    private readonly Converter<decimal> PercentConverter = new()
+    {
+        // model (0–1) -> UI text (0–100)
+        SetFunc = v => (v * 100m).ToString("0.##", CultureInfo.InvariantCulture),
+        // UI text (accepts "7.5" or "7.5%") -> model (0–1)
+        GetFunc = s =>
+        {
+            if (string.IsNullOrWhiteSpace(s)) return 0m;
+            s = s.Trim().TrimEnd('%');
+            return decimal.TryParse(s, NumberStyles.Number, CultureInfo.InvariantCulture, out var n)
+                ? n / 100m
+                : 0m;
+        }
+    };
+
+    
+    private string selectedLoanType = "";
+    private int currentStepIndex = 0;
+    private string home = "home";
+    private string auto = "auto";
+    private string personal = "personal";
+    private string business = "business";
+
+    private bool AddProperty = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        vm.InitializePageCommand.Execute(null);
+
+
+    }
+
+    private void OnMinusClick(DominateDocsData.Models.PropertyRecord r)
+    {
+        if (vm.EditingAgreement.Properties.Contains(r)) vm.EditingAgreement.Properties.Remove(r);
+
+        if (vm.EditingAgreement.Properties.Count == 0) AddProperty = true;
+
+
+
+    }
+
+    private void OnPlusClick()
+    {
+        AddProperty = true;
+
+    }
+
+    private List<DominateDocsData.Models.AddressDTO> PropertyAddressesToDTO()
+    {
+        List<DominateDocsData.Models.AddressDTO> addresses = new();
+
+        if (vm.EditingAgreement.Properties is not null)
+        {
+            foreach (var addr in vm.EditingAgreement.Properties)
+            {
+                addresses.Add(new AddressDTO
+                {
+                    FullAddress = addr.FullAddress,
+                    StreetAddress = addr.StreetAddress,
+                    City = addr.City,
+                    ZipCode = addr.ZipCode,
+                    County = addr.County,
+                    Country = addr.Country,
+                    Lat = addr.Lat,
+                    Lng = addr.Lng
+                });
+            }
+        }
+
+        return addresses;
+
+    }
+
+    private async Task OnPreviewInteraction(StepperInteractionEventArgs arg)
+    {
+        if (arg.Action == StepAction.Complete)
+        {
+            if (arg.StepIndex == 7)
+            {
+                vm.UpsertRecordCommand.Execute(vm.EditingAgreement);
+
+                Nav.NavigateTo("/DashBoard");
+
+            }
+            else if (arg.StepIndex == 0)
+            {
+                //Loan Type
+
+
+            }
+            else if (arg.StepIndex == 1)
+            {
+                //Property Info
+
+            }
+            else if (arg.StepIndex == 2)
+            {
+                //Borrower Info
+
+            }
+            else if (arg.StepIndex == 3)
+            {
+                //Lender Info
+
+            }
+            else if (arg.StepIndex == 4)
+            {
+                //Broker Info
+
+            }
+            else if (arg.StepIndex == 5)
+            {
+                //Guarantor Info
+
+            }
+            else if (arg.StepIndex == 6)
+            {
+                //Summary
+
+            }
+
+
+        }
+        else if (arg.Action == StepAction.Activate)
+        {
+            // occurrs when clicking a step header with the mouse
+            // await ControlStepNavigation(arg);
+        }
+    }
+
+    // private void SelectLoanType(DocumentSet docSet)
+    // {
+    //     vm.EditingAgreement.DocumentSet = docSet;
+
+    //     StateHasChanged();
+    // }
+
+    private string GetCardStyle(string loanType)
+    {
+        if (selectedLoanType == loanType)
+        {
+            return "border: 2px solid var(--mud-palette-primary) !important; background-color: var(--mud-palette-primary-lighten) !important;";
+        }
+        return "border: 2px solid transparent;";
+    }
+
+    // private string GetTermText()
+    // {
+    //     return loanModel.TermMonths switch
+    //     {
+    //         0 => "Other (to be discussed)",
+    //         > 0 => $"{loanModel.TermMonths} months",
+    //         _ => "Not specified"
+    //     };
+    // }
+
+    private async Task NextStep()
+    {
+        if (currentStepIndex == 7)
+        {
+            // Final submission
+            vm.UpsertRecordCommand.Execute(vm.EditingAgreement);
+            //await SubmitLoanApplication();
+        }
+        else
+        {
+            currentStepIndex++;
+            stepper.NextStepAsync();
+            StateHasChanged();
+        }
+    }
+
+    private async Task PreviousStep()
+    {
+        if (currentStepIndex > 0)
+        {
+            currentStepIndex--;
+            stepper.PreviousStepAsync();
+            StateHasChanged();
+        }
+    }
+
+    private void OnLenderComplete(List<DominateDocsData.Models.Lender> lendeList)
+    {
+        vm.EditingAgreement.Lenders.Clear();
+        vm.EditingAgreement.Lenders = lendeList;
+        vm.UpsertRecordCommand.Execute(null);
+
+    }
+
+    private void OnGuarantorComplete(List<DominateDocsData.Models.Guarantor> guarantorList)
+    {
+        vm.EditingAgreement.Guarantors.Clear();
+        vm.EditingAgreement.Guarantors = guarantorList;
+        vm.UpsertRecordCommand.Execute(null);
+
+    }
+
+    private void OnBrokerComplete(List<DominateDocsData.Models.Broker> brokerList)
+    {
+
+        vm.EditingAgreement.Brokers.Clear();
+        vm.EditingAgreement.Brokers = brokerList;
+        vm.UpsertRecordCommand.Execute(null);
+    }
+
+    private async Task OnBorrowerCompleteAsync(List<DominateDocsData.Models.Borrower> borrowerList)
+    {
+        vm.EditingAgreement.Borrowers.Clear();
+
+        vm.EditingAgreement.Borrowers = borrowerList;
+
+        vm.UpsertRecordCommand.Execute(null);
+    }
+
+    private void OnBorrowerCanceled()
+    {
+
+    }
+
+    private void OnGuarantorCanceled()
+    {
+
+    }
+
+    private void OnBrokerCanceled()
+    {
+
+    }
+
+    private void OnLenderCanceled()
+    {
+
+    }
+
+    private void OnPropertyAddressComplete(List<AddressDTO> addressList)
+    {
+        if (vm.EditingAgreement.Properties is not null)
+        {
+            vm.EditingAgreement.Properties.Clear();
+        }
+
+        foreach (var p in addressList)
+        {
+            PropertyRecord propertyRecord = new()
+            {
+                FullAddress = p.FullAddress,
+                StreetAddress = p.StreetAddress,
+                City = p.City,
+                ZipCode = p.ZipCode,
+                County = p.County,
+                Country = p.Country,
+                Lat = p.Lat,
+                Lng = p.Lng
+            };
+
+            if (!vm.EditingAgreement.Properties.Any(x => x.FullAddress != p.FullAddress))
+            {
+                vm.EditingAgreement.Properties.Add(propertyRecord);
+            }
+        }
+
+        vm.UpsertRecordCommand.Execute(null);
+    }
+
+
+    private static string GetTileStyle(bool selected)
+        => selected
+            ? "cursor:pointer; border: 1px solid rgba(20, 50, 255, 0.35); background: rgba(20, 50, 255, 0.04); border-radius: 14px;"
+            : "cursor:pointer; border: 1px solid var(--mud-palette-lines-default); background: var(--mud-palette-surface); border-radius: 14px;";
+
+
+    protected override void OnInitialized()
+    {
+
+        vm.InitializePageCommand.Execute(null);
+
+        vm.GetNewRecordCommand.Execute(null);
+
+        
+    }
+
+    private RenderFragment StepDot(int number, string label, bool active) => @<div class="d-flex align-center" style="gap: 8px;">
+        <MudAvatar Size="Size.Small"
+                   Variant="Variant.Filled"
+                   Color="@(active ? Color.Dark : Color.Default)"
+                   Style="@(active ? "" : "opacity: 0.55;")">
+            <MudText Typo="Typo.caption" Style="color: white;">@number</MudText>
+        </MudAvatar>
+        <MudText Typo="Typo.body2" Style="@(active ? "" : "opacity: 0.55;")">@label</MudText>
+    </div>;
+
+    private void GoNext()
+    {
+        // Swap with NavigationManager.NavigateTo("/loan/create/details");
+        // This is intentionally empty so the page is drop-in without dependencies.
+    }
+
+    private static string ResolveIcon(string? key) => key switch
+    {
+        "Inventory2" => Icons.Material.Filled.Inventory2,
+        "HomeWork" => Icons.Material.Filled.HomeWork,
+        "CreditCard" => Icons.Material.Filled.CreditCard,
+        "Apartment" => Icons.Material.Filled.Apartment,
+        "Group" => Icons.Material.Filled.Group,
+        "Layers" => Icons.Material.Filled.Layers,
+        _ => Icons.Material.Filled.HelpOutline
+    };
+
+}

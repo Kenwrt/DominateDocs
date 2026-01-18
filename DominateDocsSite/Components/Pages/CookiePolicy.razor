@@ -1,0 +1,169 @@
+﻿@page "/cookiepolicy"
+@using MudBlazor
+
+@inject IJSRuntime JS
+
+
+@inject IDialogService DialogService
+
+
+<script>
+    window.getCookieConsent = function () {
+        return localStorage.getItem("cookieConsent") === "true";
+    };
+
+    window.setCookieConsent = function () {
+        localStorage.setItem("cookieConsent", "true");
+    };
+</script>
+
+<MudDialog Visible="true" Options="diagOps">
+    <TitleContent>
+        <MudText Typo="Typo.h6">
+            <MudIcon Icon="@Icons.Material.Filled.Edit" Class="mr-3" /> Cookie Policy
+        </MudText>
+    </TitleContent>
+
+    <DialogContent>
+
+
+        <MudGrid>
+
+            <MudItem xs="12">
+
+                <div class="ml-10">
+                    <h4><b>Revolutionizing Healthcare Through Automation </b></h4>
+
+                    <MudText Typo="Typo.subtitle1"> <p>At Healthcare Automations, we transform healthcare operations by integrating cutting-edge automation, AI, and advanced digital workflows. Our mission is to eliminate inefficiencies, reduce costs, and enhance patient outcomes through intelligent automation solutions.</p> </MudText>
+
+
+                    Privacy and Confidentiality Policy
+                    Effective Date: [Insert Date]
+                    At Healthcare Automations, we are committed to protecting the privacy and confidentiality of our clients, website visitors, and business partners. This policy outlines how we collect, use, and safeguard your personal and confidential information.
+                    1. Information We Collect We may collect personal information such as name, contact details, and business information when you interact with our website, request services, or communicate with us.
+                    2. How We Use Your Information We use collected information to:
+                    •	Provide and improve our services.
+                    •	Respond to inquiries and support requests.
+                    •	Ensure compliance with legal and regulatory requirements.
+                    •	Communicate relevant updates and offers.
+                    3. Confidentiality Commitment We maintain strict confidentiality protocols to protect sensitive business and personal data. We do not sell, rent, or share information with third parties without consent, except as required by law.
+                    4. Data Security Measures We implement robust security measures to safeguard information from unauthorized access, disclosure, or misuse.
+                    5. Your Rights and Choices You have the right to request access, corrections, or deletion of your personal data. You may also opt out of certain communications.
+                    6. Changes to This Policy We may update this policy periodically. Any changes will be posted on this page with an updated effective date.
+                    Contact Us For any questions regarding our Privacy and Confidentiality Policy, please contact us at: [Email Address] [Phone Number] [Website URL]
+
+
+
+
+                    Accept Cookies Policy
+                    Effective Date: [Insert Date]
+                    Healthcare Automations (“we,” “our,” or “us”) uses cookies and similar tracking technologies to enhance your browsing experience, analyze website traffic, and improve our services. By using our website, you agree to our use of cookies in accordance with this policy.
+                    What Are Cookies? Cookies are small text files stored on your device when you visit a website. They help us recognize your preferences and improve your user experience.
+                    How We Use Cookies We use cookies to:
+                    •	Ensure website functionality and performance.
+                    •	Analyze visitors’ behavior and improve our content.
+                    •	Store user preferences for a personalized experience.
+                    •	Deliver relevant advertisements.
+                    Managing Cookies You can control and manage cookies through your browser settings. Please note that disabling certain cookies may impact website functionality.
+                    Changes to This Policy We may update this policy periodically. Any changes will be posted on this page with an updated effective date.
+                    Contact Us If you have any questions about our cookie policy, please contact us at: [Email Address] [Phone Number] [Website URL]
+
+
+
+                    We use cookies to give you the best possible experience when visiting Healthcare Automation Services Sites.  Some are essential for this site to function; while others help us understand how you use this site, so we can improve it.  We may also use cookies for targeting purposes.  Click “Accept All Cookies” to proceed as specified or click “Manage my preferences” to choose the types of cookies you will accept.  Cookie Notice
+
+                </div>
+
+
+            </MudItem>
+
+
+        </MudGrid>
+
+    </DialogContent>
+    <DialogActions>
+        <MudButton Variant="Variant.Filled" Color="MudBlazor.Color.Primary" OnClick="AcceptCookies" Class="px-10">Close</MudButton>
+    </DialogActions>
+</MudDialog>
+
+
+
+
+@code {
+
+    private IMudDialogInstance MudDialog { get; set; }
+
+    //private readonly DialogOptions maxWidth = new() { MaxWidth = MaxWidth.Medium, FullWidth = false };
+    //private readonly DialogOptions closeButton = new() { CloseButton = false };
+    //private readonly DialogOptions noHeader = new() { NoHeader = true };
+    //private readonly DialogOptions backdropClick = new() { BackdropClick = false };
+    //private readonly DialogOptions fullScreen = new() { FullScreen = false, CloseButton = false };
+    //private readonly DialogOptions topCenter = new() { Position = DialogPosition.TopCenter };
+    private bool cookiesAccepted = false;
+    private bool firstRender = true;
+    private bool hasRendered = false;
+    private bool visible = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+
+
+    }
+
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && !hasRendered)
+        {
+            //await OpenDialogAsync();
+            cookiesAccepted = await JS.InvokeAsync<bool>("getCookieConsent");
+            hasRendered = true;
+            StateHasChanged(); // Trigger UI update after retrieving cookie status
+        }
+
+       
+    }
+
+
+    private readonly DialogOptions diagOps = new()
+    {
+        //  Position = DialogPosition.TopCenter,
+        CloseButton = false,
+        NoHeader = false,
+        //     BackdropClick = false,
+        //     FullScreen = false,
+        MaxWidth = MaxWidth.Medium,
+        FullWidth = true,
+        Position = DialogPosition.BottomCenter,
+
+
+    };
+
+
+
+
+    private async Task AcceptCookies()
+    {
+        cookiesAccepted = true;
+        await JS.InvokeVoidAsync("setCookieConsent");
+
+
+
+        MudDialog.Close();
+    }
+
+    private async Task NoCookies()
+    {
+        cookiesAccepted = false;
+        await JS.InvokeVoidAsync("setCookieConsent");
+
+        //  MudDialog.Cancel();
+    }
+
+    private async Task OpenDialogAsync()
+    {
+        await DialogService.ShowAsync<CookiePolicy>();
+    }
+
+
+}

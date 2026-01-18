@@ -1,0 +1,116 @@
+﻿@page "/trusteelist"
+
+@using System.Text
+@using LiquidDocsData.Models
+@using LiquidDocsData.Enums
+@using System.Globalization
+
+@rendermode InteractiveServer
+@inject TrusteeViewModel viewModel
+@inject NavigationManager NavigationManager
+@inject ISnackbar Snackbar
+@inject UserSession Session
+
+<MudGrid Class="mb-10">
+
+    @if (!AddEdit)
+    {
+       
+            <MudItem xs="12" md="12">
+                <MudTable Context="contextList" Items="viewModel.RecordList" Hover="true" Bordered="true" Dense="true" @bind-SelectedItem="viewModel.SelectedRecord" RowClick="OnSelectedRecord">
+                    <ToolBarContent>
+                        <MudTextField @bind-Value="_search" Placeholder="Search..." />
+                    </ToolBarContent>
+                    <HeaderContent>
+                        <MudTh>Entity Name</MudTh>
+                        <MudTh>Address</MudTh>
+                        <MudTh>Phone</MudTh>
+                        <MudTh>Email</MudTh>
+                        <MudTh>
+
+                        </MudTh>
+                        <MudTh>
+                            <MudButton Class="rounded-4" Disabled=@AddButtonDisabled Variant="Variant.Filled" Size="Size.Small" Color="Color.Primary" OnClick="AddButton">Add Trustee</MudButton>
+                        </MudTh>
+                    </HeaderContent>
+                    <RowTemplate>
+                        <MudTd DataLabel="Enitity Name">@contextList.EntityName</MudTd>
+                        <MudTd DataLabel="Address">@contextList.FullAddress</MudTd>
+                        <MudTd DataLabel="Phone">@contextList.ContactPhoneNumber</MudTd>
+                        <MudTd DataLabel="Email">@contextList.ContactEmail</MudTd>
+                        <MudTd DataLabel="Active">
+                            <MudChip T="bool" Color="@((contextList.IsActive) ? Color.Success : Color.Error)">
+                                @(contextList.IsActive ? "Yes" : "No")
+                            </MudChip>
+                        </MudTd>
+                        <MudTd>
+                            <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                                           Color="Color.Info"
+                                           OnClick="@(() => OnSelectedRecord(contextList))" />
+                        </MudTd>
+                    </RowTemplate>
+                <NoRecordsContent>
+                    <MudText Color="Color.Secondary" Class="pa-4">
+                        🚫 No Active Trustees Found. Please add!
+                    </MudText>
+                </NoRecordsContent>
+                </MudTable>
+            </MudItem>
+        
+    }
+    else
+    {
+        <MudItem xs="12" md="12">
+            <MudPaper Elevation="1" Class="mt-5" Style="background-color: #F2F2F2;">
+
+                <br />
+
+                <MudText Class="pl-4 mt-5" Typo="Typo.h5">Trustee</MudText>
+
+                <Trustee />
+
+            </MudPaper>
+
+        </MudItem>
+    }
+</MudGrid>
+
+
+
+
+
+@code
+{
+    private bool AddEdit = false;
+
+
+
+    private bool AddButtonDisabled = false;
+
+    private string _search = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+
+        viewModel.UserId = Session.UserId;
+    }
+
+    private void AddButton()
+    {
+        viewModel.EditingRecord = new LiquidDocsData.Models.Trustee();
+        viewModel.EditingRecord.Id = Guid.NewGuid();
+        viewModel.EditingRecord.UserId = Guid.Parse(Session.UserId);
+
+        AddEdit = true;
+        AddButtonDisabled = true;
+
+
+    }
+
+    private void OnSelectedRecord(LiquidDocsData.Models.Trustee r)
+    {
+        if (r is not null) viewModel.SelectRecordCommand.Execute(r);
+
+        AddEdit = true;
+    }
+}

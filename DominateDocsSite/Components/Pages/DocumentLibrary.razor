@@ -1,0 +1,238 @@
+﻿@page "/DocumentLibrary"
+
+@attribute [Authorize(Policy = "RequiresAdmin")]
+
+@using System.Text
+@using DocumentManager.Services
+@using Microsoft.AspNetCore.Authorization
+
+@rendermode InteractiveServer
+@inject DocumentLibraryViewModel vm
+@inject DocumentLibraryValidator validator
+@inject NavigationManager NavigationManager
+@inject ISnackbar Snackbar
+@inject IWordServices WordServices
+
+
+<MudPaper Elevation="1" Class="pa-4">
+    <MudText Class="mb-5" Typo="Typo.h4">Document Library</MudText>
+
+    <MudGrid>
+        <MudItem xs="12" md="8">
+            <MudTable Items="vm.LibraryList" Hover="true" Bordered="true" Dense="true" @bind-SelectedItem="vm.SelectedLibrary" RowClick="OnSelectLibrary">
+                <ToolBarContent>
+                    <MudTextField @bind-Value="_search" Placeholder="Search..." />
+                </ToolBarContent>
+                <HeaderContent>
+                    <MudTh>Name</MudTh>
+                    <MudTh>Description</MudTh>
+                    <MudTh>Default Template</MudTh>
+                    <MudTh>Last Updated</MudTh>
+                    <MudTh>Documents</MudTh>
+                    <MudTh>Active</MudTh>
+                    <MudTh></MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd DataLabel="Name">@context.Name</MudTd>
+                    <MudTd DataLabel="Description">@context.Description</MudTd>
+                    <MudTd DataLabel="Default Template">
+                        <MudChip T="bool" Color="@((context.IsUsingDefaultTemplate) ? Color.Success : Color.Error)">
+                            @(context.IsActive ? "Yes" : "No")
+                        </MudChip>
+                        <MudButton Variant="Variant.Text" Color="Color.Primary" OnClick="@(() => UpdateTemplateAsync(context))" Class="mud-typography-body2 mud-link mud-link-btn">
+                            Update Template
+                        </MudButton>
+                    </MudTd>
+                    <MudTd DataLabel="Last Updated">@context.UpdatedAt.ToString()</MudTd>
+                    <MudTd><MudChip T="int" OnClick="@(() => OnClickLibrary(context))" Variant="Variant.Text" Color="Color.Primary">@context.Documents.Count</MudChip></MudTd>
+                    <MudTd DataLabel="Active">
+                        <MudChip T="bool" Color="@((context.IsActive) ? Color.Success : Color.Error)">
+                            @(context.IsActive ? "Yes" : "No")
+                        </MudChip>
+                    </MudTd>
+                    <MudTd>
+                        <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                                       Color="Color.Info"
+                                       OnClick="@(() => OnSelectedLibrary(context))" />
+                    </MudTd>
+                </RowTemplate>
+            </MudTable>
+        </MudItem>
+        <MudItem xs="12" md="4">
+            <MudPaper Elevation="0" Class="pa-4">
+                <MudText Typo="Typo.h6">
+                    @(vm.SelectedLibrary == null ? "Add New Library" : "Edit Library")
+                </MudText>
+                <MudForm Model="@vm.EditingLibrary" @ref="@formEditRecord" Validation="@validator" ValidationDelay="0">
+                    <div class="d-flex flex-column gap-2">
+                        <MudTextField Style="background-color: white;" Variant="Variant.Outlined" @bind-Value="vm.EditingLibrary.Name" For="@(() => vm.EditingLibrary.Name)" Label="Library Name" Required="true" />
+                        <MudTextField Style="background-color: white;" Variant="Variant.Outlined" @bind-Value="vm.EditingLibrary.Description" For="@(() => vm.EditingLibrary.Description)" Label="Library Description" Required="true" />
+                        <MudSwitch T="bool" @bind-Value="vm.EditingLibrary.IsUsingDefaultTemplate" Color="Color.Primary" Label="Use Master Default Document Template" />
+                        @if (!vm.EditingLibrary.IsUsingDefaultTemplate)
+                        {
+                                <MudTextField Style="background-color: white;" Variant="Variant.Outlined" @bind-Value="vm.EditingLibrary.MasterTemplate" For="@(() => vm.EditingLibrary.MasterTemplate)" Label="Name" Required="true" />
+                        }
+
+                        @if (String.IsNullOrEmpty(vm.EditingLibrary.MasterTemplate))
+                        {
+
+                            <MudDivider Class="my-4" />
+                            <MudText Typo="Typo.subtitle1">Master Template:</MudText>
+                            <MudItem>
+                                <MudIcon Icon="Icons.Material.Filled.Description" Size="Size.Large" />
+                                    <MudText Class="ml-2">@vm.EditingLibrary.MasterTemplate</MudText>
+                            </MudItem>
+                        }
+
+                        @if (!vm.EditingLibrary.IsUsingDefaultTemplate)
+                        {
+                                <MudFileUpload Class="mt-5" Style="background-color: white;" Variant="Variant.Outlined" T="IBrowserFile" FilesChanged="OnUploadFiles" Filter=".docm, .doc, .dotm">
+                                <ActivatorContent>
+                                <MudButton Variant="Variant.Filled"
+                                            Color="Color.Primary"
+                                            StartIcon="@Icons.Material.Filled.CloudUpload">
+                                    Upload Master Template
+                                </MudButton>
+                                </ActivatorContent>
+                            </MudFileUpload> 
+                        }
+
+                        <MudSwitch T="bool" @bind-Value="vm.EditingLibrary.IsActive" Color="Color.Primary" Label="Active" />
+
+
+                        <MudStack Row="true" Spacing="2" Class="mt-4">
+                            <MudButton Type="Submit" OnClick="HandleSubmitAsync" Color="Color.Success" Variant="Variant.Filled">
+                                    @(vm.SelectedLibrary == null ? "Add" : "Save")
+                            </MudButton>
+                                @if (vm.SelectedLibrary != null)
+                            {
+                                    <MudButton OnClick="DeleteLibraryAsync" Color="Color.Error" Variant="Variant.Filled">Delete</MudButton>
+                            }
+                                <MudButton OnClick="ClearLibrarySelection" Color="Color.Secondary" Variant="Variant.Outlined">Clear</MudButton>
+                        </MudStack>
+                    </div>
+                </MudForm>
+            </MudPaper>
+        </MudItem>
+
+    </MudGrid>
+</MudPaper>
+
+
+@code {
+
+
+
+    private string _search = "";
+
+    private const long MaxFileSize = 10 * 1024 * 1024; // 10 MB
+
+    private IBrowserFile uploadedFile = null;
+
+    private List<IBrowserFile> uploadedFiles = new();
+
+    private MudForm formEditRecord;
+
+
+
+    protected override async Task OnInitializedAsync()
+    {
+
+        vm.InitializeLibraryCommand.Execute(null);
+
+
+    }
+
+    private async Task DeleteLibraryAsync()
+    {
+        vm.DeleteLibraryCommand.Execute(null);
+    }
+
+    private void ClearLibrarySelection()
+    {
+        vm.ClearLibrarySelectionCommand.Execute(null);
+    }
+
+    private void OnSelectedLibrary(DominateDocsData.Models.DocumentLibrary library)
+    {
+        if (library is not null) vm.SelectLibraryCommand.Execute(library);
+    }
+
+
+    private async Task HandleSubmitAsync()
+    {
+
+        await formEditRecord.Validate();
+
+        if (!formEditRecord.IsValid)
+        {
+            Snackbar.Add("Please correct the errors in the form.", Severity.Error);
+            return;
+        }
+        else
+        {
+            vm.UpsertLibraryCommand.ExecuteAsync(null);
+            
+        }
+
+        StateHasChanged();
+    }
+
+    private async Task OnUploadFiles(IBrowserFile file)
+    {
+
+        if (file.Size > MaxFileSize)
+        {
+            Snackbar.Add($"'{file.Name}' exceeds the 5MB limit.", Severity.Error);
+
+        }
+        else
+        {
+
+            using var stream = file.OpenReadStream(maxAllowedSize: MaxFileSize);
+            using var ms = new MemoryStream();
+            await stream.CopyToAsync(ms);
+
+            var fileBytes = ms.ToArray();
+            vm.EditingLibrary.MasterTemplateBytes = fileBytes;
+
+
+
+            StateHasChanged();
+
+        }
+
+    }
+
+    private string GetIcon(string fileName)
+    {
+        var ext = Path.GetExtension(fileName).ToLower();
+        return ext switch
+        {   
+            ".docx" => Icons.Material.Filled.Description, // Word document
+            ".docm" => Icons.Material.Filled.Description, // Macro-enabled Word document
+            ".dotm" => Icons.Material.Filled.Description, // Macro-enabled Word template
+
+            _ => Icons.Material.Filled.InsertDriveFile
+        };
+    }
+
+    private void OnClickLibrary(DominateDocsData.Models.DocumentLibrary docLib)
+    {
+        if (docLib != null)
+        {
+            vm.SelectLibraryCommand.Execute(docLib);
+
+            NavigationManager.NavigateTo($"/document");
+        }
+    }
+
+    private async Task UpdateTemplateAsync(DominateDocsData.Models.DocumentLibrary docLib)
+    {
+        vm.SelectLibraryCommand.Execute(docLib);
+        await vm.UpdateMasterTemplateCommand.ExecuteAsync(null);
+
+    }   
+
+
+}

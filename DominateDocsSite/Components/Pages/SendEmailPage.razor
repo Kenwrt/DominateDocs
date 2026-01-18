@@ -1,0 +1,126 @@
+﻿@page "/sendemailpage"
+
+
+@rendermode InteractiveServer
+
+@using System.ComponentModel.DataAnnotations
+@using DominateDocsNotify.Enums;
+@using DominateDocsNotify.Models;
+@using DominateDocsNotify.Services
+@using DominateDocsNotify.State;
+@using Microsoft.AspNetCore.Authorization
+
+@inject ContactUsViewModel vm   
+@inject INotifyState notifyState
+@inject IEmailBackgroundService emailService  
+
+
+@namespace Pages
+
+
+<MudText Typo="Typo.h3">Send Emails</MudText>
+
+<MudText Typo="Typo.subtitle1">This is a Test Page</MudText>
+
+
+<MudGrid>
+        
+    <MudItem xs="12" sm="7">
+        <MudPaper Class="pa-4">
+            <MudForm @ref="form" Model="@vm.EditingMailMsg" >
+                <MudTextField @bind-Value="vm.EditingMailMsg.To" T="string" Label="To" Required="true" RequiredError="To email is required!" Validation="@(new EmailAddressAttribute() { ErrorMessage = "The TO email address is invalid" })" />
+                <MudTextField @bind-Value="vm.EditingMailMsg.From" T="string" Label="From" Required="true" RequiredError="From email is required!" Validation="@(new EmailAddressAttribute() { ErrorMessage = "The From email address is invalid" })" />
+                <MudTextField @bind-Value="vm.EditingMailMsg.Subject" T="string" Label="Subject" HelperText="Subject of the email" InputType="InputType.Text" Required="true" RequiredError="Subject is required!" />
+                <MudTextField @bind-Value="vm.EditingMailMsg.MessageBody" T="string" Label="Message" InputType="InputType.Text" Required="true" RequiredError="Message Body is required!" Lines="15" />
+                <MudSelect Class="ml-4" Variant="Variant.Outlined" T="EmailEnums.Templates" @bind-Value="vm.EditingMailMsg.TemplateType" Label="Template">
+                    @foreach (var v in Enum.GetValues<EmailEnums.Templates>())
+                    {
+                        <MudSelectItem Value="v">@v</MudSelectItem>
+                    }
+                </MudSelect>
+                <MudSelect Class="ml-4" Variant="Variant.Outlined" T="EmailEnums.Streams" @bind-Value="vm.EditingMailMsg.StreamType" Label="Email Stream Type">
+                    @foreach (var v in Enum.GetValues<EmailEnums.Streams>())
+                    {
+                        <MudSelectItem Value="v">@v</MudSelectItem>
+                    }
+                </MudSelect>
+
+                <MudSelect Class="ml-4" Variant="Variant.Outlined" T="EmailEnums.Providers" @bind-Value="vm.EditingMailMsg.ProviderType" Label="Email Sender">
+                    @foreach (var v in Enum.GetValues<EmailEnums.Providers>())
+                    {
+                        <MudSelectItem Value="v">@v</MudSelectItem>
+                    }
+                </MudSelect>
+               
+                <div class="d-flex align-center justify-space-between">
+                  <MudButton Onclick="SendMail" Variant="Variant.Filled" Color="Color.Primary" Disabled="@(!success)" Class="ml-auto">Submit</MudButton>
+                </div>
+            </MudForm>
+        </MudPaper>
+        
+    </MudItem>
+   
+
+</MudGrid>
+
+
+
+@code {
+        //EmailMsgDTO emailMsg = new(); 
+
+        bool success = true;
+        string[] errors = { };
+        MudTextField<string> pwField1;
+        MudForm form;
+
+    protected async override Task OnInitializedAsync()
+    {
+        await base.OnInitializedAsync();
+
+        vm.NotifyState = notifyState;
+
+        if (vm.EditingMailMsg == null)
+        {
+            vm.EditingMailMsg = new EmailMsg();
+        }
+
+        vm.EditingMailMsg.To = "ken@DominateDocs.law";
+        vm.EditingMailMsg.From = "ken@DominateDocs.law";
+        vm.EditingMailMsg.Subject = "Test Email Subject";
+        vm.EditingMailMsg.MessageBody = "This is a test email message body.";
+
+       // emailService.OnEmailCompletedEvent += OnEmailCompleteEvent;
+
+    }
+
+    public async Task SendMail()
+    {
+        vm.SendMailCommand.Execute(vm.EditingMailMsg);
+
+        if (notifyState.EmailMsgProcessingQueue.Count > 0)
+        {
+             
+            StateHasChanged();
+        }
+        
+    }
+
+    // private void OnEmailCompleteEvent(object sender, EmailMsg emailMsg)
+    // {
+    //     if (emailMsg != null)
+    //     {
+    //         // success = true;
+    //         // notifyState.EmailMsgProcessingQueue.Remove(emailMsg);
+    //         // notifyState.NotifyStateHasChanged();
+    //     }
+    //     else
+    //     {
+    //         // success = false;
+    //         // errors = notifyState.Errors.ToArray();
+    //     }
+    //     StateHasChanged();
+    // }   
+
+   
+
+}

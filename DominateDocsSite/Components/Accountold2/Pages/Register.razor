@@ -1,0 +1,311 @@
+﻿@page "/Account/RegisterOld"
+
+[AllowAnonymous]
+
+@using System.ComponentModel.DataAnnotations
+@using System.Text
+@using System.Text.Encodings.Web
+@using LiquidDocsSite.Components.Account.Shared
+@using Microsoft.AspNetCore.Identity
+@using Microsoft.AspNetCore.WebUtilities
+@using LiquidDocsSite.Data
+@using LiquidDocsSite.Helpers;
+@using MongoDB.Bson
+@using MongoDB.Bson.Serialization.Attributes
+@using MudBlazor.StaticInput
+@using LiquidDocsData.Models
+@using LiquidDocsData.Enums
+@using Newtonsoft.Json
+@using Newtonsoft.Json.Converters
+
+
+
+@inject UserManager<LiquidDocsSite.Data.ApplicationUser> UserManager
+@inject IUserStore<LiquidDocsSite.Data.ApplicationUser> UserStore
+@inject SignInManager<LiquidDocsSite.Data.ApplicationUser> SignInManager
+@inject IEmailSender<LiquidDocsSite.Data.ApplicationUser> EmailSender
+@inject NavigationManager NavigationManager
+@inject IdentityRedirectManager RedirectManager
+@inject RegistrationViewModel viewModel
+@inject RegistrationValidator RegistrationValidator
+@inject IMongoDatabaseRepo dbApp
+@inject IEncryptAes encryptAes
+
+
+<MudGrid>
+    <MudItem md="6">
+
+        <StatusMessage Message="@Message" />
+        <EditForm Model="Input" asp-route-returnUrl="@ReturnUrl" method="post" OnValidSubmit="RegisterUser" FormName="register">
+            <DataAnnotationsValidator />
+
+
+
+            <MudPaper Elevation="3" Class="pa-6 mt-10 mx-auto" MaxWidth="500px">
+
+                <MudGrid>
+                    <MudItem md="12">
+
+                        <MudText Class="mx-auto" Typo="Typo.h3" GutterBottom="true">Signup</MudText>
+
+                        <MudText Class="mb-10 mx-auto" Typo="Typo.body1" GutterBottom="true">Create a new account.</MudText>
+                        <MudStaticTextField Variant="Variant.Outlined" For="@(() => Input.Email)" @bind-Value="Input.Email"
+                                            Label="User Name/Email" Placeholder="name@example.com"
+                                            UserAttributes="@(new() { { " autocomplete", "username" }, { "aria-required" , "true" } } )" />
+                    </MudItem>
+                    <MudItem md="12">
+                        <MudStaticTextField Variant="Variant.Outlined" For="@(() => Input.Password)" @bind-Value="Input.Password"
+                                            Label="Password" InputType="InputType.Password" Placeholder="password"
+                                            UserAttributes="@(new() { { " autocomplete", "new-password" }, { "aria-required" , "true" } } )" />
+                    </MudItem>
+                    <MudItem md="12">
+                        <MudStaticTextField Variant="Variant.Outlined" For="@(() => Input.ConfirmPassword)" @bind-Value="Input.ConfirmPassword"
+                                            Label="Confirm Password" InputType="InputType.Password" Placeholder="confirm password"
+                                            UserAttributes="@(new() { { " autocomplete", "new-password" }, { "aria-required" , "true" } } )" />
+                    </MudItem>
+                    <MudItem md="12">
+                        <MudStaticTextField Variant="Variant.Outlined" For="@(() => Input.Name)" @bind-Value="Input.Name"
+                                            Label="Name" InputType="InputType.Text" Placeholder="Name" />
+                    </MudItem>
+                    <MudItem md="12">
+
+                        <MudStaticTextField Variant="Variant.Outlined" For="@(() => Input.PhoneNumber)" @bind-Value="Input.PhoneNumber"
+                                            Label="Phone Number" InputType="InputType.Text" Placeholder="(###) ###-####" />
+
+                    </MudItem>
+
+                    <MudItem md="12">
+                        <MudStaticTextField Variant="Variant.Outlined" For="@(() => Input.DateOfBirth)" @bind-Value="Input.DateOfBirth"
+                                            Label="Date of Birth" InputType="InputType.Text" Placeholder="##-##-####" />
+                    </MudItem>
+
+                    <MudItem md="12">
+                        <MudStaticTextField Variant="Variant.Outlined" For="@(() => Input.StreetAddress)" @bind-Value="Input.StreetAddress"
+                                            Label="Stree Address" InputType="InputType.Text" Placeholder="Street Address" />
+                    </MudItem>
+                    <MudItem md="12">
+                        <MudStaticTextField Variant="Variant.Outlined" For="@(() => Input.City)" @bind-Value="Input.City"
+                                            Label="City" InputType="InputType.Text" Placeholder="City" />
+                    </MudItem>
+                    <MudItem md="12">
+                        <MudStaticTextField Variant="Variant.Outlined" For="@(() => Input.State)" @bind-Value="Input.State"
+                                            Label="State" InputType="InputType.Text" Placeholder="CA" />
+
+                    </MudItem>
+                    <MudItem md="12">
+                        <MudStaticTextField Variant="Variant.Outlined" For="@(() => Input.ZipCode)" @bind-Value="Input.ZipCode"
+                                            Label="Zip Code" InputType="InputType.Text" Placeholder="Zip Code" />
+                    </MudItem>
+                    <MudItem md="12">
+                        <MudStaticButton Variant="Variant.Filled" Color="Color.Primary" FullWidth="true" FormAction="FormAction.Submit">Register</MudStaticButton>
+                    </MudItem>
+                </MudGrid>
+
+            </MudPaper>
+        </EditForm>
+    </MudItem>
+    <MudItem md="6">
+
+    </MudItem>
+</MudGrid>
+
+
+@code 
+{
+
+    private bool cleanDb = false; // Set to true to clean the database on initialization, for testing purposes.
+    private MudForm formEditRecord;
+    private IEnumerable<IdentityError>? identityErrors;
+
+    private string emailPattern = @"^[\w\-\.]+@([\w\-]+\.)+[\w\-]{2,4}$";
+
+    [SupplyParameterFromForm]
+    private InputModel Input { get; set; } = new();
+
+    [SupplyParameterFromQuery]
+    private string? ReturnUrl { get; set; }
+
+    private string? Message => identityErrors is null ? null : $"Error: {string.Join(", ", identityErrors.Select(error => error.Description))}";
+
+    protected override async Task OnInitializedAsync()
+    {
+
+        //if (cleanDb)
+        //{
+
+        //     var user = await UserManager.FindByEmailAsync("kenwrt@gmail.com");
+
+
+
+        //     if (user != null)
+        //     {
+
+        //         cleanDb = false;
+        //         //var result = await UserManager.DeleteAsync(user);
+
+        //         // if (result.Succeeded)
+        //         // {
+
+        //         //     // Optionally log out the user or refresh the admin view
+
+        //         // }
+
+        //         // else
+
+        //         // {
+
+        //         //     foreach (var error in result.Errors)
+
+        //         //     {
+
+        //         //         Console.WriteLine(error.Description); // Or show error to UI
+
+        //         //     }
+
+        //         // }
+        //     }
+
+        // }
+
+    }
+
+
+
+    public async Task RegisterUser()
+    {
+        var user = CreateUser();
+
+        user.StreetAddress = Input.StreetAddress;
+        user.City = Input.City;
+        user.State = Input.State;
+        user.ZipCode = Input.ZipCode;
+        user.DateOfBirth = Input.DateOfBirth;
+        user.Name = Input.Name;
+        user.PhoneNumber = Input.PhoneNumber;
+        user.ProfilePictureUrl = Input.ProfilePictureUrl;
+        user.UserName = Input.Email;
+        user.Email = Input.Email;
+        user.DateOfBirth = Input.DateOfBirth;
+
+        UserProfile userProfile = new UserProfile
+        {
+            Id = Guid.NewGuid(),
+            UserId = Guid.Parse(user.Id),
+            Email = Input.Email,
+            UserName = Input.Email,
+            Password = encryptAes.Encrypt(Input.Password),
+            ConfirmedPassword = encryptAes.Encrypt(Input.ConfirmPassword),
+            Name = Input.Name,
+            DateOfBirth = Input.DateOfBirth,
+            PhoneNumber = Input.PhoneNumber,
+            StreetAddress = Input.StreetAddress,
+            City = Input.City,
+            State = Input.State,
+            ZipCode = Input.ZipCode,
+            ProfilePictureUrl = Input.ProfilePictureUrl,
+            UserRole = UserEnums.Roles.User
+        };
+
+        dbApp.UpSertRecord<LiquidDocsData.Models.UserProfile>(userProfile);
+
+        // await UserStore.SetUserNameAsync(user, Input.Email, CancellationToken.None);
+        // var emailStore = GetEmailStore();
+        // await emailStore.SetEmailAsync(user, Input.Email, CancellationToken.None);
+        // var result = await UserManager.CreateAsync(user, Input.Password);
+        // var result2 = await UserManager.AddToRoleAsync(user, "User");
+
+        // await UserManager.UpdateAsync(user);
+
+        // if (!result.Succeeded)
+        // {
+        //     identityErrors = result.Errors;
+        //     return;
+        // }
+
+        // Logger.LogInformation("User created a new account with password.");
+
+        // var userId = await UserManager.GetUserIdAsync(user);
+        // var code = await UserManager.GenerateEmailConfirmationTokenAsync(user);
+        // code = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(code));
+        // var callbackUrl = NavigationManager.GetUriWithQueryParameters(
+        //     NavigationManager.ToAbsoluteUri("Account/ConfirmEmail").AbsoluteUri,
+        //     new Dictionary<string, object?>
+            { ["userId"] = userId, ["code"] = code, ["returnUrl"] = ReturnUrl });
+
+                // await EmailSender.SendConfirmationLinkAsync(user, Input.Email, HtmlEncoder.Default.Encode(callbackUrl));
+
+                // if (UserManager.Options.SignIn.RequireConfirmedAccount)
+                // {
+                //     RedirectManager.RedirectTo(
+                //         "Account/RegisterConfirmation",
+                //         new() { ["email"] = Input.Email, ["returnUrl"] = ReturnUrl });
+                // }
+
+                // await SignInManager.SignInAsync(user, isPersistent: false);
+                // RedirectManager.RedirectTo(ReturnUrl);
+    }
+
+    private static LiquidDocsSite.Data.ApplicationUser CreateUser()
+    {
+        try
+        {
+            return Activator.CreateInstance<LiquidDocsSite.Data.ApplicationUser>();
+        }
+        catch
+        {
+            throw new InvalidOperationException($"Can't create an instance of '{nameof(LiquidDocsSite.Data.ApplicationUser)}'. " +
+            $"Ensure that '{nameof(LiquidDocsSite.Data.ApplicationUser)}' is not an abstract class and has a parameterless constructor.");
+        }
+    }
+
+    private IUserEmailStore<LiquidDocsSite.Data.ApplicationUser> GetEmailStore()
+    {
+       if (!UserManager.SupportsUserEmail)
+       {
+           throw new NotSupportedException("The default UI requires a user store with email support.");
+       }
+
+      return (IUserEmailStore<LiquidDocsSite.Data.ApplicationUser>) UserStore;
+    }
+
+    private sealed class InputModel
+    {
+        [Required]
+        [EmailAddress]
+        [Display(Name = "Email")]
+        public string Email { get; set; } = "";
+
+        [Required]
+        [StringLength(100, ErrorMessage = "The {0} must be at least {2} and at max {1} characters long.", MinimumLength = 6)]
+        [DataType(DataType.Password)]
+        [Display(Name = "Password")]
+        public string Password { get; set; } = "";
+
+        [DataType(DataType.Password)]
+        [Display(Name = "Confirm password")]
+        [Compare("Password", ErrorMessage = "The password and confirmation password do not match.")]
+        public string ConfirmPassword { get; set; } = "";
+
+        public string? Name { get; set; }
+
+        public string? DateOfBirth { get; set; }
+
+        public string? PhoneNumber { get; set; }
+
+        public string? StreetAddress { get; set; }
+
+        public string? City { get; set; }
+
+
+        public string? State { get; set; }
+
+        public string? ZipCode { get; set; }
+
+        public string? ProfilePictureUrl { get; set; }
+
+
+
+    }
+
+
+ }

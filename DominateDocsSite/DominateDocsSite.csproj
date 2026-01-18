@@ -1,0 +1,129 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+
+	<PropertyGroup>
+		<OutputType>Exe</OutputType>
+		<TargetFramework>net9.0</TargetFramework>
+		<PreserveCompilationContext>true</PreserveCompilationContext>
+		<Nullable>enable</Nullable>
+		<LangVersion>latest</LangVersion>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<EnablePreviewFeatures>true</EnablePreviewFeatures>
+		<UserSecretsId>aspnet-DominateDocsSite-a3a3a11b-4df5-4e8e-93bd-5e5fe25b5af8</UserSecretsId>
+	</PropertyGroup>
+
+	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+		<NoWarn>1701;1702;CS8625;CS8600;CS8618;CS8602;CS8604;CS1998;CS0414;CS8603;CS0618;CS8632;CS0168;CS0219;CS0169;CS0649;CS8669;CS4014;CS8632;CS8618;RZ10012;CS0067;NETSDK1187;MUD0002;NU1701;CS1591;RZ10012;CS8601;SYSLIB0022;RZ10012;SYSLIB0041;SYSLIB0023;RZ10012;CS8613;CS8321;RZ10012;CSS105;RZ10012</NoWarn>
+	</PropertyGroup>
+
+	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+		<NoWarn>1701;1702;CS8625;CS8600;CS8618;CS8602;CS8604;CS1998;CS0414;CS8603;CS0618;CS8632;CS0168;CS0219;CS0169;CS0649;CS8669;CS4014;CS8632;CS8618;RZ10012;CS0067;NETSDK1187;MUD0002;NU1701;CS1591;RZ10012;CS8601;SYSLIB0022;RZ10012;SYSLIB0041;SYSLIB0023;RZ10012;CS8613;CS8321;RZ10012;CSS105;RZ10012</NoWarn>
+	</PropertyGroup>
+
+	<ItemGroup>
+	  <Compile Remove="Components\Accountold2\**" />
+	  <Compile Remove="Components\AccountOld\**" />
+	  <Compile Remove="Components\LayoutOld\**" />
+	  <Compile Remove="Components\Pages\FluentValidation\**" />
+	  <Content Remove="Components\Accountold2\**" />
+	  <Content Remove="Components\AccountOld\**" />
+	  <Content Remove="Components\LayoutOld\**" />
+	  <Content Remove="Components\Pages\FluentValidation\**" />
+	  <EmbeddedResource Remove="Components\Accountold2\**" />
+	  <EmbeddedResource Remove="Components\AccountOld\**" />
+	  <EmbeddedResource Remove="Components\LayoutOld\**" />
+	  <EmbeddedResource Remove="Components\Pages\FluentValidation\**" />
+	  <None Remove="Components\Accountold2\**" />
+	  <None Remove="Components\AccountOld\**" />
+	  <None Remove="Components\LayoutOld\**" />
+	  <None Remove="Components\Pages\FluentValidation\**" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <Compile Remove="Components\Layout\LiquidDocsTheme.cs" />
+	  <Compile Remove="Database\IMongoDatabaseRepoOld.cs" />
+	  <Compile Remove="Database\MongoDatabaseRepoOld.cs" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <Content Remove="appsettings.Development.json" />
+	  <Content Remove="appsettings.Production.json" />
+	  <Content Remove="Components\Account\Shared\StatusMessageXXXX.razor" />
+	  <Content Remove="Components\AppOld.razor" />
+	  <Content Remove="Components\Layout\MainLayoutOld.razor" />
+	  <Content Remove="Components\Layout\NavMenuOld.razor" />
+	  <Content Remove="Components\Pages\AddressAutocomplete2.razor" />
+	  <Content Remove="Components\Pages\Home.razor" />
+	  <Content Remove="Components\Pages\LoanAgreement.razor" />
+	  <Content Remove="Components\Pages\XXXXTrustee.razor" />
+	  <Content Remove="Components\Pages\XXXXTrusteeList.razor" />
+	  <Content Remove="Components\Pages\XXXXXSecurity.razor" />
+	  <Content Remove="Components\RoutesOld.razor" />
+	  <Content Remove="Components\_ImportsOld.razor" />
+	  <Content Remove="wwwroot\js\address-autocomplete.js" />
+	  <Content Remove="wwwroot\js\googleMapsInterop.js" />
+	  <Content Remove="wwwroot\js\mapInterop.js" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <None Remove="Components\Layout\MainLayoutOld.razor.css" />
+	  <None Remove="Components\Layout\NavMenuOld.razor.css" />
+	</ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Blazor.FluentValidation" Version="1.0.0" />
+    <PackageReference Include="Extensions.MudBlazor.StaticInput" Version="3.2.1" />
+    <PackageReference Include="FluentValidation.DependencyInjectionExtensions" Version="12.1.0" />
+    <PackageReference Include="GemBox.Document" Version="2025.12.105" />
+    <PackageReference Include="Microsoft.AspNetCore.Diagnostics.EntityFrameworkCore" Version="9.0.10" />
+    <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="9.0.10" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="9.0.10" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="9.0.10">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="MudBlazor" Version="8.14.0" />
+    <PackageReference Include="MudBlazor.Extensions" Version="8.13.1" />
+    <PackageReference Include="MudBlazor.FontIcons.MaterialSymbols" Version="1.3.0" />
+    <PackageReference Include="OpenXmlPowerTools" Version="4.5.3.2" />
+
+
+	  <PackageReference Include="Swashbuckle.AspNetCore" Version="9.0.6" />
+	  <PackageReference Include="Swashbuckle.AspNetCore.Swagger" Version="9.0.6" />
+	  <PackageReference Include="Swashbuckle.AspNetCore.SwaggerGen" Version="9.0.6" />
+	  <PackageReference Include="Swashbuckle.AspNetCore.SwaggerUI" Version="9.0.6" />
+
+	  <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
+
+	  <PackageReference Include="FluentEmail.Razor" Version="3.0.2" />
+	  <PackageReference Include="FluentEmail.Smtp" Version="3.0.2" />
+	  <PackageReference Include="MudBlazor.ThemeManager" Version="3.0.0" />
+	  <PackageReference Include="MudBlazor.Translations" Version="2.6.0" />
+	  <PackageReference Include="RazorLight" Version="2.3.1" />
+
+	  <PackageReference Include="Serilog" Version="4.3.0" />
+	  <PackageReference Include="Serilog.Expressions" Version="5.0.0" />
+	  <PackageReference Include="Serilog.Extensions.Hosting" Version="9.0.0" />
+	  <PackageReference Include="Serilog.Settings.Configuration" Version="9.0.0" />
+	  <PackageReference Include="Serilog.Sinks.Console" Version="6.1.1" />
+	  <PackageReference Include="Serilog.Sinks.File" Version="7.0.0" />
+
+	  <PackageReference Include="MongoDB.Bson" Version="3.5.0" />
+	  <PackageReference Include="MongoDB.Driver" Version="3.5.0" />
+
+	  <PackageReference Include="System.Drawing.Common" Version="9.0.10" />
+
+	  <PackageReference Include="System.Windows.Forms" Version="4.0.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\DocumentManager\DocumentManager.csproj" />
+    <ProjectReference Include="..\DominateDocsData\DominateDocsData.csproj" />
+    <ProjectReference Include="..\DominateDocsNotifier\DominateDocsNotify.csproj" />
+    <ProjectReference Include="..\StripeBillingManager\StripeBillingManager.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Data\Migrations\" />
+  </ItemGroup>
+
+</Project>

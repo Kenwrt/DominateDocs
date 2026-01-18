@@ -1,0 +1,299 @@
+﻿@page "/Account/Manage/paymentoptions"
+
+@using System.Text
+@using Blazored.FluentValidation
+@using DominateDocsData.Models
+@using DominateDocsData.Enums
+@using System.Globalization
+@using DominateDocsSite.Components.Account
+@using DominateDocsSite.Data
+@using DominateDocsSite.State
+@using Microsoft.AspNetCore.Identity
+@using Microsoft.AspNetCore.Identity.EntityFrameworkCore
+
+@rendermode InteractiveServer
+
+
+@inject CreditCardViewModel viewModel
+@inject NavigationManager NavigationManager
+@inject ISnackbar Snackbar
+@inject PaymentOptionsValidator PaymentValidator
+@inject AuthenticationStateProvider AuthProvider
+@inject UserManager<DominateDocsSite.Data.ApplicationUser> UserManager
+@inject SignInManager<DominateDocsSite.Data.ApplicationUser> SignInManager
+@inject IMongoDatabaseRepo appDb
+
+<style>
+
+    .custom-small-field .mud-input-slot,
+    .custom-small-field .mud-input-root {
+        min-height: 25px !important;
+        height: 25px !important;
+    }
+
+    .custom-small-field input {
+        font-size: 0.8rem; /* Reduce font size */
+        padding-top: 2px;
+        padding-bottom: 2px;
+    }
+
+    .custom-small-field label {
+        font-size: 0.7rem;
+    }
+
+    .custom-height {
+        height: 50px; /* Change as needed */
+        font-size: 1.25rem; /* Optional: makes text bigger */
+        padding-top: 10px; /* Optional: fine-tune vertical alignment */
+        padding-bottom: 10px;
+    }
+
+    .custom-font-size {
+        font-size: 1rem; /* 16px, matches Blazor default */
+    }
+
+    .blazor-outline {
+        border-color: var(--blazor-primary, #6b49e6) !important; /* fallback to #0078d4 if variable not set */
+    }
+
+        .blazor-outline:focus {
+            border-color: var(--blazor-primary, #512bd4) !important;
+        }
+
+    .position-relative {
+        position: relative;
+    }
+
+    .select-label-small {
+        position: absolute;
+        left: 12px; /* Adjust to match select padding */
+        top: 3px; /* Adjust for vertical position */
+        font-size: 0.75rem; /* Small font size */
+        background: #fff; /* Optional: matches input background */
+        padding: 0 4px;
+        z-index: 2;
+        pointer-events: none;
+        color: #666; /* Optional: label color */
+    }
+
+    .form-select {
+        padding-top: 20px; /* Make room for label above value */
+    }
+
+</style>
+
+
+<MudPaper Elevation="3" Class="p-2 mx-auto" MaxWidth="500px">
+
+    @if (viewModel.EditingRecord != null)
+    {
+        <MudForm Context="contextPayment" Model="@viewModel.EditingRecord" @ref="@formEditRecord" Validation="@PaymentValidator" ValidationDelay="0">
+
+            <MudGrid GutterSize="3">
+
+                <MudItem md="12">
+                    <div class="d-flex flex-column gap-4">
+                        <MudText Typo="Typo.h5" GutterBottom="true">Payment Info</MudText>
+
+                        <div class="form-group position-relative">
+                            <label class="select-label-small" for="CardType">Card Type</label>
+
+                            @* <select class="form-select custom-height ms-2 custom-font-size blazor-outline" Style="width: 470px;" Variant="Variant.Outlined" @bind="viewModel.EditingRecord.Subscriotion.CreditCard.CardType">
+                            @foreach (var v in Enum.GetValues<DominateDocsData.Enums.CreditCard.Types>())
+                            {
+                                <option value="@v">@v</option>
+                            }
+                        </select> *@
+                        </div>
+
+                        @* <MudSelect Class="ml-4 mt-10" Style="background-color: white;" T="CreditCardTypes.Type" Variant="Variant.Outlined" Label="Select Card Type" @bind-Value="kenValue" Dense="true">
+
+                            @foreach (var lt in Enum.GetValues<CreditCardTypes.Type>())
+                            {
+                                <MudSelectItem Style="background-color: white;" T="CreditCardTypes.Type" Value="@lt">@lt</MudSelectItem>
+                            }
+
+                        </MudSelect> *@
+
+
+                       @*  <MudTextField Class="ml-2 mr-2" Style="background-color: white;" Variant="Variant.Outlined" @bind-Value="viewModel.EditingRecord.CreditCardSubscriotion.CreditCard.CardholderName" Label="Card Holder Name" For="@(() => viewModel.EditingRecord.CreditCardSubscriotion.CreditCard.CardholderName)" Required="true" />
+                        <MudTextField Class="ml-2 mr-2" Style="background-color: white;" Variant="Variant.Outlined" Mask="@(new PatternMask("0000 0000 0000 0000"))" @bind-Value="viewModel.EditingRecord.Subscriotion.CreditCard.CardNumber" Label="Card Number" For="@(() => viewModel.EditingRecord.CreditCardSubscriotion.CreditCard.CardNumber)" Required="true" />
+                        <MudTextField Class="ml-2 mr-2" Style="background-color: white;" Variant="Variant.Outlined" Mask="@(new DateMask(" MM /YY", 'Y', 'M'))" @bind-Value="viewModel.EditingRecord.CreditCardSubscriotion.CreditCard.ExpDate" Label="Expiration" For="@(() => viewModel.EditingRecord.CreditCardSubscriotion.CreditCard.ExpDate)" Required="true" />
+                        <MudTextField Class="ml-2 mr-2" Style="background-color: white;" Variant="Variant.Outlined" Mask="@(new PatternMask("000"))" @bind-Value="viewModel.EditingRecord.CreditCardSubscriotion.CreditCard.CCV" Label="CCV" For="@(() => viewModel.EditingRecord.CreditCardSubscriotion.CreditCard.CCV)" Required="true" />
+                        <MudTextField Class="ml-2 mr-2" Style="background-color: white;" Variant="Variant.Outlined" @bind-Value="viewModel.EditingRecord.CreditCardSubscriotion.CreditCard.BillingAddress" Label="Billing Street Address" For="@(() => viewModel.EditingRecord.CreditCardSubscriotion.CreditCard.BillingAddress)" Required="false" />
+                        <MudTextField Class="ml-2 mr-2" Style="background-color: white;" Variant="Variant.Outlined" @bind-Value="viewModel.EditingRecord.CreditCardSubscriotion.CreditCard.BillingCity" Label="Billing City" For="@(() => viewModel.EditingRecord.CreditCardSubscriotion.CreditCard.BillingCity)" Required="false" />
+
+ *@                        <div class="form-group position-relative">
+                            <label class="select-label-small" for="BillingState">Billing State</label>
+
+                           @*  <select class="form-select ms-2 w-80 me-8 custom-height custom-font-size blazor-outline" Style="width: 470px;" @bind="viewModel.EditingRecord.CreditCardSubscriotion.CreditCard.BillingState">
+                            @foreach (var tr in Enum.GetValues<DominateDocsData.Enums.UsStates.UsState>())
+                            {
+                                <option value="@tr">@tr</option>
+                            }
+                        </select> *@
+                        </div>
+                       @*  <MudSelect Class="ml-4" Style="background-color: white;" T="DominateDocsData.Enums.UsStates.UsState" Variant="Variant.Outlined" Label="Select Billing State" @bind-Value="kenState" Dense="true">
+
+                            @foreach (var tr in Enum.GetValues<DominateDocsData.Enums.UsStates.UsState>())
+                            {
+                                <MudSelectItem Style="background-color: white;" T="DominateDocsData.Enums.UsStates.UsState" Value="@tr">@tr</MudSelectItem>
+                            }
+
+                        </MudSelect> *@
+
+                      @*   <MudTextField Class="ml-2 mr-2" Style="background-color: white;" Variant="Variant.Outlined" @bind-Value="viewModel.EditingRecord.CreditCardSubscriotion.CreditCard.BillingZipCode" Label="Billing Zip Code" For="@(() => viewModel.EditingRecord.CreditCardSubscriotion.CreditCard.BillingZipCode)" Required="false" />
+ *@
+                        <MudStack Row="true" Spacing="2" Class="ml-20 mb-15">
+                            <MudButton Class="pl-4 mr-10" Type="Submit" OnClick="HandleSubmit" Color="Color.Success" Variant="Variant.Filled"> @(viewModel.SelectedRecord == null ? "Add" : "Save")</MudButton>
+                            @if (viewModel.SelectedRecord != null)
+                            {
+                                <MudButton Class="pl-4 mr-10" OnClick="DeleteRecord" Color="Color.Error" Variant="Variant.Filled">Delete</MudButton>
+                            }
+                            <MudButton Class="pl-4" OnClick="ClearSelection" Color="Color.Secondary" Variant="Variant.Filled">Clear</MudButton>
+                        </MudStack>
+                    </div>
+                </MudItem>
+                @* <MudItem md="6">
+            
+        </MudItem> *@
+
+            </MudGrid>
+        </MudForm>
+    }
+    else
+    {
+        <p>Loading user data...</p>
+    }
+
+</MudPaper>
+
+
+@code {
+
+
+    private bool AddEdit = false;
+    private bool isAuthenticated = false;
+    private string userName;
+
+    private DominateDocsSite.Data.ApplicationUser user;
+
+    private MudForm formEditRecord;
+
+    private string emailPattern = @"^[\w\-\.]+@([\w\-]+\.)+[\w\-]{2,4}$";
+
+    private bool AddButtonDisabled = false;
+
+    private string _search = "";
+
+    private DominateDocsData.Models.UserProfile userProfile;
+
+    protected override async Task OnInitializedAsync()
+    {
+
+        var auth = await AuthProvider.GetAuthenticationStateAsync();
+        var user = auth.User;
+
+        isAuthenticated = auth.User.Identity.IsAuthenticated;
+        userName = auth.User.Identity.Name ?? "";
+
+
+
+        userProfile = appDb.GetRecords<UserProfile>().FirstOrDefault(x => x.UserName == userName);
+
+
+        if (userProfile is null)
+        {
+            userProfile = new UserProfile();
+
+        }
+
+
+        viewModel.EditingRecord = userProfile;
+    }
+
+
+    private async Task HandleSubmit()
+    {
+        await formEditRecord.Validate();
+
+        if (!formEditRecord.IsValid)
+        {
+            Snackbar.Add("Please correct the errors in the form.", Severity.Error);
+            return;
+        }
+        else
+        {
+            var usr = viewModel.EditingRecord;
+
+            if (usr is null)
+            {
+                DominateDocsSite.Data.ApplicationUser applicationUser = new()
+                {
+                     UserName = usr.UserName,
+                     // Email = usr.Email,
+                     // Name = usr.Name,
+                     // DateOfBirth = usr.DateOfBirth,
+                     // PhoneNumber = usr.PhoneNumber,
+                     // StreetAddress = usr.StreetAddress,
+                     // City = usr.City,
+                     // State = usr.State,
+                     // ZipCode = user.ZipCode
+                    
+                };
+
+                await UserManager.UpdateAsync(applicationUser);
+
+                viewModel.AddRecordCommand.Execute(null);
+            }
+            else
+            {
+                viewModel.EditRecordCommand.Execute(null);
+            }
+
+            AddEdit = false;
+            AddButtonDisabled = false;
+        }
+    }
+
+
+
+    private void DeleteRecord()
+    {
+        viewModel.DeleteRecordCommand.Execute(null);
+        AddEdit = false;
+    }
+
+    private void ClearSelection()
+    {
+        viewModel.ClearSelectionCommand.Execute(null);
+    }
+
+    private async Task AddButton()
+    {
+
+        viewModel.EditingRecord.Subscription = new()
+        {
+            //CreditCard = new()
+        };
+
+        viewModel.EditingRecord.Id = Guid.NewGuid();
+        
+
+      
+                
+
+        AddEdit = true;
+        AddButtonDisabled = true;
+    }
+
+
+
+    private void OnSelectedRecord(DominateDocsData.Models.Stripe.Subscription sub)
+    {
+        if (sub is not null) viewModel.SelectRecordCommand.Execute(sub);
+        AddEdit = true;
+    }
+
+
+}

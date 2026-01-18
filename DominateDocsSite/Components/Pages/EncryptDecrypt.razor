@@ -1,0 +1,79 @@
+﻿@page "/encryptdecrypt"
+
+@using DominateDocsSite.Helpers
+
+
+@inject IEncryptAes encryptAes
+@inject ISnackbar Snackbar
+@inject IJSRuntime JSRuntime
+
+
+<h3>Encrypt Decrypt Utility</h3>
+
+<MudGrid Class="mb-10">
+    <MudItem xs="12" md="12">
+        <MudPaper Elevation="1" Class="mt-5" Style="background-color: #F2F2F2;">
+            <div class="d-flex flex-column gap-4">
+
+                <MudTextField Class="pl-4 mt-20 mr-4"
+                              Style="background-color: white;"
+                              Variant="Variant.Outlined"
+                              @bind-Value="stringContent"
+                              Label="String Content"
+                              Required="true"
+                              Adornment="Adornment.End"
+                              AdornmentIcon="@Icons.Material.Filled.ContentCopy"
+                              OnAdornmentClick="@(() => CopyToClipboard(stringContent))" />
+
+                <MudTextField Class="pl-4 mr-4"
+                              Style="background-color: white;"
+                              Variant="Variant.Outlined"
+                              @bind-Value="resultContent"
+                              Label="Result"
+                              ReadOnly="true"
+                              Adornment="Adornment.End"
+                              AdornmentIcon="@Icons.Material.Filled.ContentCopy"
+                              OnAdornmentClick="@(() => CopyToClipboard(resultContent))" />
+
+                <MudGrid Justify="Justify.Center" AlignItems="AlignItems.Center" Class="mt-4 mb-20">
+                    <MudItem md="3">
+                        <MudButton Type="Submit" OnClick="OnEncrypt" Color="Color.Success" Variant="Variant.Filled">Encrypt</MudButton>
+                    </MudItem>
+                    <MudItem md="3">
+                        <MudButton OnClick="OnDecrypt" Color="Color.Secondary" Variant="Variant.Filled">Decrypt</MudButton>
+                    </MudItem>
+                </MudGrid>
+
+            </div>
+        </MudPaper>
+    </MudItem>
+</MudGrid>
+
+@code {
+    
+
+    string stringContent = string.Empty;
+    string resultContent = string.Empty;
+
+    private async Task CopyToClipboard(string text)
+    {
+        if (!string.IsNullOrEmpty(text))
+        {
+            await JSRuntime.InvokeVoidAsync("navigator.clipboard.writeText", text);
+            Snackbar.Add("Copied to clipboard!", Severity.Success);
+        }
+    }
+
+    private void OnEncrypt()
+    {
+
+        resultContent = encryptAes.Encrypt(stringContent);
+    }
+    private void OnDecrypt()
+    {
+
+        resultContent = encryptAes.Decrypt(stringContent);
+    }
+}
+
+

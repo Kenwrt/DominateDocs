@@ -1,0 +1,579 @@
+﻿@page "/loandetail"
+
+@using DominateDocsData.Enums
+@using DominateDocsData.Models
+@using DominateDocsSite.Helpers
+@using DominateDocsSite.ViewModels
+@using DominateDocsSite.Database
+@using System.Globalization
+
+@inject NavigationManager Nav
+@inject IMongoDatabaseRepo dbApp
+@inject LoanAgreementViewModel vm
+@inject ISnackbar Snackbar
+
+@inject UserSession Session
+
+<style>
+
+    /* Target the header of any expanded panel */
+    .mud-expand-panel.mud-expanded .mud-expand-panel-header {
+        background-color: #594AE2;
+        color: white;
+    }
+
+    /* Optional: subtle transition */
+    .mud-expand-panel .mud-expand-panel-header {
+        transition: background-color 150ms ease, color 150ms ease;
+    }
+
+    .panel-stack {
+        display: grid; /* or flex; grid is simplest */
+        gap: 24px; /* space between panels */
+    }
+
+</style>
+
+
+
+<MudGrid>
+    <!-- Left column (inputs) -->
+    <MudItem xs="4">
+              
+        <div class="d-flex flex-column gap-1">
+
+            <MudText Class="ml-4 mt-5" Typo="Typo.h6">Loan Agreement</MudText>
+
+            <MudTextField Class="ml-4" Variant="Variant.Outlined" @bind-Value="vm.EditingAgreement.ReferenceName" @bind-Value:after="@(() => OnReferenceNameChanged(""))" Required="true" Label="Reference Name" />
+
+            <MudSelect Class="ml-4" Variant="Variant.Outlined" T="Guid" @bind-Value="vm.EditingAgreement.LoanTypeId" Label="Loan Type">
+                @foreach (var v in vm.LoanTypes)
+                {
+                    <MudSelectItem Value="v.Id">@v.Name</MudSelectItem>
+                }
+            </MudSelect>
+
+            <MudNumericField Immediate="false" Class="ml-4" Style="background-color: white;" HideSpinButtons="true" Adornment="Adornment.Start" AdornmentText="$" Culture="CultureInfo.InvariantCulture"
+                                    Format="N2" @bind-Value="vm.PrincipalAmount" Label="Principal Amount" Variant="Variant.Outlined" Step=".2M" />
+
+            <MudSelect Class="ml-4" Variant="Variant.Outlined" T="Payment.RateTypes" @bind-Value="vm.RateType" Label="Rate Type">
+                @foreach (var v in Enum.GetValues<Payment.RateTypes>())
+                {
+                    <MudSelectItem Value="v">@v</MudSelectItem>
+                }
+            </MudSelect>
+
+           
+            <MudNumericField Immediate="false" Class="ml-4" Variant="Variant.Outlined" HideSpinButtons="true" T="decimal" @bind-Value="vm.InterestRate" Format="N2" Label="Interest Rate (%)" />
+                
+            <MudSelect Class="ml-4" Variant="Variant.Outlined" T="Payment.AmortizationTypes" @bind-Value="vm.AmorizationType" Label="Amorization Type">
+                @foreach (var v in Enum.GetValues<Payment.AmortizationTypes>())
+                {
+                    <MudSelectItem Value="v">@v</MudSelectItem>
+                }
+            </MudSelect>
+
+            <MudNumericField Immediate="false" Class="ml-4" Variant="Variant.Outlined" T="int" HideSpinButtons="true" @bind-Value="vm.TermInMonths" Label="Term (months)" />
+                
+               
+           @*  <MudNumericField Immediate="false" Class="ml-4" Variant="Variant.Outlined" HideSpinButtons="true" T="decimal" @bind-Value="vm.EditingAgreement.DownPaymentPercentage" Format="N2" Label="Down Payment (%)" />*@
+            @*  <MudText Class="ml-4" Typo="Typo.body1">Estimate Down Payment: @DisplayHelper.FormatDollarsCompact(vm.EstimatedDownPayment)</MudText> *@
+            <MudDatePicker Class="ml-4" Variant="Variant.Outlined" @bind-Date="vm.EditingAgreement.OriginationDate" Label="Origination Date" />
+            <MudDatePicker Class="ml-4" Variant="Variant.Outlined" @bind-Date="vm.EditingAgreement.SignedDate" Label="Signed Date" />
+            <MudText Class="ml-6" Typo="Typo.body1">Maturity Date: @vm.GetLoanMaturityDate(vm.TermInMonths)</MudText>
+            
+
+        </div>
+      
+    </MudItem>
+
+    <MudItem xs="4">
+        
+        <div class="d-flex flex-column gap-1">
+
+            <MudText Class="ml-4 mt-5" Typo="Typo.h6">Payment Options</MudText>
+
+            <MudSelect Class="ml-4" Variant="Variant.Outlined" T="Payment.Schedules" @bind-Value="vm.RepaymentSchedule" Label="Repayment Schedule">
+                @foreach (var v in Enum.GetValues<Payment.Schedules>())
+                {
+                    <MudSelectItem Value="v">@v</MudSelectItem>
+                }
+            </MudSelect>
+
+            
+            @if (vm.EditingAgreement.RateType == Payment.RateTypes.Variable)
+            {
+                <MudNumericField Immediate="false" Class="ml-4" Variant="Variant.Outlined" HideSpinButtons="true" T="decimal" @bind-Value="vm.EditingAgreement.InitialMargin" Format="N2" Label="Initial Margin (%)" />
+
+                <MudSelect Class="ml-4" Variant="Variant.Outlined" T="Payment.Schedules" @bind-Value="vm.EditingAgreement.VariableInterestProperties.AdjustmentInterval" Label="Adjustment Intervals">
+                    @foreach (var v in Enum.GetValues<Payment.Schedules>())
+                    {
+                        <MudSelectItem Value="v">@v</MudSelectItem>
+                    }
+                </MudSelect>
+
+
+                <MudSelect Class="ml-4" Variant="Variant.Outlined" T="Payment.IndexPaths" @bind-Value="vm.AssumedIndexPath" Label="Assumed Index Path">
+                    @foreach (var v in Enum.GetValues<Payment.IndexPaths>())
+                    {
+                        <MudSelectItem Value="v">@v</MudSelectItem>
+                    }
+                </MudSelect>
+            }
+
+             <MudSwitch T="bool" Class="ml-4 mt-4 mb-4" Color="Color.Primary" Label="Is there a Balloon Payment" @bind-Value="vm.EditingAgreement.IsBalloonPayment" />
+
+            @if (vm.EditingAgreement.IsBalloonPayment)
+            {
+                <MudNumericField Class="ml-4" Variant="Variant.Outlined" T="int" HideSpinButtons="true" @bind-Value="vm.BalloonTermMonths" Label="Term (months)" />
+                
+                @if (vm.BalloonTermMonths > 0)
+                {
+                    <MudText Class="ml-4" Typo="Typo.body1">Balloon Due Date: @vm.GetBalloonDate(vm.BalloonTermMonths)</MudText>
+
+                    <MudTable Items="@vm.PayBalloonSchedule.PaymentPeriods" Dense="true" Hover="true" Bordered="true" Striped="true">
+                        <ToolBarContent>
+                            <MudText Typo="Typo.h6">Projected Balloon Payment Schedule</MudText>
+                        </ToolBarContent>
+                        <HeaderContent>
+                            <MudTh>Payment #</MudTh>
+                            <MudTh>Due Date</MudTh>
+                            <MudTh align="right">Amount</MudTh>
+                            <MudTh align="right">Balance</MudTh>
+                            <MudTh align="right">Is Balloon</MudTh>
+
+                        </HeaderContent>
+                        <RowTemplate>
+                            <MudTd DataLabel="Payment #">@context.MonthNumber</MudTd>
+                            <MudTd DataLabel="Due Date">@context.DueDate.ToString("MM/dd/yyyy")</MudTd>
+                            <MudTd DataLabel="Amount">@DisplayHelper.FormatDollarsCompact(context.Payment)</MudTd>
+                            <MudTd DataLabel="Balance">@DisplayHelper.FormatDollarsCompact(context.EndingBalance)</MudTd>
+                            <MudTd DataLabel="Is Balloon">@context.IsBalloon</MudTd>
+                        </RowTemplate>
+                        <PagerContent>
+                            <MudTablePager PageSizeOptions="new int[] { 10, 25, 50, 100, int.MaxValue }"
+                                            RowsPerPageString="@rowsPerPageString"
+                                            InfoFormat="@infoFormat"
+                                            AllItemsText="@allItemsText"
+                                            HorizontalAlignment="@horizontalAlignment"
+                                            HideRowsPerPage="@hideRowsPerPage"
+                                            HidePageNumber="@hidePageNumber"
+                                            HidePagination="@hidePagination" />
+                        </PagerContent>
+                    </MudTable>
+                    <MudStack Direction="Column" Spacing="0">
+                        <MudText class="ml-4" Typo="Typo.body1">Total Balloon Amount: @DisplayHelper.FormatDollarsCompact(vm.EditingAgreement.BalloonPayments.BalloonAmount)</MudText>
+                        <MudText class="ml-4" Typo="Typo.body1">Due Date: @vm.EditingAgreement.BalloonPayments.DueDate</MudText>
+                        <MudText class="ml-4" Typo="Typo.body1">Total Interest Before Balloon: @DisplayHelper.FormatDollarsCompact(vm.EditingAgreement.BalloonPayments.TotalInterestBeforeBalloon)</MudText>
+                        <MudText class="ml-4" Typo="Typo.body1">Total Paid Including Balloon: @DisplayHelper.FormatDollarsCompact(vm.EditingAgreement.BalloonPayments.TotalPaidIncludingBalloon)</MudText>
+                        <MudText class="ml-4" Typo="Typo.body1">Total Regular Payments: @DisplayHelper.FormatDollarsCompact(vm.EditingAgreement.BalloonPayments.TotalRegularPayments)</MudText>
+                    </MudStack>
+                }
+                
+            }
+            else
+            {
+                    <MudTable Items="@vm.PaySchedule.Periods" Dense="true" Hover="true" Bordered="true" Striped="true">
+                        <ToolBarContent>
+                            <MudText Typo="Typo.h6">Projected Payment Schedule</MudText>
+                        </ToolBarContent>
+                        <HeaderContent>
+                            <MudTh>Payment #</MudTh>
+                            <MudTh>Due Date</MudTh>
+                            <MudTh align="right">Amount</MudTh>
+                               
+                        </HeaderContent>
+                        <RowTemplate>
+                            <MudTd DataLabel="Payment #">@context.PeriodNumber</MudTd>
+                            <MudTd DataLabel="Due Date">@context.DueDate.ToString("MM/dd/yyyy")</MudTd>
+                            <MudTd DataLabel="Amount">@DisplayHelper.FormatDollarsCompact(context.Payment)</MudTd>
+                        </RowTemplate>
+                        <PagerContent>
+                            <MudTablePager PageSizeOptions="new int[] { 10, 25, 50, 100, int.MaxValue }"
+                                            RowsPerPageString="@rowsPerPageString"
+                                            InfoFormat="@infoFormat"
+                                            AllItemsText="@allItemsText"
+                                            HorizontalAlignment="@horizontalAlignment"
+                                            HideRowsPerPage="@hideRowsPerPage"
+                                            HidePageNumber="@hidePageNumber"
+                                            HidePagination="@hidePagination" />
+                        </PagerContent>
+                    </MudTable>
+                    <MudStack Direction="Column" Spacing="0">
+                        <MudText class="mt-3" Typo="Typo.body1">Total Payments: @DisplayHelper.FormatDollarsCompact(@vm.EditingAgreement.FixedPaymentSchedule.TotalPayments)</MudText>
+                        <MudText Typo="Typo.body1">Total Interest: @DisplayHelper.FormatDollarsCompact(vm.EditingAgreement.FixedPaymentSchedule.TotalInterest)</MudText>
+                        
+                    </MudStack>
+            }
+
+        </div>
+
+    </MudItem>
+
+    <!-- Right column (switch group appearance only) -->
+    <MudItem xs="4">
+                
+        <div class="d-flex flex-column gap-1">
+
+            <MudText Class="ml-2 mt-5" Typo="Typo.h6">Additional Options</MudText>
+
+            <MudSwitch T="bool" Class="ml-2 mt-4 mb-4" Color="Color.Primary" Label="Conditional Right To Extend" @bind-Value="vm.EditingAgreement.IsConditionalRightToExtend" />
+
+            @if (vm.EditingAgreement.IsConditionalRightToExtend)
+            {
+
+                <MudNumericField Class="ml-2" Variant="Variant.Outlined" HideSpinButtons="true" T="int" @bind-Value="vm.EditingAgreement.NumberOfExtensions" Label="Number Of Extensions" />
+                <MudNumericField Class="ml-2" Variant="Variant.Outlined" HideSpinButtons="true" T="int" @bind-Value="vm.EditingAgreement.NumberOfMonthsForEachExtension" Label="Months For Each Extension" />
+
+            }
+
+           @*  <MudSelect Class="ml-2 mb-4" Variant="Variant.Outlined" T="DocumentSet" @bind-Value="vm.EditingAgreement.DocumentSet" Label="Document Set">
+                @foreach (var v in vm.DocumentSetList)
+                {
+                    <MudSelectItem Value="v">@v.Name</MudSelectItem>
+                }
+            </MudSelect> *@
+
+            <MudSwitch Class="ml-2" @bind-Value="vm.EditingAgreement.IsLoanIntendedForSale" Color="Color.Primary" Label="Loan Intended For Sale" />
+
+            @if (vm.EditingAgreement.IsLoanIntendedForSale)
+            {
+                <MudText Typo="Typo.subtitle2" Class="mt-4">Purchaser Information</MudText>
+                <MudTextField Class="ml-2" Variant="Variant.Outlined" @bind-Value="vm.EditingAgreement.LoanPurchaserName" Label="Name" />
+                <MudTextField Class="ml-2" Variant="Variant.Outlined" @bind-Value="vm.EditingAgreement.LoanPurchaserEmailAddress" Label="Email" />
+                <MudTextField Class="ml-2" Variant="Variant.Outlined" @bind-Value="vm.EditingAgreement.LoanPurchaserPhoneNumber" Label="Phone" />
+                <MudTextField Class="ml-2" Variant="Variant.Outlined" @bind-Value="vm.EditingAgreement.LoanPurchaserStreetAddress" Label="Street" />
+                <MudTextField Class="ml-2" Variant="Variant.Outlined" @bind-Value="vm.EditingAgreement.LoanPurchaserAssignees" Label="Assignees" />
+                <MudTextField Class="ml-2" Variant="Variant.Outlined" @bind-Value="vm.EditingAgreement.LoanSalesInformation" Label="Sales Notes" Lines="3" />
+
+            }
+
+            <MudExpansionPanels Class="panel-stack">
+
+                <MudExpansionPanel Class="ml-3 mr-3" Text="Preparrer Information" MaxHeight="1500" @bind-IsExpanded="preparrerInfoOpen">
+
+                        <div class="d-flex flex-column gap-1">
+
+                            <MudTextField Class="ml-2" Variant="Variant.Outlined" @bind-Value="vm.EditingAgreement.LoanPreparerName" Label="Name" />
+                            <MudTextField Class="ml-2" Variant="Variant.Outlined" @bind-Value="vm.EditingAgreement.LoanPreparerEmailAddress" Label="Email" />
+                            <MudTextField Class="ml-2" Variant="Variant.Outlined" @bind-Value="vm.EditingAgreement.LoanPreparerPhoneNumber" Label="Phone" />
+                            <MudTextField Class="ml-2" Variant="Variant.Outlined" @bind-Value="vm.EditingAgreement.LoanPreparerStreetAddress" Label="Street" />
+                        </div>
+
+                </MudExpansionPanel>
+
+                <MudExpansionPanel Class="ml-3 mr-3" Text="Additional Options" MaxHeight="1000" @bind-IsExpanded="additionalOptionsInfoOpen">
+
+                    <div class="d-flex flex-column gap-1">
+                        <MudSwitch Class="ml-2" T="bool" Color="Color.Primary" Label="Tax Insurance or Other Impounds" @bind-Value="vm.EditingAgreement.IsTaxInsuranceOtherImpounds" />
+                        <MudSwitch Class="ml-2" T="bool" Color="Color.Primary" Label="Borrower Responsible For Service Fees" @bind-Value="vm.EditingAgreement.IsBorrowerResponsibleForServicingFees" />
+                        <MudSwitch Class="ml-2" T="bool" Color="Color.Primary" Label="ACH Delivery" @bind-Value="vm.EditingAgreement.IsACHDelivery" />
+                        <MudSwitch Class="ml-2" T="bool" Color="Color.Primary" Label="Remove ACHD Form From Doc Set" @bind-Value="vm.EditingAgreement.IsRemoveACHDFormFromDocSet" />
+                        <MudSwitch Class="ml-2" T="bool" Color="Color.Primary" Label="Exit Fee Included" @bind-Value="vm.EditingAgreement.IsExitFeeIncluded" />
+                        <MudSwitch Class="ml-2" T="bool" Color="Color.Primary" Label="W9 To Be Included" @bind-Value="vm.EditingAgreement.IsW9TObeIncludedInDocSet" />
+                        <MudSwitch Class="ml-2" T="bool" Color="Color.Primary" Label="MERS Language To Be Inserted" @bind-Value="vm.EditingAgreement.IsMERSLanuageToBeInserted" />
+                        <MudSwitch Class="ml-2" T="bool" Color="Color.Primary" Label="Singing Affidavit Required" @bind-Value="vm.EditingAgreement.IsSignAffidavitAkaRequired" />
+
+                        <MudSwitch Class="ml-2" T="bool" Color="Color.Primary" Label="Prepayment Penalty" @bind-Value="vm.EditingAgreement.IsPrepaymentPenalty" />
+                    </div>
+
+                </MudExpansionPanel>
+
+                <MudExpansionPanel Class="ml-3 mr-3" Text="Payments" MaxHeight="500" Expanded="false">
+
+                    <div class="d-flex flex-column gap-1">
+                        <MudSelect Class="ml-2" Variant="Variant.Outlined" T="Payment.Schedules" @bind-Value="vm.EditingAgreement.RepaymentSchedule" Label="Repayment Schedule">
+                            @foreach (var v in Enum.GetValues<Payment.Schedules>())
+                            {
+                                <MudSelectItem Value="v">@v</MudSelectItem>
+                            }
+                        </MudSelect>
+                                                
+                        <MudSelect Class="ml-2" Variant="Variant.Outlined" T="Payment.PrepaymentPremiums" @bind-Value="vm.EditingAgreement.PrepaymentPremium" Label="Prepayment Premium">
+                            @foreach (var v in Enum.GetValues<Payment.PrepaymentPremiums>())
+                            {
+                                <MudSelectItem Value="v">@v</MudSelectItem>
+                            }
+                        </MudSelect>
+                        <MudNumericField Class="ml-2" Variant="Variant.Outlined" T="int" HideSpinButtons="true" @bind-Value="vm.EditingAgreement.ReserveInMonthsToCalculate" Label="Reserve Months" />
+                        <MudNumericField Class="ml-2" Variant="Variant.Outlined" T="decimal" HideSpinButtons="true" @bind-Value="vm.EditingAgreement.ReserveSpecificAmount" Label="Reserve Specific Amount" />
+
+                    </div>
+
+                </MudExpansionPanel>
+
+                <MudExpansionPanel Class="ml-3 mr-3" Text="Additional Fees" MaxHeight="500">
+
+                    <div class="d-flex flex-column gap-1">
+
+                        <MudNumericField Class="ml-2" Variant="Variant.Outlined" HideSpinButtons="true" T="decimal" @bind-Value="vm.EditingAgreement.ServicingFeeAmount" Label="Servicing Fee Amount" />
+                        <MudNumericField Class="ml-2" Variant="Variant.Outlined" HideSpinButtons="true" T="decimal" @bind-Value="vm.EditingAgreement.ExitFeeAmount" Label="Exit Fee Amount" />
+
+                    </div>
+
+                </MudExpansionPanel>
+
+            </MudExpansionPanels>
+
+            <MudGrid Justify="Justify.Center" AlignItems="AlignItems.Center" Class="mt-4">
+
+                <MudItem md="3">
+                    <MudButton Class="ml-2" Type="Submit" OnClick="HandleSubmit" Color="Color.Success" Variant="Variant.Filled">"Save"</MudButton>
+                </MudItem>
+
+                <MudItem md="3">
+                    <MudButton Class="ml-2" OnClick="ClearSelection" Color="Color.Secondary" Variant="Variant.Filled">Clear</MudButton>
+                </MudItem>
+
+            </MudGrid>
+
+        </div>
+     
+    </MudItem>
+   
+</MudGrid>
+
+@code
+{
+    [Parameter] public EventCallback<DominateDocsData.Models.LoanAgreement> OnLoanAgreementComplete { get; set; }
+    [Parameter] public EventCallback OnLoanAgreementCancel { get; set; }
+
+
+    private HorizontalAlignment horizontalAlignment = HorizontalAlignment.Right;
+    private bool hidePageNumber = false;
+    private bool hidePagination = false;
+    private bool hideRowsPerPage = false;
+    private string rowsPerPageString = "Rows per page:";
+    private string infoFormat = "{first_item}-{last_item} of {all_items}";
+    private string allItemsText = "All";
+
+    private bool AddEdit = false;
+
+   // private List<DocumentSet> docSetList;
+   // private DocumentSet selectedDocumentSet = new();
+
+    private MudForm formEditRecord = new();
+
+    private bool additionalOptionsInfoOpen = false;
+    private bool loanSaleInfoOpen = false;
+    private bool preparrerInfoOpen = false;
+    private string activeheader = "active-header";
+
+    MudForm _form1, _form2, _form3;
+
+    private string emailPattern = @"^[\w\-\.]+@([\w\-]+\.)+[\w\-]{2,4}$";
+
+    private bool AddButtonDisabled = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        vm.InitializeRecordCommand.Execute(null);
+                      
+      //  docSetList = dbApp.GetRecords<DocumentSet>().ToList();
+
+
+    }
+
+    private void OnReferenceNameChanged(string value)
+    {
+        vm.UpsertAgreementCommand.Execute(vm.EditingAgreement);
+
+        AddButtonDisabled = false;
+    }
+
+
+
+
+    private async Task HandleSubmit()
+    {
+        await formEditRecord.Validate();
+
+        if (!formEditRecord.IsValid)
+        {
+            Snackbar.Add("Please correct the errors in the form.", Severity.Error);
+            return;
+        }
+        else
+        {
+
+            if (vm.SelectedAgreement is null)
+            {
+                vm.AddAgreementCommand.Execute(null);
+                await OnLoanAgreementComplete.InvokeAsync(vm.EditingAgreement);
+
+               // vm.EditingAgreement = new DominateDocsData.Models.LoanAgreement();
+            }
+            else
+            {
+                //vm.EditAgreementCommand.Execute(null);
+                await OnLoanAgreementComplete.InvokeAsync(vm.EditingAgreement);
+
+                //vm.EditingAgreement = new DominateDocsData.Models.LoanAgreement();
+            }
+
+            AddEdit = false;
+            AddButtonDisabled = false;
+
+            StateHasChanged();
+        }
+    }
+
+
+
+    private void DeleteRecord()
+    {
+        vm.DeleteAgreementCommand.Execute(null);
+        AddEdit = false;
+    }
+
+    private void ClearSelection()
+    {
+        vm.ClearSelectionCommand.Execute(null);
+    }
+
+    private void AddButton()
+    {
+        vm.EditingAgreement = new DominateDocsData.Models.LoanAgreement();
+        vm.EditingAgreement.UserId = Session.UserId;
+
+        AddEdit = true;
+        AddButtonDisabled = true;
+    }
+
+
+
+    private void OnSelectedAgreement(DominateDocsData.Models.LoanAgreement r)
+    {
+        if (r is not null) vm.SelectAgreementCommand.Execute(r);
+
+        AddEdit = true;
+    }
+
+    private void OnPropertyAddressComplete(List<AddressDTO> addressList)
+    {
+        if (vm.EditingAgreement.Properties is not null)
+        {
+            vm.EditingAgreement.Properties.Clear();
+        }
+
+        foreach (var p in addressList)
+        {
+            PropertyRecord propertyRecord = new()
+            {
+                FullAddress = p.FullAddress,
+                StreetAddress = p.StreetAddress,
+                City = p.City,
+                ZipCode = p.ZipCode,
+                State = p.State,
+                County = p.County,
+                Country = p.Country,
+                Lat = p.Lat,
+                Lng = p.Lng
+            };
+
+            if (!vm.EditingAgreement.Properties.Any(x => x.FullAddress == p.FullAddress))
+            {
+                //vm.EditingAgreement.Properties.Add(propertyRecord);
+            }
+        }
+
+        //vm.EditAgreementCommand.Execute(null);
+    }
+
+
+    private void OnLenderComplete(DominateDocsData.Models.Lender record)
+    {
+        if (vm.EditingAgreement is not null)
+        {
+            return;
+        }
+
+        if (!vm.EditingAgreement.Lenders.Any(x => x.SSN == record.SSN))
+        {
+            vm.EditingAgreement.Lenders.Add(record);
+        }
+
+       // vm.EditAgreementCommand.Execute(null);
+
+    }
+
+    private void OnGuarantorComplete(DominateDocsData.Models.Guarantor record)
+    {
+        if (vm.EditingAgreement is not null)
+        {
+            return;
+        }
+
+        if (!vm.EditingAgreement.Guarantors.Any(x => x.SSN == record.SSN))
+        {
+            vm.EditingAgreement.Guarantors.Add(record);
+        }
+
+        //vm.EditAgreementCommand.Execute(null);
+
+    }
+
+    private void OnBrokerComplete(DominateDocsData.Models.Broker record)
+    {
+        if (vm.EditingAgreement is not null)
+        {
+            return;
+        }
+
+        if (!vm.EditingAgreement.Brokers.Any(x => x.SSN == record.SSN))
+        {
+            vm.EditingAgreement.Brokers.Add(record);
+        }
+
+        //vm.EditAgreementCommand.Execute(null);
+
+        StateHasChanged();
+        
+    }
+
+    private void OnBorrowerComplete(DominateDocsData.Models.Borrower record)
+    {
+        if (vm.EditingAgreement is not null)
+        {
+            return;
+        }
+
+        if (!vm.EditingAgreement.Borrowers.Any(x => x.SSN == record.SSN))
+        {
+            vm.EditingAgreement.Borrowers.Add(record);
+        }
+
+        //vm.EditAgreementCommand.Execute(null);
+    }
+
+    private void OnBorrowerCanceled()
+    {
+
+    }
+
+    private void OnGuarantorCanceled()
+    {
+
+    }
+
+    private void OnBrokerCanceled()
+    {
+
+    }
+
+    private void OnLenderCanceled()
+    {
+
+    }
+
+    private async Task Complete()
+    {
+        await OnLoanAgreementComplete.InvokeAsync();
+    }
+
+    private async Task Cancel()
+    {
+        await OnLoanAgreementCancel.InvokeAsync();
+    }
+
+}

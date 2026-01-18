@@ -1,0 +1,59 @@
+﻿@page "/CookieConsentDialog"
+@inject IJSRuntime JS
+@inject IDialogService DialogService
+
+<script>
+    window.getCookieConsent = function () {
+        return localStorage.getItem("cookieConsent") === "true";
+    };
+
+    window.setCookieConsent = function () {
+        localStorage.setItem("cookieConsent", "true");
+    };
+</script>
+
+<MudDialog>
+    <DialogContent>
+        <CookiePolicy />
+    </DialogContent>
+    <DialogActions>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Accept">Accept</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+
+    private IDialogReference dialogRef;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            var accepted = await JS.InvokeAsync<bool>("localStorage.getItem", "cookieAccepted");
+            if (!accepted)
+            {
+                ShowConsentDialog();
+            }
+        }
+    }
+
+    private void ShowConsentDialog()
+    {
+        
+
+        var options = new DialogOptions
+        {
+            CloseButton = false,
+            BackdropClick = false,
+            MaxWidth = MaxWidth.Small,
+            FullWidth = true,
+        };
+
+        dialogRef =  DialogService.Show<CookieConsentDialog>("Cookie Policy", options);
+    }
+    private async Task Accept()
+    {
+        await JS.InvokeVoidAsync("localStorage.setItem", "cookieAccepted", true);
+        // DialogService.Close(dialogRef);
+    }
+}

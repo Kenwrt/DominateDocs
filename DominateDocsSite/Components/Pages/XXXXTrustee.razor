@@ -1,0 +1,720 @@
+﻿@page "/trustee"
+@using System.Text
+@using LiquidDocsData.Models
+@using LiquidDocsData.Enums;
+@using System.Globalization
+
+@rendermode InteractiveServer
+@inject TrusteeViewModel viewModel
+@inject NavigationManager NavigationManager
+@inject ISnackbar Snackbar
+@inject ISessionStateManager SessionState
+@inject TrusteeValidator TrusteeValidator
+@inject SigningAuthorityValidator SigningAuthorityValidator
+@inject AliasValidator AliasValidator
+@inject EntityOwnerValidator SecurityValidator
+@inject UserSession Session
+
+
+<style>
+    .align-right {
+        text-align: right;
+    }
+</style>
+
+<MudForm Context="contextTrustee" Model="@viewModel.EditingRecord" @ref="@formEditRecord" Validation="@TrusteeValidator" ValidationDelay="0">
+
+    <MudGrid GutterSize="3">
+
+        <MudItem md="4">
+            <div class="d-flex flex-column gap-2">
+                
+                <MudSelect Class="ml-4 mt-10" T="LiquidDocsData.Enums.Entity.Types" Style="background-color: white;" Variant="Variant.Outlined" Label="Select Entity" @bind-Value="viewModel.EditingRecord.EntityType" Dense="true">
+
+                    @foreach (var gt in Enum.GetValues<LiquidDocsData.Enums.Entity.Types>())
+                    {
+                        <MudSelectItem Style="background-color: white;" T="LiquidDocsData.Enums.Entity.Types" Value="gt">@gt.GetDescription()</MudSelectItem>
+                    }
+
+                </MudSelect>
+                <MudSelect Class="ml-4 mt-10" T="LiquidDocsData.Enums.Entity.Structures" Style="background-color: white;" Variant="Variant.Outlined" Label="Select Structure Type" @bind-Value="viewModel.EditingRecord.EntityStructure" Dense="true">
+
+                    @foreach (var gt in Enum.GetValues<LiquidDocsData.Enums.Entity.Structures>())
+                    {
+                        <MudSelectItem Style="background-color: white;" T="LiquidDocsData.Enums.Entity.Structures" Value="gt">@gt.GetDescription()</MudSelectItem>
+                    }
+
+                </MudSelect>
+
+                @if (viewModel.EditingRecord.EntityType == Entity.Types.Entity)
+                {
+                    <MudTextField Class="pl-4" Style="background-color: white;" Variant="Variant.Outlined" @bind-Value="viewModel.EditingRecord.EntityName" For="@(() => viewModel.EditingRecord.EntityName)" Label="Entity Name" Required="true" />
+                    <MudTextField Class="pl-4" Style="background-color: white;" Variant="Variant.Outlined" @bind-Value="viewModel.EditingRecord.EIN" Label="EIN#" Required="false" />
+                    <MudTextField Class="pl-4" Style="background-color: white;" Variant="Variant.Outlined" @bind-Value="viewModel.EditingRecord.ContactName" For="@(() => viewModel.EditingRecord.ContactName)" Label="Contact Name" Required="true" />
+
+
+
+                    <MudTextField Class="pl-4" @bind-Value="viewModel.EditingRecord.ContactEmail" Style="background-color: white;" Variant="Variant.Outlined"
+                                  Label="Contact Email"
+                                  Placeholder="example@domain.com"
+                                  Required="true"
+                                  RequiredError="Email is required"
+                                  Pattern="@emailPattern"
+                                  PatternErrorMessage="Invalid email format"
+                                  Immediate="true" />
+
+
+                    <MudTextField Label="Contact Phone" Class="pl-4" Style="background-color: white;" Variant="Variant.Outlined"
+                                  @bind-Value="viewModel.EditingRecord.ContactPhoneNumber"
+                                  Mask="@(new PatternMask("(000)000-0000"))"
+                                  Placeholder="(___) ___-____"
+                                  Required="true"
+                                  Immediate="true" />
+
+                    <MudSelect Class="ml-4" T="LiquidDocsData.Enums.Entity.Roles" Style="background-color: white;" Variant="Variant.Outlined" Label="Select Entity Role" @bind-Value="viewModel.EditingRecord.EntityRole" Dense="true">
+
+                        @foreach (var gt in Enum.GetValues<LiquidDocsData.Enums.Entity.Roles>())
+                        {
+                            <MudSelectItem Style="background-color: white;" T="LiquidDocsData.Enums.Entity.Roles" Value="gt">@gt.GetDescription()</MudSelectItem>
+                        }
+
+                    </MudSelect>
+                    <MudSelect Class="ml-4" T="LiquidDocsData.Enums.UsStates.UsState" Style="background-color: white;" Variant="Variant.Outlined" Label="Select State of Incorporation" @bind-Value="viewModel.EditingRecord.StateOfIncorporation" Dense="true">
+
+                        @foreach (var tr in Enum.GetValues<LiquidDocsData.Enums.UsStates.UsState>())
+                        {
+                            <MudSelectItem Style="background-color: white;" T="LiquidDocsData.Enums.UsStates.UsState" Value="tr">@tr.GetDescription()</MudSelectItem>
+                        }
+
+                    </MudSelect>
+
+                }
+                else if (viewModel.EditingRecord.EntityStructure == LiquidDocsData.Enums.Entity.Structure.Trust)
+                {
+                    <MudTextField Class="pl-4" Style="background-color: white;" Variant="Variant.Outlined" @bind-Value="viewModel.EditingRecord.TrustName" For="@(() => viewModel.EditingRecord.TrustName)" Label="Trust Name" Required="true" />
+
+                    <MudDatePicker Class="pl-4" Style="background-color: white;" Variant="Variant.Outlined" @bind-Date="viewModel.EditingRecord.TrustCreationDate" Label="Trust Date" />
+                    <MudTextField Class="pl-4" Style="background-color: white;" Variant="Variant.Outlined" @bind-Value="viewModel.EditingRecord.FirstOwnerOfTrust" For="@(() => viewModel.EditingRecord.FirstOwnerOfTrust)" Label="First Trust Owner" Required="true" />
+
+                    <MudTextField Class="pl-4" Style="background-color: white;" Variant="Variant.Outlined" @bind-Value="viewModel.EditingRecord.SecondOwnerOfTrust" For="@(() => viewModel.EditingRecord.SecondOwnerOfTrust)" Label="Second Trust Owner" Required="true" />
+
+                    <MudTextField Class="pl-4" Style="background-color: white;" Variant="Variant.Outlined" @bind-Value="viewModel.EditingRecord.ContactName" For="@(() => viewModel.EditingRecord.ContactName)" Label="Contact Name" Required="true" />
+
+
+
+                    <MudTextField Class="pl-4" @bind-Value="viewModel.EditingRecord.ContactEmail" Style="background-color: white;" Variant="Variant.Outlined"
+                                  Label="Contact Email"
+                                  Placeholder="example@domain.com"
+                                  Required="true"
+                                  RequiredError="Email is required"
+                                  Pattern="@emailPattern"
+                                  PatternErrorMessage="Invalid email format"
+                                  Immediate="true" />
+
+
+                    <MudTextField Label="Contact Phone" Class="pl-4" Style="background-color: white;" Variant="Variant.Outlined"
+                                  @bind-Value="viewModel.EditingRecord.ContactPhoneNumber"
+                                  Mask="@(new PatternMask("(000)000-0000"))"
+                                  Placeholder="(___) ___-____"
+                                  Required="true"
+                                  Immediate="true" />
+
+                }
+                else if (viewModel.EditingRecord.EntityType == LiquidDocsData.Enums.Entity.Types.Individual)
+                {
+                    <MudTextField Class="pl-4" Style="background-color: white;" Variant="Variant.Outlined" @bind-Value="viewModel.EditingRecord.ContactName" For="@(() => viewModel.EditingRecord.ContactName)" Label="Contact Name" Required="true" />
+
+
+
+                    <MudTextField Class="pl-4" @bind-Value="viewModel.EditingRecord.ContactEmail" Style="background-color: white;" Variant="Variant.Outlined"
+                                  Label="Contact Email"
+                                  Placeholder="example@domain.com"
+                                  Required="true"
+                                  RequiredError="Email is required"
+                                  Pattern="@emailPattern"
+                                  PatternErrorMessage="Invalid email format"
+                                  Immediate="true" />
+
+
+                    <MudTextField Label="Contact Phone" Class="pl-4" Style="background-color: white;" Variant="Variant.Outlined"
+                                  @bind-Value="viewModel.EditingRecord.ContactPhoneNumber"
+                                  Mask="@(new PatternMask("(000)000-0000"))"
+                                  Placeholder="(___) ___-____"
+                                  Required="true"
+                                  Immediate="true" />
+                }
+
+                <MudSelect Class="ml-4" T="LiquidDocsData.Enums.Trustee.Roles" Style="background-color: white;" Variant="Variant.Outlined" Label="Select Trustee Role" @bind-Value="viewModel.EditingRecord.TrusteeRole" Dense="true">
+
+                    @foreach (var gt in Enum.GetValues<LiquidDocsData.Enums.Trustee.Roles>())
+                    {
+                        <MudSelectItem Style="background-color: white;" T="LiquidDocsData.Enums.Trustee.Roles" Value="gt">@gt.GetDescription()</MudSelectItem>
+                    }
+
+                </MudSelect>
+                <MudTextField Class="pl-4" Style="background-color: white;" Variant="Variant.Outlined" @bind-Value="viewModel.EditingRecord.StreetAddress" Label="Street Address" Required="false" />
+                <MudTextField Class="pl-4" Style="background-color: white;" Variant="Variant.Outlined" @bind-Value="viewModel.EditingRecord.City" Label="City" Required="false" />
+                <MudSelect Class="ml-4" Style="background-color: white;" T="LiquidDocsData.Enums.UsStates.UsState" Variant="Variant.Outlined" Label="Select State" @bind-Value="viewModel.EditingRecord.State" Dense="true">
+
+                    @foreach (var tr in Enum.GetValues<LiquidDocsData.Enums.UsStates.UsState>())
+                    {
+                        <MudSelectItem Style="background-color: white;" T="LiquidDocsData.Enums.UsStates.UsState" Value="tr">@tr.GetDescription()</MudSelectItem>
+                    }
+
+                </MudSelect>
+
+                <MudTextField Class="pl-4" Style="background-color: white;" Variant="Variant.Outlined" @bind-Value="viewModel.EditingRecord.ZipCode" Label="Zip Code" Required="false" />
+                <MudTextField Class="pl-4 mb-10" Style="background-color: white;" Variant="Variant.Outlined" @bind-Value="viewModel.EditingRecord.County" Label="County" Required="false" />
+                
+
+
+            </div>
+        </MudItem>
+        <MudItem md="4">
+            <div class="d-flex flex-column gap-2">
+
+                
+                @if (viewModel.EditingRecord.EntityType == LiquidDocsData.Enums.Entity.Types.Individual)
+                {
+                    <MudTextField Class="pl-4 mt-10 mr-5" @bind-Value="viewModel.EditingRecord.SSN" Style="background-color: white;" Variant="Variant.Outlined"
+                                  Label="SSN"
+                                  Mask="@(new PatternMask("000-00-0000"))"
+                                  Placeholder="___-__-____"
+                                  Required="true"
+                                  RequiredError="SSN is required"
+                                  Pattern="^\d{3}-\d{2}-\d{4}$"
+                                  PatternErrorMessage="Invalid SSN format" />
+
+                  
+                }
+                
+
+                
+
+                @if (viewModel.EditingRecord.EntityType == LiquidDocsData.Enums.Entity.Types.Entity)
+                {
+                    <MudGrid>
+                        <MudItem xs="12" md="12">
+                            <MudText Class="pl-4" Typo="Typo.subtitle1">Signing Authorities: @viewModel.RecordSAList.Count </MudText>
+                            <MudTable Class="ml-4 mr-5" Style="background-color: #FCFCFC;" Items="viewModel.RecordSAList" Context="contextSA" Hover="true" Bordered="true" Dense="true" @bind-SelectedItem="viewModel.SelectedSARecord" RowClick="OnSelectedSARecord">
+                                <HeaderContent>
+                                    <MudTh>Name</MudTh>
+                                    <MudTh>Title</MudTh>
+                                    <MudTh>Phone</MudTh>
+                                    <MudTh></MudTh>
+                                    <MudTh></MudTh>
+                                    <MudTh HeaderCellClass="text-right">
+                                        <MudButton Class="pl-4 rounded-4" Disabled=@AddSAButtonDisabled Variant="Variant.Filled" Size="Size.Small" Color="Color.Primary" OnClick="AddSAButton">Add Signing Authority</MudButton>
+                                    </MudTh>
+
+                                </HeaderContent>
+                                <RowTemplate>
+                                    <MudTd DataLabel="Name">@contextSA.Name</MudTd>
+                                    <MudTd DataLabel="Name">@contextSA.Title</MudTd>
+                                    <MudTd DataLabel="Title">@contextSA.PhoneNumber</MudTd>
+                                    <MudTd>
+                                        <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                                                       Color="Color.Info"
+                                                       OnClick="@(() => OnSelectedSARecord(contextSA))" />
+                                    </MudTd>
+                                </RowTemplate>
+                                <NoRecordsContent>
+                                    <MudText Color="Color.Secondary" Class="pa-4">
+                                        🚫 No POA Assignments Found. Please add!
+                                    </MudText>
+                                </NoRecordsContent>
+                            </MudTable>
+                            @if (AddEditSA)
+                            {
+
+                                <MudForm Context="contextESA" Model="@viewModel.EditingSARecord" @ref="@formSA" Validation="@SigningAuthorityValidator" ValidationDelay="0">
+
+                                    <MudGrid Class="mt-2">
+                                        <MudItem md="6">
+                                            <div class="d-flex flex-column gap-4">
+                                                <MudTextField Class="pl-4" Variant="Variant.Outlined" Style="background-color: white;" @bind-Value="viewModel.EditingSARecord.Name" Label="Name" Required="true" />
+                                                <MudTextField Class="pl-4" Variant="Variant.Outlined" Style="background-color: white;" @bind-Value="viewModel.EditingSARecord.Title" Label="Title" Required="true" />
+                                                <MudTextField Class="pl-4" Label="Phone Number" Style="background-color: white;" Variant="Variant.Outlined"
+                                                              @bind-Value="viewModel.EditingSARecord.PhoneNumber"
+                                                              Mask="@(new PatternMask("(000)000-0000"))"
+                                                              Placeholder="(___) ___-____"
+                                                              Required="true"
+                                                              Immediate="true" />
+
+                                                <MudStack Row="true" Spacing="10" Class="mt-4 mb-10">
+                                                    <MudButton Class="ml-10" Type="Submit" OnClick="HandleSASubmit" Color="Color.Success" Variant="Variant.Filled">@(viewModel.SelectedSARecord == null ? "Add" : "Save")</MudButton>
+                                                    @if (viewModel.SelectedSARecord != null)
+                                                    {
+                                                        <MudButton OnClick="DeleteSARecord" Color="Color.Error" Variant="Variant.Filled">Delete</MudButton>
+                                                    }
+                                                    <MudButton OnClick="ClearSASelection" Color="Color.Secondary" Variant="Variant.Filled">Clear</MudButton>
+                                                </MudStack>
+                                            </div>
+                                        </MudItem>
+
+                                    </MudGrid>
+                                </MudForm>
+
+                            }
+                        </MudItem>
+                    </MudGrid>
+                }
+
+                <MudSwitch Class="pl-4 pr-4" T="bool" @bind-Value="viewModel.EditingRecord.IsAliasNamesUsed" Color="Color.Primary" Label="Alias Names" />
+
+                @if (viewModel.EditingRecord.IsAliasNamesUsed)
+                {
+                    <MudGrid>
+                        <MudItem xs="12" md="12">
+                            <MudText Class="pl-4" Typo="Typo.subtitle1">Alias: @viewModel.RecordAliasList.Count </MudText>
+                            <MudTable Class="ml-4 mr-5" Style="background-color: #FCFCFC;" Items="viewModel.RecordAliasList" Context="contextAlias" Hover="true" Bordered="true" Dense="true" @bind-SelectedItem="viewModel.SelectedAliasRecord" RowClick="OnSelectedAliasRecord">
+                                <HeaderContent>
+                                    <MudTh>Name</MudTh>
+                                    <MudTh>Alias</MudTh>
+                                    <MudTh></MudTh>
+                                    <MudTh></MudTh>
+                                    <MudTh></MudTh>
+                                    <MudTh HeaderCellClass="text-right">
+                                        <MudButton Class="pl-4 rounded-4" Disabled=@AddAliasButtonDisabled Variant="Variant.Filled" Size="Size.Small" Color="Color.Primary" OnClick="AddAliasButton">Add Alias Names</MudButton>
+                                    </MudTh>
+
+                                </HeaderContent>
+                                <RowTemplate>
+                                    <MudTd DataLabel="Name">@contextAlias.Name</MudTd>
+                                    <MudTd DataLabel="Alias">@contextAlias.AlsoKnownAs</MudTd>
+
+                                    <MudTd>
+                                        <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                                                       Color="Color.Info"
+                                                       OnClick="@(() => OnSelectedAliasRecord(contextAlias))" />
+                                    </MudTd>
+                                </RowTemplate>
+                                <NoRecordsContent>
+                                    <MudText Color="Color.Secondary" Class="pa-4">
+                                        🚫 No Alias Names Found. Please add!
+                                    </MudText>
+                                </NoRecordsContent>
+                            </MudTable>
+                            @if (AddEditAlias)
+                            {
+
+                                <MudForm Context="contextA" Model="@viewModel.EditingAliasRecord" @ref="@formAlias" Validation="@AliasValidator" ValidationDelay="0">
+
+
+                                    <MudGrid Class="mt-2">
+                                        <MudItem md="6">
+                                            <div class="d-flex flex-column gap-2">
+                                                <MudTextField Class="pl-4" Variant="Variant.Outlined" Style="background-color: white;" @bind-Value="viewModel.EditingAliasRecord.Name" Label="Name" Required="true" />
+                                                <MudTextField Class="pl-4" Variant="Variant.Outlined" Style="background-color: white;" @bind-Value="viewModel.EditingAliasRecord.AlsoKnownAs" Label="Alias" Required="true" />
+
+
+                                                <MudStack Row="true" Spacing="10" Class="mt-4 mb-10">
+                                                    <MudButton Class="ml-10" Type="Submit" OnClick="HandleAliasSubmit" Color="Color.Success" Variant="Variant.Filled">@(viewModel.SelectedAliasRecord == null ? "Add" : "Save")</MudButton>
+                                                    @if (viewModel.SelectedAliasRecord != null)
+                                                    {
+                                                        <MudButton OnClick="DeleteAliasRecord" Color="Color.Error" Variant="Variant.Filled">Delete</MudButton>
+                                                    }
+                                                    <MudButton OnClick="ClearAliasSelection" Color="Color.Secondary" Variant="Variant.Filled">Clear</MudButton>
+                                                </MudStack>
+                                            </div>
+                                        </MudItem>
+
+                                    </MudGrid>
+                                </MudForm>
+
+                            }
+                        </MudItem>
+                    </MudGrid>
+                }
+
+                <MudSwitch Class="pl-4 mr-4" T="bool" @bind-Value="viewModel.EditingRecord.IsHasSecurity" Color="Color.Primary" Label="Securities" />
+
+                @if (viewModel.EditingRecord.EntityType == LiquidDocsData.Enums.Entity.Types.Entity)
+                {
+                    <MudGrid Class="mb-15">
+                        <MudItem xs="12" md="12">
+                            <MudText Class="pl-4" Typo="Typo.subtitle1">Securities: @viewModel.RecordSecurityList.Count </MudText>
+                            <MudTable Class="ml-4 mr-5" Style="background-color: #FCFCFC;" Items="viewModel.RecordSecurityList" Context="contextSecurity" Hover="true" Bordered="true" Dense="true" @bind-SelectedItem="viewModel.SelectedSecurityRecord" RowClick="OnSelectedSecurityRecord">
+                                <HeaderContent>
+                                    <MudTh>Name</MudTh>
+                                    <MudTh>Type</MudTh>
+                                    <MudTh>Market Value</MudTh>
+                                    <MudTh></MudTh>
+                                    <MudTh></MudTh>
+                                    <MudTh HeaderCellClass="text-right">
+                                        <MudButton Class="pl-4 rounded-4" Disabled=@AddSecurityButtonDisabled Variant="Variant.Filled" Size="Size.Small" Color="Color.Primary" OnClick="AddSecurityButton">Add Security</MudButton>
+                                    </MudTh>
+
+                                </HeaderContent>
+                                <RowTemplate>
+                                    <MudTd DataLabel="Name">@contextSecurity.AssetName</MudTd>
+                                    <MudTd DataLabel="Alias">@contextSecurity.SecurityType</MudTd>
+                                    <MudTd DataLabel="Alias">@contextSecurity.MarketValue</MudTd>
+
+                                    <MudTd>
+                                        <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                                                       Color="Color.Info"
+                                                       OnClick="@(() => OnSelectedSecurityRecord(contextSecurity))" />
+                                    </MudTd>
+                                </RowTemplate>
+                                <NoRecordsContent>
+                                    <MudText Color="Color.Secondary" Class="pa-4">
+                                        🚫 No Securities Found. Please add!
+                                    </MudText>
+                                </NoRecordsContent>
+                            </MudTable>
+                            @if (AddEditSecurity)
+                            {
+
+                                <MudForm Context="contextA" Model="@viewModel.EditingSecurityRecord" @ref="@formSecurity" Validation="@SecurityValidator" ValidationDelay="0">
+                                    <MudGrid Class="mt-2">
+                                        <MudItem md="6">
+                                            <div class="d-flex flex-column gap-2">
+                                                <MudTextField Class="pl-4" Variant="Variant.Outlined" Style="background-color: white;" @bind-Value="viewModel.EditingSecurityRecord.AssetName" Label="Asset Name" Required="true" />
+                                                <MudSelect Class="ml-4" Style="background-color: white;" T="LiquidDocsData.Enums.Security.Types" Variant="Variant.Outlined" Label="Select Security Type" @bind-Value="viewModel.EditingSecurityRecord.SecurityType" Dense="true">
+
+                                                    @foreach (var gt in Enum.GetValues<LiquidDocsData.Enums.Security.Types>())
+                                                    {
+                                                        <MudSelectItem Style="background-color: white;" T="LiquidDocsData.Enums.Security.Types" Value="gt">@gt</MudSelectItem>
+                                                    }
+
+                                                </MudSelect>
+                                                <MudTextField Class="pl-4" Variant="Variant.Outlined" Style="background-color: white;" @bind-Value="viewModel.EditingSecurityRecord.Issuer" Label="Issuer" Required="true" />
+                                                <MudTextField Class="pl-4" Variant="Variant.Outlined" Style="background-color: white;" @bind-Value="viewModel.EditingSecurityRecord.TickerSymbol" Label="Ticker Symbol" Required="true" />
+                                                <MudNumericField Class="pl-4 mr-5" Style="background-color: white;" HideSpinButtons="true" Culture="CultureInfo.InvariantCulture"
+                                                                 Format="N0" @bind-Value="viewModel.EditingSecurityRecord.Quantity" Label="Quantity" Variant="Variant.Outlined" />
+
+                                                <MudNumericField Class="pl-4 mr-5" Style="background-color: white;" HideSpinButtons="true" Adornment="Adornment.Start" AdornmentText="$" Culture="CultureInfo.InvariantCulture"
+                                                                 Format="N2" @bind-Value="viewModel.EditingSecurityRecord.MarketValue" Label="Market Value" Variant="Variant.Outlined" Step=".2M" />
+
+
+                                                <MudNumericField Class="pl-4 mr-5" Style="background-color: white;" HideSpinButtons="true" Adornment="Adornment.Start" AdornmentText="$" Culture="CultureInfo.InvariantCulture"
+                                                                 Format="N2" @bind-Value="viewModel.EditingSecurityRecord.CurrentValue" Label="Current Value" Variant="Variant.Outlined" Step=".2M" />
+
+                                                <MudTextField Class="pl-4" Variant="Variant.Outlined" Style="background-color: white;" @bind-Value="viewModel.EditingSecurityRecord.Notes" Label="Notes" Required="true" Lines="5" />
+
+                                                <MudStack Row="true" Spacing="10" Class="mt-4 mb-10">
+                                                    <MudButton Class="ml-10" Type="Submit" OnClick="HandleSecuritySubmit" Color="Color.Success" Variant="Variant.Filled">@(viewModel.SelectedSecurityRecord == null ? "Add" : "Save")</MudButton>
+                                                    @if (viewModel.SelectedSecurityRecord != null)
+                                                    {
+                                                        <MudButton OnClick="DeleteSecurityRecord" Color="Color.Error" Variant="Variant.Filled">Delete</MudButton>
+                                                    }
+                                                    <MudButton OnClick="ClearSecuritySelection" Color="Color.Secondary" Variant="Variant.Filled">Clear</MudButton>
+
+                                                </MudStack>
+                                            </div>
+                                        </MudItem>
+
+                                    </MudGrid>
+                                </MudForm>
+
+                            }
+                        </MudItem>
+                    </MudGrid>
+                }
+                <MudStack Row="true" Spacing="5" Class="mt-4">
+                    <MudSwitch Class="pl-4" T="bool" @bind-Value="viewModel.EditingRecord.IsActive" Color="Color.Primary" Label="Active" />
+                    <MudSwitch Class="pl-4" T="bool" @bind-Value="viewModel.EditingRecord.IsLanuageTranslatorRequired" Color="Color.Primary" Label="Requires Translator" />
+                    <MudSwitch Class="pl-4" T="bool" @bind-Value="viewModel.EditingRecord.IsAForgeinNational" Color="Color.Primary" Label="Forgein National" />
+                </MudStack>
+                              
+            </div>
+
+            @if (viewModel.SelectedRecord != null)
+            {
+            <MudGrid Justify="Justify.Center" AlignItems="AlignItems.Center" Class="mt-4">
+                <MudItem md="2">
+                        <MudButton Class="" Type="Submit" OnClick="HandleSubmit" Color="Color.Success" Variant="Variant.Filled"> @(viewModel.SelectedRecord == null ? "Add" : "Save")</MudButton>
+                    </MudItem>
+                <MudItem md="2">
+                        <MudButton Class="" OnClick="DeleteRecord" Color="Color.Error" Variant="Variant.Filled">Delete</MudButton>
+                    </MudItem>
+                <MudItem md="2">
+                        <MudButton Class="" OnClick="ClearSelection" Color="Color.Secondary" Variant="Variant.Filled">Clear</MudButton>
+                    </MudItem>
+                </MudGrid>
+
+            }
+            else
+            {
+                <MudGrid Justify="Justify.Center" AlignItems="AlignItems.Center" Class="mt-4">
+                    <MudItem md="3">
+                        <MudButton Class="" Type="Submit" OnClick="HandleSubmit" Color="Color.Success" Variant="Variant.Filled"> @(viewModel.SelectedRecord == null ? "Add" : "Save")</MudButton>
+                    </MudItem>
+                    <MudItem md="3">
+                        <MudButton Class="" OnClick="ClearSelection" Color="Color.Secondary" Variant="Variant.Filled">Clear</MudButton>
+                    </MudItem>
+                </MudGrid>
+            }
+
+        </MudItem>
+         <MudItem md="4">
+            <div class="d-flex flex-column gap-2">
+
+            </div>
+        </MudItem>
+    </MudGrid>
+</MudForm>
+
+
+
+
+@code
+{
+    [Parameter] public EventCallback<LiquidDocsData.Models.Trustee> OnComplete { get; set; }
+    [Parameter] public EventCallback OnCancel { get; set; }
+
+    private bool AddEdit = false;
+    private bool AddEditSA = false;
+    private bool AddEditAlias = false;
+    private bool AddEditSecurity = false;
+    private MudForm formEditRecord;
+    private MudForm formSA;
+    private MudForm formAlias;
+    private MudForm formSecurity;
+
+    private string emailPattern = @"^[\w\-\.]+@([\w\-]+\.)+[\w\-]{2,4}$";
+
+    private bool AddSAButtonDisabled = false;
+
+    private bool AddAliasButtonDisabled = false;
+
+    private bool AddSecurityButtonDisabled = false;
+
+    private bool AddButtonDisabled = false;
+
+    private string _search = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+
+        viewModel.UserId = Session.UserId;
+    }
+
+    private async Task HandleSubmit()
+    {
+        await formEditRecord.Validate();
+
+        if (!formEditRecord.IsValid)
+        {
+            Snackbar.Add("Please correct the errors in the form.", Severity.Error);
+            return;
+        }
+        else
+        {
+
+            if (viewModel.SelectedRecord is null)
+            {
+                viewModel.AddRecordCommand.Execute(null);
+                await OnComplete.InvokeAsync(viewModel.EditingRecord);
+
+                viewModel.EditingRecord = new LiquidDocsData.Models.Trustee();
+            }
+            else
+            {
+                viewModel.EditRecordCommand.Execute(null);
+                await OnComplete.InvokeAsync(viewModel.EditingRecord);
+
+                viewModel.EditingRecord = new LiquidDocsData.Models.Trustee();
+            }
+
+            AddEdit = false;
+            AddButtonDisabled = false;
+        }
+    }
+
+    private async Task HandleSASubmit()
+    {
+        await formSA.Validate();
+
+        if (!formSA.IsValid)
+        {
+            Snackbar.Add("Please correct the errors in the form.", Severity.Error);
+            return;
+        }
+        else
+        {
+            if (viewModel.SelectedSARecord == null)
+                viewModel.AddSARecordCommand.Execute(null);
+            else
+                viewModel.EditSARecordCommand.Execute(null);
+
+            AddEditSA = false;
+            AddSAButtonDisabled = false;
+        }
+    }
+
+    private void DeleteRecord()
+    {
+        viewModel.DeleteRecordCommand.Execute(null);
+        AddEdit = false;
+    }
+
+    private void DeleteSARecord()
+    {
+        viewModel.DeleteSARecordCommand.Execute(null);
+        AddEditSA = false;
+    }
+
+
+    private void ClearSelection()
+    {
+        viewModel.ClearSelectionCommand.Execute(null);
+    }
+
+    private void ClearSASelection()
+    {
+        viewModel.ClearSASelectionCommand.Execute(null);
+    }
+
+    private void AddButton()
+    {
+        viewModel.EditingRecord = new LiquidDocsData.Models.Trustee();
+        viewModel.EditingRecord.Id = Guid.NewGuid();
+        viewModel.EditingRecord.UserId = Guid.Parse(Session.UserId);
+
+        AddEdit = true;
+        AddButtonDisabled = true;
+
+
+
+    }
+
+    private void AddSAButton()
+    {
+        viewModel.EditingSARecord = new LiquidDocsData.Models.SigningAuthority();
+        viewModel.EditingSARecord.Id = Guid.NewGuid();
+        viewModel.EditingSARecord.BorrowerId = viewModel.EditingRecord.Id;
+        viewModel.EditingSARecord.UserId = viewModel.EditingRecord.UserId;
+
+        AddEditSA = true;
+        AddSAButtonDisabled = true;
+
+    }
+
+    private void OnSelectedRecord(LiquidDocsData.Models.Trustee trustee)
+    {
+        if (trustee is not null) viewModel.SelectRecordCommand.Execute(trustee);
+        AddEdit = true;
+    }
+
+    private void OnSelectedSARecord(LiquidDocsData.Models.SigningAuthority sa)
+    {
+        if (sa is not null) viewModel.SelectSARecordCommand.Execute(sa);
+
+        AddEditSA = true;
+    }
+
+    private async Task HandleAliasSubmit()
+    {
+        await formAlias.Validate();
+
+        if (!formAlias.IsValid)
+        {
+            Snackbar.Add("Please correct the errors in the form.", Severity.Error);
+            return;
+        }
+        else
+        {
+            if (viewModel.SelectedAliasRecord == null)
+                viewModel.AddAliasRecordCommand.Execute(null);
+            else
+                viewModel.EditAliasRecordCommand.Execute(null);
+
+            AddEditAlias = false;
+            AddAliasButtonDisabled = false;
+        }
+    }
+
+    private void DeleteAliasRecord()
+    {
+        viewModel.DeleteAliasRecordCommand.Execute(null);
+        AddEditAlias = false;
+    }
+
+    private void AddAliasButton()
+    {
+        viewModel.EditingAliasRecord = new LiquidDocsData.Models.AkaName();
+        viewModel.EditingAliasRecord.Id = Guid.NewGuid();
+        // viewModel.EditingAliasRecord.BorrowerId = viewModel.EditingRecord.Id;
+        viewModel.EditingAliasRecord.UserId = viewModel.EditingRecord.UserId;
+
+        AddEditAlias = true;
+        AddAliasButtonDisabled = true;
+
+    }
+
+    private void ClearAliasSelection()
+    {
+        viewModel.ClearAliasSelectionCommand.Execute(null);
+    }
+
+    private void OnSelectedAliasRecord(LiquidDocsData.Models.AkaName alias)
+    {
+        if (alias is not null) viewModel.SelectAliasRecordCommand.Execute(alias);
+
+        AddEditAlias = true;
+    }
+
+    private void ClearSecuritySelection()
+    {
+        viewModel.ClearSecuritySelectionCommand.Execute(null);
+    }
+
+    private void AddSecurityButton()
+    {
+        viewModel.EditingSecurityRecord = new LiquidDocsData.Models.Security();
+        viewModel.EditingSecurityRecord.Id = Guid.NewGuid();
+        //viewModel.EditingSecurityRecord.BorrowerId = viewModel.EditingRecord.Id;
+        // viewModel.EditingSecurityRecord.UserId = viewModel.EditingRecord.UserId;
+
+        AddEditSecurity = true;
+        AddSecurityButtonDisabled = true;
+
+    }
+
+    private void DeleteSecurityRecord()
+    {
+        viewModel.DeleteSecurityRecordCommand.Execute(null);
+        AddEditSecurity = false;
+    }
+
+    private void OnSelectedSecurityRecord(LiquidDocsData.Models.Security sa)
+    {
+        if (sa is not null) viewModel.SelectSecurityRecordCommand.Execute(sa);
+
+        AddEditSecurity = true;
+    }
+
+    private async Task HandleSecuritySubmit()
+    {
+        await formSecurity.Validate();
+
+        if (!formSecurity.IsValid)
+        {
+            Snackbar.Add("Please correct the errors in the form.", Severity.Error);
+            return;
+        }
+        else
+        {
+            if (viewModel.SelectedSecurityRecord == null)
+                viewModel.AddSecurityRecordCommand.Execute(null);
+            else
+                viewModel.EditSecurityRecordCommand.Execute(null);
+
+            AddEditSecurity = false;
+            AddSecurityButtonDisabled = false;
+        }
+    }
+
+    private async Task Complete()
+    {
+        await OnComplete.InvokeAsync();
+    }
+
+    private async Task Cancel()
+    {
+        await OnCancel.InvokeAsync();
+    }
+
+}

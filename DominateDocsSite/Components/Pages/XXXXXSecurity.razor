@@ -1,0 +1,104 @@
+﻿@page "/security"
+@using System.Text
+
+
+@rendermode InteractiveServer
+@inject SecurityViewModel viewModel 
+@inject NavigationManager NavigationManager 
+@inject ISnackbar Snackbar
+
+
+
+    <MudPaper Elevation="1" Class="pa-4">
+    <MudText Class="mb-5" Typo="Typo.h4">Securities</MudText>
+
+        <MudGrid>
+            <MudItem xs="12" md="8">
+            <MudTable Items="viewModel.RecordList" Hover="true" Bordered="true" Dense="true" @bind-SelectedItem="viewModel.SelectedRecord" RowClick="OnSelectedRecord">
+                    <ToolBarContent>
+                        <MudTextField @bind-Value="_search" Placeholder="Search..." />
+                    </ToolBarContent>
+                    <HeaderContent>
+                        <MudTh>Asset Name</MudTh>
+                        <MudTh>Current Value</MudTh>
+                        <MudTh>Type</MudTh>
+                        <MudTh></MudTh>
+                    </HeaderContent>
+                    <RowTemplate>
+                        <MudTd DataLabel="Asset Name">@context.AssetName</MudTd>
+                        <MudTd DataLabel="Current Value">@context.CurrentValue</MudTd>
+                    <MudTd DataLabel="Type">@context.SecurityType</MudTd>
+                               
+                        <MudTd>
+                            <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                                           Color="Color.Info"
+                                       OnClick="@(() => OnSelectedRecord(context))" />
+                        </MudTd>
+                    </RowTemplate>
+                </MudTable>
+            </MudItem>
+            <MudItem xs="12" md="4">
+                <MudPaper Elevation="0" Class="pa-4">
+                    <MudText Typo="Typo.h6">
+                    @(viewModel.SelectedRecord == null ? "Add New Security" : "Edit Security")
+                    </MudText>
+                <EditForm Model="viewModel.EditingRecord" OnValidSubmit="HandleSubmit">
+                        <DataAnnotationsValidator />
+                    <MudTextField @bind-Value="viewModel.EditingRecord.AssetName" For="@(() => viewModel.EditingRecord.AssetName)" Label="Asset Name" Required="true" />
+                        <MudTextField @bind-Value="viewModel.EditingRecord.CurrentValue" Label="Current Value" Required="false" />
+                    <MudTextField @bind-Value="viewModel.EditingRecord.SecurityType" Label="Security Type" Required="false" />
+                    <MudTextField @bind-Value="viewModel.EditingRecord.MarketValue" Label="Market Value" Required="false" />
+                        <MudTextField @bind-Value="viewModel.EditingRecord.Quantity" Label="Quamity" Required="false" />
+                    <MudTextField @bind-Value="viewModel.EditingRecord.TickerSymbol" Label="TIcker Symbol" Required="false" />
+                    <MudTextField @bind-Value="viewModel.EditingRecord.Notes" Label="Notes" Required="false" Lines="5" />
+                       <MudDivider Class="my-4" />
+                        
+                        <MudStack Row="true" Spacing="2" Class="mt-4">
+                            <MudButton Type="Submit" OnClick="HandleSubmit" Color="Color.Success" Variant="Variant.Filled">
+                            @(viewModel.SelectedRecord == null ? "Add" : "Save")
+                            </MudButton>
+                        @if (viewModel.SelectedRecord != null)
+                            {
+                                <MudButton OnClick="Delete" Color="Color.Error" Variant="Variant.Filled">Delete</MudButton>
+                            }
+                            <MudButton OnClick="ClearSelection" Color="Color.Secondary" Variant="Variant.Outlined">Clear</MudButton>
+                        </MudStack>
+                    </EditForm>
+                </MudPaper>
+            </MudItem>
+        </MudGrid>
+    </MudPaper>
+
+
+@code {
+
+
+    private string _search = "";
+
+    private void HandleSubmit()
+    {
+        if (viewModel.SelectedRecord == null)
+            viewModel.AddRecordCommand.Execute(null);
+        else
+            viewModel.EditRecordCommand.Execute(null);
+    }
+
+    private void Delete()
+    {
+        viewModel.DeleteRecordCommand.Execute(null);
+    }
+
+    private void ClearSelection()
+    {
+        viewModel.ClearSelectionCommand.Execute(null);
+    }
+
+    private void OnSelectedRecord(LiquidDocsData.Models.Security record)
+    {
+        if (record is not null) viewModel.SelectRecordCommand.Execute(record);
+    }
+
+    
+
+    
+}

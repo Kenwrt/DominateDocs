@@ -1,0 +1,203 @@
+﻿@page "/documentsets"
+
+@using Microsoft.AspNetCore.Authorization
+
+@attribute [Authorize(Policy = "RequiresAdmin")]
+
+@inject DocumentSetViewModel vm
+@* @inject DocumentSetValidator docVal  *@
+@inject NavigationManager NavigationManager
+@inject ISnackbar Snackbar
+
+
+<MudPaper Elevation="1" Class="pa-4">
+    @if (isDocumentSetListDisplayed)
+    {
+        @* <MudGrid>
+       
+            <MudItem xs="12" md="8">
+                <MudText Class="mb-5" Typo="Typo.h6">
+                   Document Sets
+                </MudText>
+
+                <MudTable Items="vm.DocumentSets"
+                          Hover="true"
+                          Dense="true"
+                          @bind-SelectedItem="vm.SelectedDocumentSet" RowClick="OnSelectDocumentSetAsync">
+                
+                    <HeaderContent>
+                        <MudTh>Name</MudTh>
+                        <MudTh>Description</MudTh>
+                        <MudTh>Documents</MudTh>
+                        <MudTh>Active</MudTh>
+                        <MudTh>
+                            <MudButton Variant="Variant.Text"
+                                       Color="Color.Primary"
+                                       Class="mud-link"
+                                       OnClick="CreateTestDataSetAsync">
+                                Create Test Data Set
+                            </MudButton>
+                        </MudTh>
+                    </HeaderContent>
+                    <RowTemplate>
+                        <MudTd>@context.Name</MudTd>
+                        <MudTd>@context.Description</MudTd>
+                        <MudTd><MudChip T="int" OnClick="@(() => OnClickDocumentSetsAsync(context))" Variant="Variant.Text" Color="Color.Primary">@context.Documents.Count</MudChip></MudTd>
+                    
+                        <MudTd DataLabel="Active">
+                            <MudChip T="bool" Color="@((context.IsActive) ? Color.Success : Color.Error)">
+                                @(context.IsActive ? "Yes" : "No")
+                            </MudChip>
+                        </MudTd>
+                        <MudTd>
+                            <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                                           Color="Color.Info"
+                                           OnClick="@(() => OnSelectDocumentSetAsync(context))" />
+                        </MudTd>
+                    </RowTemplate>
+                </MudTable>
+            </MudItem>
+            <MudItem xs="12" md="4">
+                <MudPaper Elevation="0" Class="pa-4">
+                    <MudText Typo="Typo.h6">
+                        @(vm.SelectedDocumentSet == null ? "Add New Document Set" : "Edit Document Set")
+                    </MudText>
+                      <MudForm Context="contextA" Model="@vm.EditingDocumentSet" @ref="@formEditRecord" Validation="@docVal" ValidationDelay="0">
+                        <div class="d-flex flex-column gap-2">
+                        <MudTextField @bind-Value="vm.EditingDocumentSet.Name" Label="Name" Required="true" />
+                            <MudTextField @bind-Value="vm.EditingDocumentSet.Description" Label="Description" Required="true" />
+                        <MudSwitch T="bool" @bind-Value="vm.EditingDocumentSet.IsActive" Color="Color.Primary" Label="Active" />
+                            <MudStack Row="true" Spacing="2" Class="mt-4">
+                                <MudButton Type="Submit" OnClick="HandleSubmitAsync" Color="Color.Success" Variant="Variant.Filled">
+                                @(vm.SelectedDocumentSet == null ? "Add" : "Save")
+                                </MudButton>
+                                @if (vm.SelectedDocumentSet != null)
+                                {
+                                    <MudButton OnClick="DeleteDocumentSetAsync" Color="Color.Error" Variant="Variant.Filled">Delete</MudButton>
+                                }
+                                <MudButton OnClick="ClearDocumentSetSelectionAsync" Color="Color.Secondary" Variant="Variant.Outlined">Clear</MudButton>
+                            </MudStack>
+                        </div>
+                    </MudForm>
+                </MudPaper>
+            </MudItem>
+
+        </MudGrid> *@
+    }
+    else
+    {
+       @*  <MudGrid>
+            <MudItem xs="12" md="12">
+                <DocumentSetAssigment DocAssignmentComplete="OnDocumentAssignmentCompleteAsync" DocAssignmentCancel="OnDocAssignmentCancelAsync" AssignedDocumentList="vm.SelectedDocumentSet.Documents" />
+
+            </MudItem>
+
+        </MudGrid> *@
+
+    }
+   
+</MudPaper>
+
+
+@code {
+
+    private string _search = "";
+
+    private bool isDocumentSetListDisplayed = true;
+
+
+    private MudForm formEditRecord;
+
+    private async Task HandleSubmitAsync()
+    {
+
+        await formEditRecord.Validate();
+
+        if (!formEditRecord.IsValid)
+        {
+            Snackbar.Add("Please correct the errors in the form.", Severity.Error);
+            return;
+        }
+        else
+        {
+
+            // if (vm.SelectedDocumentSet is null)
+            // {
+
+            //     if (vm.DocumentSets.Any(x => x.Name == vm.EditingDocumentSet.Name))
+            //     {
+            //         Snackbar.Add("Duplicate Name! Please select another.", Severity.Error);
+            //         return;
+            //     }
+            //     else
+            //     {
+            //         await vm.AddDocumentSetCommand.ExecuteAsync(null);
+            //     }
+
+
+            // }
+            // else
+            // {
+            //     await vm.EditDocumentSetCommand.ExecuteAsync(null);
+
+
+
+            // }
+
+
+        }
+
+      // await vm.ClearDocumentSetSelectionCommand.ExecuteAsync(null);
+
+    }
+
+    private async Task DeleteDocumentSetAsync()
+    {
+        await vm.DeleteDocumentSetCommand.ExecuteAsync(null);
+
+    }
+
+
+    private async Task CreateTestDataSetAsync()
+    {
+        await vm.GenerateMasterDocumentSetCommand.ExecuteAsync(null);
+
+    }
+
+    // private async Task OnClickDocumentSetsAsync(DocumentSet? ds)
+    // {
+    //     if (ds != null)
+    //     {
+    //         await vm.SelectDocumentSetCommand.ExecuteAsync(ds);
+
+    //         isDocumentSetListDisplayed = false;
+
+    //     }
+    // }
+
+    private async Task ClearDocumentSetSelectionAsync()
+    {
+       // await vm.ClearDocumentSetSelectionCommand.ExecuteAsync(null);
+    }
+
+    // private async Task OnSelectDocumentSetAsync(DocumentSet? ds)
+    // {
+    //     if (ds != null) await vm.SelectDocumentSetCommand.ExecuteAsync(ds);
+    // }
+
+    private async Task OnDocumentAssignmentCompleteAsync(HashSet<DominateDocsData.Models.Document> selectedItems)
+    {
+       
+       // vm.EditingDocumentSet.Documents = selectedItems.ToList();
+
+        await vm.EditDocumentSetCommand.ExecuteAsync(null);
+
+        //convert Has Table to Observable Collection 
+        isDocumentSetListDisplayed = true;
+    }
+    
+    private async Task OnDocAssignmentCancelAsync()
+    {
+        isDocumentSetListDisplayed = false;
+    }
+}

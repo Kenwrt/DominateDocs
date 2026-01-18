@@ -1,0 +1,440 @@
+﻿@page "/quickloanagreementnewlook"
+@using MudBlazor
+
+@using System.Globalization
+
+@inject NavigationManager Nav
+@inject QuickLoanAgreementViewModel vm
+@inject QuickLoanAgreementValidator loanValidator
+@inject UserSession Session
+
+<style>
+    .wizard-stepper .mud-stepper-actions {
+        display: none !important;
+    }
+
+    /* Keeps the stepper looking like your centered three-step header */
+    .wizard-stepper {
+        width: 520px;
+        max-width: 90vw;
+    }
+
+    /* Optional: tighten the stepper spacing a bit */
+    .wizard-stepper .mud-stepper-horizontal {
+        justify-content: center;
+    }
+
+</style>
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="py-10">
+
+    <!-- HEADER -->
+    <div class="d-flex flex-column align-center text-center">
+        <MudText Typo="Typo.h6">Create Loan Documents</MudText>
+        <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mt-2">
+            Three quick steps to generate your documents
+        </MudText>
+
+        <!-- REAL STEPPER (CENTERED) -->
+        <MudStepper Class="mt-6 wizard-stepper"
+                    Linear="true"
+                    AlternativeLabel="true"
+                    @bind-ActiveIndex="ActiveStep"
+                    Elevation="0" 
+                    ShowPreviousButton="false"
+                    ShowNextButton="false">
+
+            <MudStep Text="Loan Type" />
+            <MudStep Text="Loan Info." />
+            <MudStep Text="Loan Details" />
+            
+
+            <ActionsContent>
+                @* Intentionally empty: kills the top Previous/Next bar *@
+            </ActionsContent>
+
+        </MudStepper>
+    </div>
+
+    <!-- MAIN CARD -->
+    <MudPaper Elevation="0" Class="mx-auto mt-10" Style="max-width: 920px; border-radius: 16px; border: 1px solid var(--mud-palette-lines-default); overflow: hidden;">
+
+        @* STEP 1 *@
+        @if (ActiveStep == 0)
+        {
+            <div class="pa-7">
+                
+
+                <MudTextField Class="" Style="background-color: white;" Variant="Variant.Outlined" @bind-Value="vm.EditingAgreement.ReferenceName" For="@(() => vm.EditingAgreement.ReferenceName)" Label="Give your Project a name!" Required="true" />
+
+
+                <MudGrid Class="mt-6" GutterSize="3">
+
+                    <MudItem xs="12">
+                        <MudText Typo="Typo.h6">What type of loan is this?</MudText>
+                        <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mt-1"> Select the loan type to load the right document package. </MudText>
+                    </MudItem>
+
+                    @foreach (var type in vm.LoanTypes)
+                    {
+                        <MudItem xs="12" sm="6" md="4">
+                            <MudPaper Elevation="0" Class="rounded-lg" Style="@GetTileStyle(SelectedLoanType == type.Name)" 
+                                @onclick="@(() =>
+                                {                                            
+                                    SelectedLoanType = type.Name;
+                                    vm.EditingAgreement.LoanTypeId = type.Id;
+                                })">
+                                <div class="d-flex flex-column align-center justify-center"
+                                        style="height: 120px; padding: 18px;">
+                                    <MudAvatar Variant="Variant.Outlined"
+                                                Size="Size.Large"
+                                                Color="Color.Default"
+                                                Class="mb-3">
+                                        <MudIcon Icon="@ResolveIcon(type.IconKey)" />
+                                    </MudAvatar>
+
+                                    <MudText Typo="Typo.subtitle2">@type.Name</MudText>
+                                    <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mt-1">
+                                        @type.Description
+                                    </MudText>
+                                </div>
+                            </MudPaper>
+                        </MudItem>
+                    }
+
+                </MudGrid>
+            </div>
+
+            <div class="px-7 py-5 d-flex align-center justify-end"
+                 style="border-top: 1px solid var(--mud-palette-lines-default); background: rgba(0,0,0,0.01);">
+
+                <MudButton Variant="Variant.Filled"
+                           Color="Color.Dark"
+                           Disabled="@(!CanGoNext)"
+                           EndIcon="@Icons.Material.Filled.ArrowForward"
+                           OnClick="NextFromLoanType"
+                           Class="rounded-lg"
+                           Style="min-width: 120px;">
+                    Next
+                </MudButton>
+            </div>
+        }
+
+        @* STEP 2 *@
+        else if (ActiveStep == 1)
+        {
+            <div class="pa-7">
+                <MudText Typo="Typo.h6">Loan Info</MudText>
+                <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mt-1">
+                    Add general loan information.
+                </MudText>
+
+                <MudGrid Spacing="3">
+
+                    <MudItem xs="12">
+                        <MudText Typo="Typo.h6">Loan Info</MudText>
+                        <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mt-1"> Add general loan information.</MudText>
+                    </MudItem>
+
+                    <MudItem xs="12" sm="6">
+                        <div class="d-flex flex-column gap-2">
+
+                            <MudNumericField Class="" Style="background-color: white;" HideSpinButtons="true" Adornment="Adornment.Start" AdornmentText="$" Culture="CultureInfo.InvariantCulture"
+                                             Format="N2" @bind-Value="vm.EditingAgreement.PrincipalAmount" Label="Principal Amount" Variant="Variant.Outlined" Step=".2M" />
+
+                            <MudSelect Variant="Variant.Outlined" T="Payment.RateTypes" @bind-Value="vm.EditingAgreement.RateType" Label="Interest Rate Type">
+                                @foreach (var v in Enum.GetValues<Payment.RateTypes>())
+                                {
+                                    <MudSelectItem Value="v">@v</MudSelectItem>
+                                }
+                            </MudSelect>
+
+
+                            <MudNumericField Immediate="false" Class="" Variant="Variant.Outlined" HideSpinButtons="true" T="decimal" @bind-Value="vm.EditingAgreement.InterestRate" Format="N2" Label="Interest Rate (%)" />
+
+                            <MudSelect Class="" Variant="Variant.Outlined" T="Payment.AmortizationTypes" @bind-Value="vm.EditingAgreement.AmorizationType" Label="Payment Type">
+                                @foreach (var v in Enum.GetValues<Payment.AmortizationTypes>())
+                                {
+                                    <MudSelectItem Value="v">@v</MudSelectItem>
+                                }
+                            </MudSelect>
+
+                            <MudNumericField Immediate="false" Class="" Variant="Variant.Outlined" T="int" HideSpinButtons="true" @bind-Value="vm.EditingAgreement.TermInMonths" Label="Term (months)" />
+
+                        </div>
+
+                    </MudItem>
+
+                    <MudItem xs="12" sm="6">
+
+                        <div class="d-flex flex-column gap-2">
+                            @if (vm.EditingAgreement.RateType == Payment.RateTypes.Variable)
+                            {
+                                <MudNumericField Immediate="false" Class="" Variant="Variant.Outlined" HideSpinButtons="true" T="decimal" @bind-Value="vm.EditingAgreement.InitialMargin" Format="N2" Label="Initial Margin (%)" />
+                            }
+                            <MudSelect Class="" Variant="Variant.Outlined" T="Payment.Schedules" @bind-Value="vm.EditingAgreement.RepaymentSchedule" Label="Repayment Schedule">
+                                @foreach (var v in Enum.GetValues<Payment.Schedules>())
+                                {
+                                    <MudSelectItem Value="v">@v</MudSelectItem>
+                                }
+                            </MudSelect>
+
+                            @if (vm.EditingAgreement.RateType == Payment.RateTypes.Variable)
+                            {
+
+                                <MudSelect Class="" Variant="Variant.Outlined" T="Payment.Schedules" @bind-Value="vm.EditingAgreement.VariableInterestProperties.AdjustmentInterval" Label="Adjustment Intervals">
+                                    @foreach (var v in Enum.GetValues<Payment.Schedules>())
+                                    {
+                                        <MudSelectItem Value="v">@v</MudSelectItem>
+                                    }
+                                </MudSelect>
+
+                                <MudSelect Class="" Variant="Variant.Outlined" T="Payment.IndexPaths" @bind-Value="vm.EditingAgreement.VariableInterestProperties.AssumedIndexPath" Label="Assumed Index Path">
+                                    @foreach (var v in Enum.GetValues<Payment.IndexPaths>())
+                                    {
+                                        <MudSelectItem Value="v">@v</MudSelectItem>
+                                    }
+                                </MudSelect>
+                            }
+
+                            <MudDatePicker Variant="Variant.Outlined" @bind-Date="vm.EditingAgreement.OriginationDate" Label="Origination Date" />
+
+                        </div>
+
+                    </MudItem>
+
+                </MudGrid>
+
+
+
+
+            </div>
+
+            <div class="px-7 py-5 d-flex align-center justify-space-between"
+                 style="border-top: 1px solid var(--mud-palette-lines-default); background: rgba(0,0,0,0.01);">
+                <MudButton Variant="Variant.Outlined"
+                           Color="Color.Dark"
+                           StartIcon="@Icons.Material.Filled.ArrowBack"
+                           OnClick="Back">
+                    Back
+                </MudButton>
+
+                <MudButton Variant="Variant.Filled"
+                           Color="Color.Dark"
+                           EndIcon="@Icons.Material.Filled.ArrowForward"
+                           OnClick="Next">
+                    Next
+                </MudButton>
+            </div>
+        }
+
+        @* STEP 3 *@
+        else
+        {
+            <div class="pa-7">
+
+
+                <MudItem xs="12">
+                    <MudText Typo="Typo.h6">Loan Info</MudText>
+                    <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mt-1"> Add general loan information.</MudText>
+                </MudItem>
+
+                <MudPaper Elevation="0" Class="rounded-xl pa-6" Style="background-color: #ffffff; border: 1px solid rgba(0,0,0,0.08);">
+                    <MudText Typo="Typo.h6" Class="mb-4">What's your role when executing loans?</MudText>
+
+                    <MudGrid GutterSize="3">
+                        @foreach (var role in Roles)
+                        {
+                            <MudItem xs="12" sm="6" md="3">
+                                <div class="w-100"
+                                     style="@($"cursor:pointer; {GetTileStyle(SelectedRoleUi == role.Value)}")"
+                                     @onclick="@(() => SelectRole(role.Value))">
+                                    <div class="d-flex flex-column align-center justify-center"
+                                         style="height: 96px; border-radius: 12px;">
+                                        <MudIcon Icon="@role.Icon" Size="Size.Large" Class="mb-2" />
+                                        <MudText Typo="Typo.subtitle2">@role.Label</MudText>
+                                    </div>
+                                </div>
+                            </MudItem>
+                        }
+                    </MudGrid>
+
+                    <MudGrid GutterSize="3">
+                        <MudItem xs="12" sm="12" md="12">
+
+                            @if (SelectedRoleUi == DominateDocsData.Enums.UserEnums.UserTypes.Lender)
+                            {
+                                <QuickLoanLender OnLenderComplete="OnLenderComplete" OnLenderCanceled="OnLenderCanceled"/>
+                            }
+                            else if (SelectedRoleUi == DominateDocsData.Enums.UserEnums.UserTypes.Broker)
+                            {
+                                <QuickLoanBroker OnBrokerComplete="OnBrokerComplete" OnBrokerCanceled="OnBrokerCanceled" />
+                            }
+                            else if (SelectedRoleUi == DominateDocsData.Enums.UserEnums.UserTypes.Servicer)
+                            {
+
+                                <QuickLoanGuarantor OnGuarantorComplete="OnGuarantorComplete" OnGuarantorCanceled="OnGuarantorCanceled"  />
+                            }
+
+                        </MudItem>
+                    </MudGrid>
+
+                   
+                </MudPaper>
+            </div>
+
+            <div class="px-7 py-5 d-flex align-center justify-space-between"
+                 style="border-top: 1px solid var(--mud-palette-lines-default); background: rgba(0,0,0,0.01);">
+                <MudButton Variant="Variant.Outlined"
+                           Color="Color.Dark"
+                           StartIcon="@Icons.Material.Filled.ArrowBack"
+                           OnClick="Back">
+                    Back
+                </MudButton>
+
+                <MudButton Variant="Variant.Filled"
+                           Color="Color.Dark"
+                           EndIcon="@Icons.Material.Filled.PlayArrow"
+                           OnClick="Generate">
+                    Generate
+                </MudButton>
+            </div>
+        }
+    </MudPaper>
+</MudContainer>
+
+
+
+@code 
+{
+
+    private int ActiveStep { get; set; } = 0;
+
+    private string? SelectedLoanType { get; set; }
+    private bool CanGoNext => !string.IsNullOrWhiteSpace(SelectedLoanType);
+
+    private DominateDocsData.Enums.UserEnums.UserTypes? SelectedRoleUi { get; set; } = null;
+
+    private IReadOnlyList<(DominateDocsData.Enums.UserEnums.UserTypes Value, string Label, string Icon)> Roles { get; } =
+       Enum.GetValues<DominateDocsData.Enums.UserEnums.UserTypes>()
+           .Select(v => (Value: v, Label: v.GetDescription(), Icon: GetRoleIcon(v)))
+           .ToList();
+
+    private readonly List<(string Value, string Label, string Description, string Icon)> LoanTypes = new()
+    {
+        ("ConstructionRehab", "Construction / Rehab", "Draw-based funding",            Icons.Material.Filled.Inventory2),
+        ("BridgeFixFlip",     "Bridge / Fix & Flip",  "Short-term acquisition",        Icons.Material.Filled.HomeWork),
+        ("DSCRRental",        "DSCR / Rental",        "Long-term investment",          Icons.Material.Filled.CreditCard),
+        ("Commercial",        "Commercial",           "Office, retail, industrial",    Icons.Material.Filled.Apartment),
+        ("Multifamily",       "Multifamily",          "5+ unit residential",           Icons.Material.Filled.Group),
+        ("LandLot",           "Land / Lot",           "Raw land financing",            Icons.Material.Filled.Layers),
+    };
+
+    private static string GetTileStyle(bool selected)
+        => selected
+            ? "cursor:pointer; border: 1px solid rgba(20, 50, 255, 0.35); background: rgba(20, 50, 255, 0.04); border-radius: 14px;"
+            : "cursor:pointer; border: 1px solid var(--mud-palette-lines-default); background: var(--mud-palette-surface); border-radius: 14px;";
+
+    protected override async Task OnInitializedAsync()
+    {
+        vm.InitializePageCommand.Execute(null);
+
+        // Keep UI updating when VM properties change.
+
+        // _handler = (_, __) => InvokeAsync(StateHasChanged);
+
+        // vm.PropertyChanged += _handler;
+
+
+    }
+
+    private void SelectRole(DominateDocsData.Enums.UserEnums.UserTypes role)
+    {
+
+        // Enable Continue without auto-advancing
+        SelectedRoleUi = role;
+
+        StateHasChanged();
+    }
+
+    private static string GetRoleIcon(DominateDocsData.Enums.UserEnums.UserTypes role) => role switch
+    {
+        DominateDocsData.Enums.UserEnums.UserTypes.Lender => Icons.Material.Filled.AccountBalance,
+        DominateDocsData.Enums.UserEnums.UserTypes.Broker => Icons.Material.Filled.Handshake,
+        DominateDocsData.Enums.UserEnums.UserTypes.Servicer => Icons.Material.Filled.VerifiedUser,
+        _ => Icons.Material.Filled.HelpOutline
+    };
+
+    private void NextFromLoanType()
+    {
+        if (!CanGoNext) return;
+        ActiveStep = 1;
+    }
+
+    private void Next()
+    {
+        if (ActiveStep < 2)
+            ActiveStep++;
+    }
+
+    private void Back()
+    {
+        if (ActiveStep > 0)
+            ActiveStep--;
+    }
+
+    private static string ResolveIcon(string? key) => key switch
+    {
+        "Inventory2" => Icons.Material.Filled.Inventory2,
+        "HomeWork" => Icons.Material.Filled.HomeWork,
+        "CreditCard" => Icons.Material.Filled.CreditCard,
+        "Apartment" => Icons.Material.Filled.Apartment,
+        "Group" => Icons.Material.Filled.Group,
+        "Layers" => Icons.Material.Filled.Layers,
+        _ => Icons.Material.Filled.HelpOutline
+    };
+
+    private void Generate()
+    {
+        // Hook this to your actual doc generation pipeline.
+        // e.g. vm.GenerateDocumentsCommand.Execute(null);
+    }
+
+    private void OnLenderComplete(List<DominateDocsData.Models.Lender> lenders)
+    {
+        
+    }
+
+    private void OnBrokerComplete(List<DominateDocsData.Models.Broker> brokers)
+    {
+
+       
+    }
+
+    private void OnGuarantorComplete(List<DominateDocsData.Models.Guarantor> guarantors)
+    {
+
+
+    }
+
+    private void OnBrokerCanceled()
+    {
+
+    }
+
+    private void OnLenderCanceled()
+    {
+
+    }
+
+    private void OnServicerComplete(List<DominateDocsData.Models.Servicer> servicer)
+    {
+
+       
+    }
+
+    private void OnGuarantorCanceled()
+    {
+
+    }
+}

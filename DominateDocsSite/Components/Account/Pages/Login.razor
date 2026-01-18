@@ -1,0 +1,195 @@
+﻿@page "/Account/Login"
+
+@using System.ComponentModel.DataAnnotations
+@using DominateDocsSite.Components.Account.Shared
+@using Microsoft.AspNetCore.Authentication
+@using Microsoft.AspNetCore.DataProtection
+@using Microsoft.AspNetCore.Identity
+@using DominateDocsSite.Data
+@using MudBlazor.StaticInput
+@using System.Text.Json
+
+
+@inject SignInManager<DominateDocsSite.Data.ApplicationUser> SignInManager
+@inject UserSession Session
+@inject ILogger<Login> Logger
+@inject IHttpContextAccessor HttpContextAccessor
+@inject UserManager<DominateDocsSite.Data.ApplicationUser> UserManager
+@inject NavigationManager NavigationManager
+@inject IdentityRedirectManager RedirectManager
+@inject IDataProtectionProvider dataProtectionProvider
+@inject ISnackbar Snackbar
+
+
+
+<MudGrid>
+    <MudItem md="6">
+       
+        <MudPaper Elevation="3" Class="p-4 mx-auto" MaxWidth="500px">
+
+            <StatusMessage Message="@errorMessage" />
+
+            <MudText Class="mt-5" Typo="Typo.h3" GutterBottom="true">Log in</MudText>
+
+            <EditForm Model="Input" method="post" OnValidSubmit="LoginUser" FormName="login">
+                <DataAnnotationsValidator />
+
+
+
+                <MudGrid>
+                    <MudItem md="12">
+                        <MudStaticTextField Class="small-height" Variant="Variant.Outlined" For="@(() => Input.Email)" @bind-Value="Input.Email"
+                                            Label="Email" Placeholder="name@example.com"
+                                            UserAttributes="@(new() { { "autocomplete", "username" }, { "aria-required", "true" } })" />
+                    </MudItem>
+                    <MudItem md="12">
+                        <MudStaticTextField Variant="Variant.Outlined" For="@(() => Input.Password)" @bind-Value="Input.Password"
+                                            Label="Password" InputType="InputType.Password" Placeholder="password"
+                                            UserAttributes="@(new() { { "autocomplete", "current-password" }, { "aria-required", "true" } })" />
+                    </MudItem>
+                    <MudItem md="12">
+                        <MudStaticCheckBox For="@(() => Input.RememberMe)" @bind-Value="Input.RememberMe">Remember me</MudStaticCheckBox>
+                    </MudItem>
+                    <MudItem md="12">
+                        <MudStaticButton Variant="Variant.Filled" Color="Color.Primary" FullWidth="true" FormAction="FormAction.Submit">Log in</MudStaticButton>
+                    </MudItem>
+                </MudGrid>
+
+            </EditForm>
+
+            <MudGrid Class="mt-4">
+                <MudItem md="12">
+                    <MudLink Class="mt-5" Href="Account/ForgotPassword">Forgot your password?</MudLink><br />
+                    @* <MudLink Href="@(NavigationManager.GetUriWithQueryParameters("Account/Register", new Dictionary<string, object?> { ["ReturnUrl"] = ReturnUrl }))">Register as a new user</MudLink><br /> *@
+                    <MudLink Class="mt-5" Href="Account/ResendEmailConfirmation">Resend email confirmation</MudLink>
+                </MudItem>
+            </MudGrid>
+        </MudPaper>
+    </MudItem>
+    <MudItem md="6">
+        @* <MudText GutterBottom="true" Typo="Typo.body1">Use another service to log in.</MudText> *@
+
+        @*   <ExternalLoginPicker /> *@
+    </MudItem>
+</MudGrid>
+
+@code {
+    private string? errorMessage;
+
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = default!;
+
+    [SupplyParameterFromForm]
+    private InputModel Input { get; set; } = new();
+
+    [SupplyParameterFromQuery]
+    private string? ReturnUrl { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+
+        // // Auto-login: if cookie exists and is valid, skip the login UI
+        // var ctx = HttpContextAccessor.HttpContext;
+        // if (ctx?.Request.Cookies.TryGetValue(".DominateDocs.Session", out var blob) == true)
+        // {
+        //     try
+        //     {
+        //         var protector = dataProtectionProvider.CreateProtector("DominateDocs.SessionCookie.v1");
+        //         var json = protector.Unprotect(blob);
+        //         var payload = JsonSerializer.Deserialize<UserSession>(json);
+
+        //         if (payload is not null && payload.ExpUtc > DateTimeOffset.UtcNow)
+        //         {
+        //             // Cookie is valid and active; go straight to secure page
+        //             NavigationManager.NavigateTo("/secure-page", forceLoad: true);
+        //             return;
+        //         }
+        //     }
+        //     catch
+        //     {
+        //         // Ignore invalid/tampered cookie and show login
+        //     }
+        // }
+
+
+        // if (HttpMethods.IsGet(HttpContext.Request.Method))
+        // {
+        //     // Clear the existing external cookie to ensure a clean login process
+        //     await HttpContext.SignOutAsync(IdentityConstants.ExternalScheme);
+        // }
+    }
+
+
+
+
+    public async Task LoginUser()
+    {
+        // This doesn't count login failures towards account lockout
+        // To enable password failures to trigger account lockout, set lockoutOnFailure: true
+        var result = await SignInManager.PasswordSignInAsync(Input.Email, Input.Password, Input.RememberMe, lockoutOnFailure: false);
+        if (result.Succeeded)
+        {
+            Logger.LogInformation("User logged in.");
+
+            //CreateCookie();
+          
+            RedirectManager.RedirectTo("/dashboard");
+
+        }
+        else if (result.RequiresTwoFactor)
+        {
+            RedirectManager.RedirectTo(
+                "Account/LoginWith2fa",
+                new() { ["returnUrl"] = ReturnUrl, ["rememberMe"] = Input.RememberMe });
+        }
+        else if (result.IsLockedOut)
+        {
+            Logger.LogWarning("User account locked out.");
+            RedirectManager.RedirectTo("Account/Lockout");
+        }
+        else
+        {
+            errorMessage = "Error: Invalid login attempt.";
+        }
+
+    }
+
+    private sealed class InputModel
+    {
+        [Required]
+        [EmailAddress]
+        public string Email { get; set; } = "";
+
+        [Required]
+        [DataType(DataType.Password)]
+        public string Password { get; set; } = "";
+
+        [Display(Name = "Remember me?")]
+        public bool RememberMe { get; set; }
+    }
+
+
+    // private async Task CreateCookie()
+    // {
+    //     try
+    //     {
+    //         var res = await Http.PostAsJsonAsync("api/v1/auth/login", new { UserName = Input.Email, Password = Input.Password });
+
+    //         if (res.IsSuccessStatusCode)
+    //         {
+    //             Snackbar.Add("Logged in", Severity.Success);
+    //             NavigationManager.NavigateTo("/dashboard", forceLoad: true); // full reload so the new cookie is in effect
+    //         }
+    //         else
+    //         {
+    //             Snackbar.Add("Invalid credentials", Severity.Error);
+    //         }
+    //     }
+    //     catch (Exception ex)
+    //     {
+            
+    //         Logger.LogInformation(ex.Message);
+    //     }
+        
+    // }
+}

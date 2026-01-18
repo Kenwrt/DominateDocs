@@ -1,0 +1,445 @@
+﻿@using MudBlazor
+@using DominateDocsData.Models.RulesEngine
+@using DominateDocsData.Models.RulesEngine.Enums
+@using DominateDocsData.Models.RulesEngine.Fields
+@using System.Runtime.CompilerServices
+
+<MudPaper Outlined="true" Class="pa-3 mb-2">
+    <MudText Typo="Typo.subtitle2">@DisplayTitle</MudText>
+
+    @for (int i = 0; i < Group.Terms.Count; i++)
+    {
+        var term = Group.Terms[i];
+
+        <MudPaper @key="term" Outlined="true" Class="pa-3 mb-2">
+            <div class="d-flex align-center justify-space-between mb-2">
+                <MudText Typo="Typo.subtitle2" Class="m-0">Field Condition</MudText>
+
+                <MudIconButton Icon="@Icons.Material.Filled.DeleteOutline"
+                               Color="Color.Error"
+                               Size="Size.Small"
+                               OnClick="@(() => RemoveTermAsync(i))" />
+            </div>
+
+            @if (term.Node is ConditionLeaf leaf)
+            {
+                <div @key="leaf" class="d-flex flex-wrap gap-3">
+                    @RenderLeafEditor(i, leaf)
+                </div>
+            }
+            else
+            {
+                <MudAlert Severity="Severity.Warning" Dense="true">
+                    Unknown term node type: @(term.Node?.GetType().FullName ?? "(null)")
+                </MudAlert>
+            }
+
+            @if (i < Group.Terms.Count - 1)
+            {
+                <div class="d-flex justify-start mt-2">
+                    <MudToggleGroup T="RulesEnums.LogicalOperator"
+                                    Exclusive="true"
+                                    Size="Size.Small"
+                                    @bind-Value="term.JoinToNext">
+                        <MudToggleItem Value="RulesEnums.LogicalOperator.And">And</MudToggleItem>
+                        <MudToggleItem Value="RulesEnums.LogicalOperator.Or">Or</MudToggleItem>
+                    </MudToggleGroup>
+                </div>
+            }
+        </MudPaper>
+    }
+
+    <MudButton Variant="Variant.Filled"
+               Color="Color.Primary"
+               StartIcon="@Icons.Material.Filled.Add"
+               OnClick="AddConditionAsync">
+        Add Condition
+    </MudButton>
+</MudPaper>
+
+@code
+{
+    // ---------------- Parameters ----------------
+    [Parameter] public string? Title { get; set; }
+    [Parameter] public object? Vm { get; set; }
+    [Parameter] public object? Rule { get; set; }
+    [Parameter] public ConditionGroup Group { get; set; } = default!;
+    [Parameter] public IEnumerable<string> Fields { get; set; } = Array.Empty<string>();
+
+    // FieldKey -> allowed values/options (e.g., "LenderState" -> ["AL","AK",...])
+    [Parameter]
+    public IDictionary<string, IEnumerable<string>> FieldValues { get; set; }
+        = new Dictionary<string, IEnumerable<string>>();
+
+    [Parameter] public int Depth { get; set; } = 0;
+    [Parameter] public EventCallback OnChanged { get; set; }
+
+    private string DisplayTitle => !string.IsNullOrWhiteSpace(Title) ? Title! : "Field Conditions";
+
+    // ---------------- Multi-select UI state ----------------
+    // Keep UI selection stable even when the model list mutates.
+    private readonly Dictionary<ConditionLeaf, HashSet<string>> _selectedByLeaf =
+        new(new ReferenceEqualityComparer<ConditionLeaf>());
+
+    // US states fallback (so "In" works even if FieldValues isn't wired yet)
+    private static readonly string[] UsStateAbbrev = new[]
+    {
+        "AL","AK","AZ","AR","CA","CO","CT","DE","FL","GA","HI","ID","IL","IN","IA","KS","KY","LA",
+        "ME","MD","MA","MI","MN","MS","MO","MT","NE","NV","NH","NJ","NM","NY","NC","ND","OH","OK",
+        "OR","PA","RI","SC","SD","TN","TX","UT","VT","VA","WA","WV","WI","WY","DC"
+    };
+
+    protected override void OnParametersSet()
+    {
+        // Normalize legacy keys like "@LenderState" -> "LenderState"
+        if (Group?.Terms is null) return;
+
+        foreach (var term in Group.Terms)
+        {
+            // Groups are not enabled yet: force any non-leaf node into a leaf so the UI stays sane.
+            if (term.Node is not ConditionLeaf)
+            {
+                term.Node = new ConditionLeaf();
+            }
+
+
+            if (term.Node is ConditionLeaf leaf)
+            {
+                leaf.Condition.FieldKey = NormalizeFieldKey(leaf.Condition.FieldKey);
+
+                // Ensure values list exists and is deduped
+                leaf.Condition.Values ??= new List<string>();
+                NormalizeModelValuesInPlace(leaf);
+
+                // Sync UI set from model
+                var set = GetSelectedSet(leaf);
+                set.Clear();
+                foreach (var v in leaf.Condition.Values)
+                {
+                    var t = (v ?? string.Empty).Trim();
+                    if (!string.IsNullOrWhiteSpace(t))
+                        set.Add(t);
+                }
+            }
+        }
+    }
+
+    // ---------------- Add / Remove ----------------
+    private async Task AddConditionAsync()
+    {
+        Group.Terms.Add(new ConditionTerm
+        {
+            Node = new ConditionLeaf(),
+            JoinToNext = RulesEnums.LogicalOperator.And
+        });
+
+        await ChangedAsync();
+    }
+
+    private async Task RemoveTermAsync(int index)
+    {
+        if (index < 0 || index >= Group.Terms.Count) return;
+
+        Group.Terms.RemoveAt(index);
+        if (Group.Terms.Count == 0)
+            Group.Terms.Add(new ConditionTerm { Node = new ConditionLeaf() });
+
+        await ChangedAsync();
+    }
+
+
+    // ---------------- Registry integration (optional) ----------------
+    // Your RuleFieldRegistry API has been evolving. To avoid compile-time breaks, we use reflection
+    // to try a few common method/property shapes. If nothing matches, we fall back to default operators.
+    private static IEnumerable<RulesEnums.ConditionalOperator>? TryGetAllowedOperatorsFromRegistry(string fieldKey)
+    {
+        try
+        {
+            var t = typeof(RuleFieldRegistry);
+
+            // Try common method names: GetDefinition(string), Get(string), TryGet(string, out def)
+            object? def = null;
+
+            var mGetDef = t.GetMethod("GetDefinition", new[] { typeof(string) });
+            if (mGetDef is not null)
+                def = mGetDef.Invoke(null, new object?[] { fieldKey });
+
+            if (def is null)
+            {
+                var mGet = t.GetMethod("Get", new[] { typeof(string) });
+                if (mGet is not null)
+                    def = mGet.Invoke(null, new object?[] { fieldKey });
+            }
+
+            // Try property "Definitions" (dictionary-like)
+            if (def is null)
+            {
+                var pDefs = t.GetProperty("Definitions");
+                var defsObj = pDefs?.GetValue(null);
+                if (defsObj is not null)
+                {
+                    var tryGetValue = defsObj.GetType().GetMethod("TryGetValue");
+                    if (tryGetValue is not null)
+                    {
+                        var args = new object?[] { fieldKey, null };
+                        var ok = (bool)tryGetValue.Invoke(defsObj, args)!;
+                        if (ok) def = args[1];
+                    }
+                }
+            }
+
+            if (def is null)
+                return null;
+
+            // def.AllowedOperators (property)
+            var pAllowed = def.GetType().GetProperty("AllowedOperators");
+            if (pAllowed?.GetValue(def) is IEnumerable<RulesEnums.ConditionalOperator> ops)
+                return ops;
+
+            return null;
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    // ---------------- Leaf editor ----------------
+    private RenderFragment RenderLeafEditor(int index, ConditionLeaf leaf) => @<div class="d-flex flex-wrap gap-3" style="width:100%;">
+@{
+    // Field select
+    }
+    <MudSelect T="string"
+               Dense="true"
+               Variant="Variant.Outlined"
+               Label="Field"
+               Value="@(NormalizeFieldKey(leaf.Condition.FieldKey))"
+               ValueChanged="@(async (string v) => await OnLeafFieldChanged(leaf, v))"
+               Style="min-width:220px;">
+        @foreach (var f in Fields ?? Array.Empty<string>())
+        {
+            var key = NormalizeFieldKey(f);
+            <MudSelectItem T="string" Value="@key">@key</MudSelectItem>
+        }
+    </MudSelect>
+
+@{
+    // Operator select
+    var fieldKeyNorm = NormalizeFieldKey(leaf.Condition.FieldKey);
+
+    // Try to pull per-field operators from your registry (via reflection so we don't hard-break builds
+    // when your RuleFieldRegistry API differs).
+    var opsFromRegistry = TryGetAllowedOperatorsFromRegistry(fieldKeyNorm);
+
+    var ops = opsFromRegistry?.Any() == true
+    ? opsFromRegistry
+    : new[]
+    {
+    RulesEnums.ConditionalOperator.Equals,
+    RulesEnums.ConditionalOperator.NotEquals,
+    RulesEnums.ConditionalOperator.In,
+    RulesEnums.ConditionalOperator.NotIn
+    };
+
+    var options = GetOptions(fieldKeyNorm);
+    var isMulti = leaf.Condition.Operator is RulesEnums.ConditionalOperator.In or RulesEnums.ConditionalOperator.NotIn;
+}
+
+    <MudSelect T="RulesEnums.ConditionalOperator"
+               Dense="true"
+               Variant="Variant.Outlined"
+               Label="Operator"
+               Value="leaf.Condition.Operator"
+               ValueChanged="@(async (RulesEnums.ConditionalOperator op) => await OnLeafOperatorChanged(leaf, op))"
+               Style="min-width:220px;">
+        @foreach (var op in ops)
+        {
+            <MudSelectItem T="RulesEnums.ConditionalOperator" Value="@op">@op.ToString()</MudSelectItem>
+        }
+    </MudSelect>
+
+@if (isMulti && options.Count > 0)
+{
+    var selected = GetSelectedSet(leaf);
+
+        <MudSelect T="string"
+                   Dense="true"
+                   Variant="Variant.Outlined"
+                   Label="Values"
+                   MultiSelection="true"
+                   SelectedValues="@selected"
+                   SelectedValuesChanged="@(async (IEnumerable<string> vals) => await OnLeafSelectedValuesChanged(leaf, vals))"
+                   Clearable="true"
+                   Style="min-width:280px; flex:1;">
+            @foreach (var opt in options)
+            {
+                <MudSelectItem T="string" Value="@opt">@opt</MudSelectItem>
+            }
+        </MudSelect>
+}
+else
+{
+        <MudTextField T="string"
+                      Dense="true"
+                      Variant="Variant.Outlined"
+                      Label="Values (comma-separated)"
+                      Value="@(GetLeafValuesCsv(leaf))"
+                      ValueChanged="@(async (string v) => await OnLeafValuesCsvChanged(leaf, v))"
+                      Clearable="true"
+                      Style="min-width:280px; flex:1;" />
+}
+</div>;
+
+private async Task OnLeafFieldChanged(ConditionLeaf leaf, string newKey)
+{
+    leaf.Condition.FieldKey = NormalizeFieldKey(newKey);
+
+    // When field changes, clear values to avoid invalid leftovers.
+    leaf.Condition.Values ??= new List<string>();
+    leaf.Condition.Values.Clear();
+    GetSelectedSet(leaf).Clear();
+
+    await ChangedAsync();
+}
+
+private async Task OnLeafOperatorChanged(ConditionLeaf leaf, RulesEnums.ConditionalOperator op)
+{
+    leaf.Condition.Operator = op;
+
+    // Keep the model clean when switching operators.
+    leaf.Condition.Values ??= new List<string>();
+    NormalizeModelValuesInPlace(leaf);
+
+    await ChangedAsync();
+}
+
+private HashSet<string> GetSelectedSet(ConditionLeaf leaf)
+{
+    if (!_selectedByLeaf.TryGetValue(leaf, out var set))
+    {
+        set = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        _selectedByLeaf[leaf] = set;
+    }
+
+    leaf.Condition.Values ??= new List<string>();
+
+    // Sync from model into set (deduped)
+    set.Clear();
+    foreach (var v in leaf.Condition.Values)
+    {
+        var t = (v ?? string.Empty).Trim();
+        if (!string.IsNullOrWhiteSpace(t))
+            set.Add(t);
+    }
+
+    // Normalize model in-place from set
+    leaf.Condition.Values.Clear();
+    leaf.Condition.Values.AddRange(set);
+
+    return set;
+}
+
+private async Task OnLeafSelectedValuesChanged(ConditionLeaf leaf, IEnumerable<string> vals)
+{
+    var set = GetSelectedSet(leaf);
+    set.Clear();
+
+    foreach (var v in vals ?? Array.Empty<string>())
+    {
+        var t = (v ?? string.Empty).Trim();
+        if (!string.IsNullOrWhiteSpace(t))
+            set.Add(t);
+    }
+
+    leaf.Condition.Values ??= new List<string>();
+    leaf.Condition.Values.Clear();
+    leaf.Condition.Values.AddRange(set);
+
+    await ChangedAsync();
+}
+
+private string GetLeafValuesCsv(ConditionLeaf leaf)
+{
+    leaf.Condition.Values ??= new List<string>();
+    return string.Join(", ",
+        leaf.Condition.Values
+            .Where(x => !string.IsNullOrWhiteSpace(x))
+            .Select(x => x.Trim())
+            .Distinct(StringComparer.OrdinalIgnoreCase));
+}
+
+private async Task OnLeafValuesCsvChanged(ConditionLeaf leaf, string csv)
+{
+    var parts = (csv ?? string.Empty)
+        .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+        .Where(x => !string.IsNullOrWhiteSpace(x))
+        .Distinct(StringComparer.OrdinalIgnoreCase)
+        .ToList();
+
+    leaf.Condition.Values ??= new List<string>();
+    leaf.Condition.Values.Clear();
+    leaf.Condition.Values.AddRange(parts);
+
+    var set = GetSelectedSet(leaf);
+    set.Clear();
+    foreach (var v in parts)
+        set.Add(v);
+
+    await ChangedAsync();
+}
+
+private static void NormalizeModelValuesInPlace(ConditionLeaf leaf)
+{
+    leaf.Condition.Values ??= new List<string>();
+
+    var deduped = leaf.Condition.Values
+        .Where(x => !string.IsNullOrWhiteSpace(x))
+        .Select(x => x.Trim())
+        .Distinct(StringComparer.OrdinalIgnoreCase)
+        .ToList();
+
+    leaf.Condition.Values.Clear();
+    leaf.Condition.Values.AddRange(deduped);
+}
+
+private IReadOnlyList<string> GetOptions(string fieldKey)
+{
+    var key = NormalizeFieldKey(fieldKey);
+
+    // primary lookup
+    if (FieldValues != null && FieldValues.TryGetValue(key, out var vals) && vals != null)
+        return vals.Select(v => (v ?? string.Empty).Trim()).Where(v => v.Length > 0).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+
+    // legacy lookup (with @)
+    var atKey = "@" + key;
+    if (FieldValues != null && FieldValues.TryGetValue(atKey, out var vals2) && vals2 != null)
+        return vals2.Select(v => (v ?? string.Empty).Trim()).Where(v => v.Length > 0).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+
+    // fallback for state fields
+    if (key.EndsWith("State", StringComparison.OrdinalIgnoreCase))
+        return UsStateAbbrev;
+
+    return Array.Empty<string>();
+}
+
+private static string NormalizeFieldKey(string? key)
+{
+    if (string.IsNullOrWhiteSpace(key)) return string.Empty;
+    key = key.Trim();
+    return key.StartsWith("@") ? key.TrimStart('@') : key;
+}
+
+private async Task ChangedAsync()
+{
+    if (OnChanged.HasDelegate)
+        await OnChanged.InvokeAsync();
+
+    StateHasChanged();
+}
+
+private sealed class ReferenceEqualityComparer<T> : IEqualityComparer<T> where T : class
+{
+    public bool Equals(T? x, T? y) => ReferenceEquals(x, y);
+    public int GetHashCode(T obj) => RuntimeHelpers.GetHashCode(obj);
+}
+}

@@ -1,0 +1,168 @@
+﻿@page "/Account/Manage"
+
+@using System.ComponentModel.DataAnnotations
+@using LiquidDocsSite.State
+@using Microsoft.AspNetCore.Identity
+@using LiquidDocsSite.Data
+@using MudBlazor.StaticInput
+
+@inject AuthenticationStateProvider AuthProvider
+@inject UserManager<LiquidDocsSite.Data.ApplicationUser> UserManager
+@inject SignInManager<LiquidDocsSite.Data.ApplicationUser> SignInManager
+@inject IdentityRedirectManager RedirectManager
+@inject ISessionStateManager sessionManager
+@inject IHttpContextAccessor httpContextAccessor
+
+
+    <StatusMessage />
+
+
+    <EditForm Model="Input" FormName="profile" OnValidSubmit="OnValidSubmitAsync" method="post">
+    <DataAnnotationsValidator />
+    <MudPaper Elevation="3" Class="pl-4 pr-4 mt-5 mx-auto" MaxWidth="500px">
+    <MudGrid>
+        <MudText Class="mx-auto mt-5" Typo="Typo.h4" GutterBottom="true">Profile Details</MudText>
+
+        
+        <MudItem md="12">
+                <MudStaticTextField @bind-Value="Input.Name" Label="User Name" Disabled="true" Placeholder="Please choose your username." />
+        </MudItem>
+        <MudItem md="12">
+            <MudStaticTextField For="@(() => Input.PhoneNumber)" @bind-Value="Input.PhoneNumber"
+                                Label="Phone Number" HelperText="Please enter your phone number."
+                                UserAttributes="@(new() { { "autocomplete", "tel-national" } } )" />
+        </MudItem>
+            
+
+            <MudItem md="12">
+                <MudStaticTextField Variant="Variant.Outlined" For="@(() => Input.DateOfBirth)" @bind-Value="Input.DateOfBirth"
+                                    Label="Date of Birth" InputType="InputType.Text" Placeholder="##-##-####" />
+            </MudItem>
+
+            <MudItem md="12">
+                <MudStaticTextField Variant="Variant.Outlined" For="@(() => Input.StreetAddress)" @bind-Value="Input.StreetAddress"
+                                    Label="Stree Address" InputType="InputType.Text" Placeholder="Street Address" />
+            </MudItem>
+            <MudItem md="12">
+                <MudStaticTextField Variant="Variant.Outlined" For="@(() => Input.City)" @bind-Value="Input.City"
+                                    Label="City" InputType="InputType.Text" Placeholder="City" />
+            </MudItem>
+            <MudItem md="12">
+                <MudStaticTextField Variant="Variant.Outlined" For="@(() => Input.State)" @bind-Value="Input.State"
+                                    Label="State" InputType="InputType.Text" Placeholder="CA" />
+
+            </MudItem>
+            <MudItem md="12">
+                <MudStaticTextField Variant="Variant.Outlined" For="@(() => Input.ZipCode)" @bind-Value="Input.ZipCode"
+                                    Label="Zip Code" InputType="InputType.Text" Placeholder="Zip Code" />
+            </MudItem>
+        <MudItem md="12">
+            <MudStaticButton Class="mb-5" Variant="Variant.Filled" Color="Color.Primary" FullWidth="true" FormAction="FormAction.Submit">Save</MudStaticButton>
+        </MudItem>
+       
+    </MudGrid>
+    </MudPaper>
+</EditForm>
+
+
+@code {
+
+    private string? phoneNumber;
+    private LiquidDocsSite.Data.ApplicationUser user = default!;
+
+    private LiquidDocsSite.Data.ApplicationUser userProfile;
+
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; }
+
+    [SupplyParameterFromForm]
+    private InputModel Input { get; set; } = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        var auth = await AuthProvider.GetAuthenticationStateAsync();
+        var user = auth.User;
+
+        var userName = auth.User.Identity.Name ?? "";
+
+        if (!sessionManager.ActiveSessions.ContainsKey(userName))
+        {
+            userProfile = await sessionManager.GetUserProfileByUserNameAsync(userName);
+        }
+        else
+        {
+            userProfile = sessionManager.ActiveSessions[userName];            
+
+        }
+
+          
+        Input.Name = userProfile?.Name ?? string.Empty;
+        Input.Email = userProfile?.Email ?? string.Empty;
+        Input.PhoneNumber = userProfile?.PhoneNumber ?? string.Empty;
+        Input.DateOfBirth = userProfile?.DateOfBirth ?? string.Empty;
+        Input.StreetAddress = userProfile?.StreetAddress ?? string.Empty;
+        Input.City = userProfile?.City ?? string.Empty;
+        Input.State = userProfile?.State ?? string.Empty;
+        Input.ZipCode = userProfile?.ZipCode ?? string.Empty;
+
+        if (httpContextAccessor.HttpContext is not null) HttpContext = httpContextAccessor.HttpContext;
+
+    }
+
+    private async Task OnValidSubmitAsync()
+    {
+        if (Input.PhoneNumber != phoneNumber)
+        {
+            var setPhoneResult = await UserManager.SetPhoneNumberAsync(user, Input.PhoneNumber);
+            if (!setPhoneResult.Succeeded)
+            {
+                RedirectManager.RedirectToCurrentPageWithStatus("Error: Failed to set phone number.", HttpContext);
+            }
+        }
+
+        await SignInManager.RefreshSignInAsync(user);
+        RedirectManager.RedirectToCurrentPageWithStatus("Your profile has been updated", HttpContext);
+    }
+
+    private sealed class InputModel
+    {
+        [Phone]
+        [Display(Name = "Phone number")]
+        public string? PhoneNumber { get; set; }
+
+        [Required]
+        [EmailAddress]
+        [Display(Name = "Email")]
+        public string Email { get; set; } = "";
+
+        [Required]
+        [StringLength(100, ErrorMessage = "The {0} must be at least {2} and at max {1} characters long.", MinimumLength = 6)]
+        [DataType(DataType.Password)]
+        [Display(Name = "Password")]
+        public string Password { get; set; } = "";
+
+        [DataType(DataType.Password)]
+        [Display(Name = "Confirm password")]
+        [Compare("Password", ErrorMessage = "The password and confirmation password do not match.")]
+        public string ConfirmPassword { get; set; } = "";
+
+        public string Name { get; set; }
+
+        public string DateOfBirth { get; set; }
+              
+        public string StreetAddress { get; set; }
+
+        public string City { get; set; }
+
+
+        public string State { get; set; }
+
+        public string ZipCode { get; set; }
+
+        public string ProfilePictureUrl { get; set; }
+
+        public CreditCardSubscription CreditCardSubscriotion { get; set; } = new();
+
+
+    }
+}

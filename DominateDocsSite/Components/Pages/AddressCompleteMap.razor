@@ -1,0 +1,386 @@
+﻿@* Address + Google Map component (single map reference, clean interop) *@
+@inject IJSRuntime JSRuntime
+@using DominateDocsData.Models
+@using MudBlazor
+
+@if (Row)
+{
+    <MudGrid>
+        <MudItem md="6">
+            <div class="d-flex flex-column gap-2">
+                <MudAutocomplete T="string"
+                                 Class="ml-4 mr-7"
+                                 Style="background-color: white;"
+                                 Variant="Variant.Outlined"
+                                 Label="Address"
+                                 @bind-Value="currentAddress"
+                                 SearchFunc="@SearchAddresses"
+                                 ToStringFunc="@(x => x)"
+                                 MinCharacters="3"
+                                 Margin="Margin.Normal"
+                                 DebounceInterval="300"
+                                 Clearable="true"
+                                 FullWidth="true"
+                                 Placeholder="Start typing an address..."
+                                 CoerceText="true"
+                                 ResetValueOnEmptyText="true"
+                                 Autocomplete="Autocomplete.Off"
+                                 InputAttributes="_attrs" />
+
+                <MudButton Variant="Variant.Filled"
+                           Color="Color.Primary"
+                           OnClick="AddAddressAsync"
+                           Class="mt-3"
+                           FullWidth="true"
+                           StartIcon="@(editingIndex >= 0 ? Icons.Material.Filled.Edit : Icons.Material.Filled.Add)">
+                    @(editingIndex >= 0 ? "Update Address" : "Validate Address")
+                </MudButton>
+
+                @if (addresses.Any())
+                {
+                    <MudText Typo="Typo.h6" Class="mt-6 mb-3">Added Addresses (@addresses.Count)</MudText>
+                    <MudList T="string" Dense="true">
+                        @for (int i = 0; i < addresses.Count; i++)
+                        {
+                            int index = i;
+                            var colors = new[] { "#FF1744", "#2196F3", "#4CAF50", "#FF9800", "#9C27B0" };
+                            var pinColor = colors[index % colors.Length];
+
+                            <MudListItem T="string">
+                                <div class="d-flex justify-space-between align-center">
+                                    <div class="d-flex align-center">
+                                        <div style="width: 20px; height: 20px; background-color: @pinColor; border-radius: 50%; margin-right: 12px; display: flex; align-items: center; justify-content: center;">
+                                            <MudText Typo="Typo.caption" Style="color: white; font-weight: bold; font-size: 10px;">@((index + 1).ToString())</MudText>
+                                        </div>
+                                        <MudText Typo="Typo.body2">@addresses[index]</MudText>
+                                    </div>
+                                    <div class="d-flex gap-2">
+                                        <MudButton Variant="Variant.Filled"
+                                                   Color="Color.Primary"
+                                                   Size="Size.Small"
+                                                   OnClick="() => EditAddressAsync(index)">
+                                            Edit
+                                        </MudButton>
+                                        <MudButton Variant="Variant.Filled"
+                                                   Color="Color.Error"
+                                                   Size="Size.Small"
+                                                   OnClick="() => DeleteAddressAsync(index)">
+                                            Delete
+                                        </MudButton>
+                                    </div>
+                                </div>
+                            </MudListItem>
+                            @if (index < addresses.Count - 1)
+                            {
+                                <MudDivider />
+                            }
+                        }
+                    </MudList>
+                }
+            </div>
+        </MudItem>
+
+        <MudItem md="6">
+            <div @ref="_mapEl" id="map"
+                 style="height: 400px; width: 100%; border-radius: 8px; border: 1px solid #e0e0e0; background: #f8f9fa;">
+            </div>
+        </MudItem>
+    </MudGrid>
+}
+else
+{
+    <MudGrid>
+        <MudItem md="12">
+            <div class="d-flex flex-column gap-2">
+                @if (ShouldShowAddressInput())
+                {
+                    <MudAutocomplete T="string"
+                                     Class="ml-4 mr-7"
+                                     Style="background-color: white;"
+                                     Variant="Variant.Outlined"
+                                     Label="Address"
+                                     Value="currentAddress"
+                                     ValueChanged="OnAutocompleteSelectedAsync"
+                                     ValueExpression="(() => currentAddress)"
+                                     SearchFunc="@SearchAddresses"
+                                     ToStringFunc="@(x => x)"
+                                     MinCharacters="3"
+                                     Margin="Margin.Normal"
+                                     DebounceInterval="300"
+                                     Clearable="true"
+                                     FullWidth="true"
+                                     Placeholder="Start typing an address..."
+                                     Strict="true"
+                                     CoerceText="false"
+                                     ResetValueOnEmptyText="true"
+                                     Autocomplete="Autocomplete.Off"
+                                     InputAttributes="_attrs" />
+
+
+                    @if (DisplayMap)
+                    {
+                        <div class="d-flex gap-2 ml-4 mr-5">
+                            <MudButton Variant="Variant.Filled"
+                            Color="Color.Primary"
+                            OnClick="AddAddressAsync"
+                            FullWidth="true"
+                            StartIcon="@(editingIndex >= 0 ? Icons.Material.Filled.Edit : Icons.Material.Filled.Add)">
+                                @(editingIndex >= 0 ? "Update Address" : "Validate Address")
+                            </MudButton>
+
+                            @if (editingIndex >= 0)
+                            {
+                                <MudButton Variant="Variant.Outlined"
+                                Color="Color.Secondary"
+                                OnClick="CancelEdit"
+                                StartIcon="@Icons.Material.Filled.Cancel">
+                                    Cancel
+                                </MudButton>
+                            }
+                        </div>
+                    } 
+                }
+
+                @if (addresses.Any())
+                {
+                    <MudList T="string" Dense="true">
+                        @for (int i = 0; i < addresses.Count; i++)
+                        {
+                            int index = i;
+                            var colors = new[] { "#FF1744", "#2196F3", "#4CAF50", "#FF9800", "#9C27B0" };
+                            var pinColor = colors[index % colors.Length];
+
+                            <MudListItem T="string">
+                                <div class="d-flex justify-space-between align-center">
+                                    <div class="d-flex align-center">
+                                        <div style="width: 20px; height: 20px; background-color: @pinColor; border-radius: 50%; margin-right: 12px; display: flex; align-items: center; justify-content: center;">
+                                            <MudText Typo="Typo.caption" Style="color: white; font-weight: bold; font-size: 10px;">@((index + 1).ToString())</MudText>
+                                        </div>
+                                        <MudText Typo="Typo.body2">@addresses[index]</MudText>
+                                    </div>
+                                    <div class="d-flex gap-2">
+                                        <MudButton Class="ml-4"
+                                                   Variant="Variant.Text"
+                                                   Color="Color.Error"
+                                                   Size="Size.Small"
+                                                   OnClick="() => DeleteAddressAsync(index)">
+                                            Delete
+                                        </MudButton>
+                                    </div>
+                                </div>
+                            </MudListItem>
+                            @if (index < addresses.Count - 1)
+                            {
+                                <MudDivider />
+                            }
+                        }
+                    </MudList>
+                }
+
+                @if (DisplayMap)
+                {
+                    <div @ref="_mapEl" id="map"
+                         class="ml-4 mr-7 mb-5"
+                         style="height: 300px; width: 100%; border-radius: 8px; border: 1px solid #e0e0e0; background: #f8f9fa;">
+                    </div>
+                }
+            </div>
+        </MudItem>
+    </MudGrid>
+}
+
+@code 
+{
+    [Parameter] public EventCallback<List<AddressDTO>> OnAddressChange { get; set; }
+    [Parameter] public List<AddressDTO> AddressList { get; set; }
+    [Parameter] public bool Row { get; set; } = true;
+    [Parameter] public bool MultipleAddress { get; set; } = false;
+    [Parameter] public bool DisplayMap { get; set; } = true;
+
+    private readonly Dictionary<string, object> _attrs = new(); // for InputAttributes
+    private ElementReference _mapEl;
+    private List<string> addresses = new();
+    private string currentAddress = "";
+    private AddressDTO priorAddressDto = new();
+    private AddressDTO currentAddressDto = new();
+    private int editingIndex = -1;
+    private bool mapInitialized = false;
+
+    protected override Task OnInitializedAsync()
+    {
+        // Load initial addresses if provided
+        if (AddressList?.Any() == true)
+        {
+            addresses = AddressList.Select(a => a.FullAddress).ToList();
+            if (!MultipleAddress)
+                currentAddress = addresses.FirstOrDefault();
+        }
+        return Task.CompletedTask;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+
+        if (!DisplayMap)
+            return;
+
+        if (firstRender && !mapInitialized)
+        {
+            // Initialize map once; if Google isn't ready yet, the JS helper no-ops safely
+            await JSRuntime.InvokeVoidAsync("AppMaps.initMap", _mapEl, new
+            {
+                center = new { lat = 36.1627, lng = -86.7816 },
+                zoom = 11
+            });
+
+            mapInitialized = true;
+
+            if (addresses.Count > 0)
+                await JSRuntime.InvokeVoidAsync("AppMaps.rebuildAllMarkers", addresses);
+        }
+    }
+
+    private async Task OnAutocompleteSelectedAsync(string? selected)
+    {
+        if (string.IsNullOrWhiteSpace(selected))
+            return;
+
+        // Avoid re-processing the same value (optional, but saves pointless JS calls)
+        if (selected == currentAddress && editingIndex < 0 && addresses.Contains(selected))
+            return;
+
+        currentAddress = selected;
+
+        // Reuse your existing logic that parses + updates markers + fires OnAddressChange
+        //await AddAddressAsync();
+
+        if (!MultipleAddress)
+        {
+            await AddAddressAsync();
+            return;
+        }
+    }
+
+    private async Task<IEnumerable<string>> SearchAddresses(string value, CancellationToken token)
+    {
+        if (string.IsNullOrWhiteSpace(value) || value.Length < 3)
+            return Array.Empty<string>();
+
+        try
+        {
+            var results = await JSRuntime.InvokeAsync<string[]>("AppMaps.getAddressPredictions", value);
+            return results ?? Array.Empty<string>();
+        }
+        catch
+        {
+            return GetMockAddresses(value);
+        }
+    }
+
+    private IEnumerable<string> GetMockAddresses(string searchValue)
+    {
+        var mock = new[]
+        {
+            $"{searchValue} Street, Nashville, TN 37203",
+            $"{searchValue} Avenue, Nashville, TN 37204",
+            $"{searchValue} Boulevard, Nashville, TN 37205",
+            $"{searchValue} Drive, Nashville, TN 37206",
+            $"{searchValue} Way, Nashville, TN 37207"
+        };
+        return mock.Take(5);
+    }
+
+    private async Task AddAddressAsync()
+    {
+        if (string.IsNullOrWhiteSpace(currentAddress))
+            return;
+
+        AddressList ??= new List<AddressDTO>();
+        currentAddressDto = await JSRuntime.InvokeAsync<AddressDTO>("AppMaps.parseAddressDetails", currentAddress);
+
+        if (editingIndex >= 0)
+        {
+            addresses[editingIndex] = currentAddress;
+            int idx = AddressList.FindIndex(a => a.FullAddress == priorAddressDto.FullAddress);
+            if (idx != -1) AddressList[idx] = currentAddressDto;
+            if (DisplayMap && mapInitialized) await JSRuntime.InvokeVoidAsync("AppMaps.rebuildAllMarkers", addresses);
+            editingIndex = -1;
+        }
+        else
+        {
+            if (!MultipleAddress && addresses.Any())
+            {
+                addresses[0] = currentAddress;
+                if (AddressList.Count == 0) AddressList.Add(currentAddressDto);
+                else AddressList[0] = currentAddressDto;
+                if (DisplayMap && mapInitialized) await JSRuntime.InvokeVoidAsync("AppMaps.rebuildAllMarkers", addresses);
+            }
+            else
+            {
+                var targetIndex = addresses.Count;
+                addresses.Add(currentAddress);
+                AddressList.Add(currentAddressDto);
+                if (DisplayMap && mapInitialized) await JSRuntime.InvokeVoidAsync("AppMaps.addMarker", currentAddress, targetIndex);
+            }
+        }
+
+        currentAddress = "";
+        StateHasChanged();
+        await OnAddressEntryHasCompletedAsync();
+    }
+
+    private async Task DeleteAddressAsync(int index)
+    {
+        if (index < 0 || index >= addresses.Count) return;
+
+        priorAddressDto = await JSRuntime.InvokeAsync<AddressDTO>("AppMaps.parseAddressDetails", addresses[index]);
+
+        addresses.RemoveAt(index);
+
+        var inList = AddressList?.Find(a => a.FullAddress == priorAddressDto.FullAddress);
+        if (inList != null) AddressList.Remove(inList);
+
+        if (editingIndex == index)
+        {
+            editingIndex = -1;
+            currentAddress = "";
+        }
+        else if (editingIndex > index)
+        {
+            editingIndex--;
+        }
+
+        StateHasChanged();
+        await JSRuntime.InvokeVoidAsync("AppMaps.rebuildAllMarkers", addresses);
+        await OnAddressEntryHasCompletedAsync();
+    }
+
+    private void CancelEdit()
+    {
+        editingIndex = -1;
+        currentAddress = "";
+        StateHasChanged();
+    }
+
+    private bool ShouldShowAddressInput()
+    {
+        if (MultipleAddress) return true;
+        return !addresses.Any() || editingIndex >= 0;
+    }
+
+    private async Task EditAddressAsync(int index)
+    {
+        if (index >= 0 && index < addresses.Count)
+        {
+            currentAddress = addresses[index];
+            priorAddressDto = await JSRuntime.InvokeAsync<AddressDTO>("AppMaps.parseAddressDetails", currentAddress);
+            editingIndex = index;
+            StateHasChanged();
+        }
+    }
+
+    private async Task OnAddressEntryHasCompletedAsync()
+    {
+        await OnAddressChange.InvokeAsync(AddressList);
+    }
+}

@@ -1,0 +1,1411 @@
+﻿@page "/loanagreement"
+
+@using LiquidDocsData.Enums
+@using LiquidDocsData.Models
+@using LiquidDocsSite.ViewModels
+@using LiquidDocsSite.Database
+@using System.Globalization
+
+@inject NavigationManager Nav
+@inject IMongoDatabaseRepo dbApp
+@inject LoanAgreementViewModel lvm
+@inject BrokerViewModel brokerVm
+@inject BorrowerViewModel borrowerVm
+@inject LenderViewModel lenderVm
+@inject TrusteeViewModel trusteeVm
+@inject GuarantorViewModel guarantorVm
+@inject UserSession Session
+
+<style>
+
+    /* Target the header of any expanded panel */
+    .mud-expand-panel.mud-expanded .mud-expand-panel-header {
+        background-color: #594AE2;
+        color: white;
+    }
+
+    /* Optional: subtle transition */
+    .mud-expand-panel .mud-expand-panel-header {
+        transition: background-color 150ms ease, color 150ms ease;
+    }
+
+    .panel-stack {
+        display: grid; /* or flex; grid is simplest */
+        gap: 24px; /* space between panels */
+    }
+
+</style>
+
+
+<MudCard Class="mt-5 elevation-12 rounded-xl" Style="font-family: system-ui, -apple-system, 'Segoe UI' , Roboto, 'Helvetica Neue' , Arial, 'Noto Sans' , sans-serif;">
+    <MudCardHeader Class="mud-theme-primary mud-text-white d-flex justify-center">
+        <CardHeaderContent>
+            <MudText Typo="Typo.h4" Align="Align.Center">Loan Agreement</MudText>
+            <MudText Typo="Typo.h6" Align="Align.Center">Please fill out the forms within the Tabs below to process a loan.</MudText>
+            <MudText Typo="Typo.subtitle1" Align="Align.Center">Loan Number: @lvm.EditingAgreement.LoanNumber</MudText>
+        </CardHeaderContent>
+    </MudCardHeader>
+    <MudCardContent>
+        <MudTabs @ref="tabs" ApplyEffectsToContainer="true" PanelClass="pa-2" Rounded="true" Class="" Style="font-family: system-ui, -apple-system, 'Segoe UI' , Roboto, 'Helvetica Neue' , Arial, 'Noto Sans' , sans-serif;" @bind-ActivePanelIndex="activeTabIndex">
+
+            <MudTabPanel Class="tab-text-medium" Text="Loan Information">
+                <MudGrid Class="">
+                    <!-- Left column (inputs) -->
+                    <MudItem xs="6">
+                        <MudPaper Class="pa-4" Elevation="1" Style="border-radius:12px; background-color: var(--mud-palette-surface);">
+                            <MudText Typo="Typo.h6">Loan Agreement</MudText>
+                            <div class="d-flex flex-column gap-2">
+                                <MudTextField Variant="Variant.Outlined" @bind-Value="lvm.EditingAgreement.ReferenceName" @bind-Value:after="@(() => OnReferenceNameChanged(""))" Required="true" Label="Reference Name" />
+
+                                <MudSelect Variant="Variant.Outlined" T="LoanTypes.Type" @bind-Value="lvm.EditingAgreement.LoanType" Label="Loan Type">
+                                    @foreach (var v in Enum.GetValues<LoanTypes.Type>())
+                                    {
+                                        <MudSelectItem Value="v">@v</MudSelectItem>
+                                    }
+                                </MudSelect>
+                                <MudNumericField Class="" Style="background-color: white;" HideSpinButtons="true" Adornment="Adornment.Start" AdornmentText="$" Culture="CultureInfo.InvariantCulture"
+                                                 Format="N2" @bind-Value="lvm.EditingAgreement.PrincipalAmount" Label="Principal Amount" Variant="Variant.Outlined" Step=".2M" />
+
+                                <MudNumericField Variant="Variant.Outlined" T="decimal" @bind-Value="lvm.EditingAgreement.InterestRate" Label="Interest Rate (%)" />
+                                <MudTextField Variant="Variant.Outlined" @bind-Value="lvm.EditingAgreement.RateIndex" Label="Rate Index" Required="true" />
+                                <MudNumericField Variant="Variant.Outlined" T="int" @bind-Value="lvm.EditingAgreement.TermInMonths" Label="Term (months)" />
+                                <MudDatePicker Variant="Variant.Outlined" @bind-Date="lvm.EditingAgreement.OriginationDate" Label="Origination Date" />
+                                <MudDatePicker Variant="Variant.Outlined" @bind-Date="lvm.EditingAgreement.MaturityDate" Label="Maturity Date" />
+                                <MudDatePicker Variant="Variant.Outlined" @bind-Date="lvm.EditingAgreement.SignedDate" Label="Signed Date" />
+
+
+
+                            </div>
+                        </MudPaper>
+                    </MudItem>
+
+                    <!-- Right column (switch group appearance only) -->
+                    <MudItem xs="6">
+                        <MudPaper Class="pa-4" Elevation="1" Style="border-radius: 12px; background-color: var(--mud-palette-surface);">
+                            <MudText Class="" Typo="Typo.h6">Additional Options</MudText>
+                            <div class="d-flex flex-column gap-2">
+
+                                <MudSwitch T="bool" Class="mt-4 mb-4" Color="Color.Primary" Label="Conditional Right To Extend" @bind-Value="lvm.EditingAgreement.IsConditionalRightToExtend" />
+
+                                @if (lvm.EditingAgreement.IsConditionalRightToExtend)
+                                {
+
+                                    <MudNumericField Variant="Variant.Outlined" T="int" @bind-Value="lvm.EditingAgreement.NumberOfExtensions" Label="Number Of Extensions" />
+                                    <MudNumericField Variant="Variant.Outlined" T="int" @bind-Value="lvm.EditingAgreement.NumberOfMonthsForEachExtension" Label="Months For Each Extension" />
+
+                                }
+
+                                <MudSelect Class="mb-4" Variant="Variant.Outlined" T="DocumentSet" @bind-Value="lvm.EditingAgreement.DocumentSet" Label="Document Set">
+                                    @foreach (var v in docSetList)
+                                    {
+                                        <MudSelectItem Value="v">@v.Name</MudSelectItem>
+                                    }
+                                </MudSelect>
+                                <MudExpansionPanels Class="panel-stack">
+                                    <MudExpansionPanel Text="Loan Sales Information" MaxHeight="1500" Expanded="false" @bind-IsExpanded="loanSaleInfoOpen">
+
+
+                                        <div class="d-flex flex-column gap-2">
+
+                                            <MudSwitch @bind-Value="lvm.EditingAgreement.IsLoanIntendedForSale" Color="Color.Primary" Label="Loan Intended For Sale" />
+
+                                            @if (lvm.EditingAgreement.IsLoanIntendedForSale)
+                                            {
+                                                <MudSelect Variant="Variant.Outlined" T="LoanSalesOptions.Option" @bind-Value="lvm.EditingAgreement.LoanSalesOption" Label="Sales Option">
+                                                    @foreach (var v in Enum.GetValues<LoanSalesOptions.Option>())
+                                                    {
+                                                        <MudSelectItem Value="v">@v</MudSelectItem>
+                                                    }
+                                                </MudSelect>
+                                                <MudTextField Variant="Variant.Outlined" @bind-Value="lvm.EditingAgreement.LoanSalesInformation" Label="Sales Information" Lines="3" />
+
+                                                <MudText Typo="Typo.subtitle2" Class="mt-4">Purchaser Information</MudText>
+                                                <MudTextField Variant="Variant.Outlined" @bind-Value="lvm.EditingAgreement.LoanPurchaserName" Label="Name" />
+                                                <MudTextField Variant="Variant.Outlined" @bind-Value="lvm.EditingAgreement.LoanPurchaserStreetAddress" Label="Street" />
+                                                <MudTextField Variant="Variant.Outlined" @bind-Value="lvm.EditingAgreement.LoanPurchaserCity" Label="City" />
+                                                <MudTextField Variant="Variant.Outlined" @bind-Value="lvm.EditingAgreement.LoanPurchaserState" Label="State" />
+                                                <MudTextField Variant="Variant.Outlined" @bind-Value="lvm.EditingAgreement.LoanPurchaserZipCode" Label="Zip" />
+                                                <MudTextField Variant="Variant.Outlined" @bind-Value="lvm.EditingAgreement.LoanPurchaserCounty" Label="County" />
+                                                <MudTextField Variant="Variant.Outlined" @bind-Value="lvm.EditingAgreement.LoanPurchaserEmailAddress" Label="Email" />
+                                                <MudTextField Variant="Variant.Outlined" @bind-Value="lvm.EditingAgreement.LoanPurchaserPhoneNumber" Label="Phone" />
+                                                <MudTextField Variant="Variant.Outlined" @bind-Value="lvm.EditingAgreement.LoanPurchaserAssignees" Label="Assignees" />
+
+                                            }
+                                        </div>
+
+                                    </MudExpansionPanel>
+                                    <MudExpansionPanel Text="Preparrer Information" MaxHeight="1500" @bind-IsExpanded="preparrerInfoOpen">
+
+
+                                        <div class="d-flex flex-column gap-2">
+
+                                            <MudTextField Variant="Variant.Outlined" @bind-Value="lvm.EditingAgreement.LoanPreparerName" Label="Name" />
+                                            <MudTextField Variant="Variant.Outlined" @bind-Value="lvm.EditingAgreement.LoanPreparerStreetAddress" Label="Street" />
+                                            <MudTextField Variant="Variant.Outlined" @bind-Value="lvm.EditingAgreement.LoanPreparerCity" Label="City" />
+                                            <MudTextField Variant="Variant.Outlined" @bind-Value="lvm.EditingAgreement.LoanPreparerState" Label="State" />
+                                            <MudTextField Variant="Variant.Outlined" @bind-Value="lvm.EditingAgreement.LoanPreparerZipCode" Label="Zip Code" />
+                                            <MudTextField Variant="Variant.Outlined" @bind-Value="lvm.EditingAgreement.LoanPreparerCounty" Label="County" />
+                                            <MudTextField Variant="Variant.Outlined" @bind-Value="lvm.EditingAgreement.LoanPreparerEmailAddress" Label="Email" />
+                                            <MudTextField Variant="Variant.Outlined" @bind-Value="lvm.EditingAgreement.LoanPreparerPhoneNumber" Label="Phone" />
+                                        </div>
+
+
+
+                                    </MudExpansionPanel>
+                                    <MudExpansionPanel Text="Additional Options" MaxHeight="1000" @bind-IsExpanded="additionalOptionsInfoOpen">
+
+
+                                        <div class="d-flex flex-column gap-2">
+                                            <MudSwitch T="bool" Color="Color.Primary" Label="Tax Insurance or Other Impounds" @bind-Value="lvm.EditingAgreement.IsTaxInsuranceOtherImpounds" />
+                                            <MudSwitch T="bool" Color="Color.Primary" Label="Borrower Responsible For Service Fees" @bind-Value="lvm.EditingAgreement.IsBorrowerResponsibleForServicingFees" />
+                                            <MudSwitch T="bool" Color="Color.Primary" Label="ACH Delivery" @bind-Value="lvm.EditingAgreement.IsACHDelivery" />
+                                            <MudSwitch T="bool" Color="Color.Primary" Label="Remove ACHD Form From Doc Set" @bind-Value="lvm.EditingAgreement.IsRemoveACHDFormFromDocSet" />
+                                            <MudSwitch T="bool" Color="Color.Primary" Label="Exit Fee Included" @bind-Value="lvm.EditingAgreement.IsExitFeeIncluded" />
+                                            <MudSwitch T="bool" Color="Color.Primary" Label="W9 To Be Included" @bind-Value="lvm.EditingAgreement.IsW9TObeIncludedInDocSet" />
+                                            <MudSwitch T="bool" Color="Color.Primary" Label="MERS Language To Be Inserted" @bind-Value="lvm.EditingAgreement.IsMERSLanuageToBeInserted" />
+                                            <MudSwitch T="bool" Color="Color.Primary" Label="Singing Affidavit Required" @bind-Value="lvm.EditingAgreement.IsSignAffidavitAkaRequired" />
+
+                                            <MudSwitch T="bool" Color="Color.Primary" Label="Prepayment Penalty" @bind-Value="lvm.EditingAgreement.IsPrepaymentPenalty" />
+                                        </div>
+
+                                    </MudExpansionPanel>
+                                    <MudExpansionPanel Text="Payments" MaxHeight="500" Expanded="false">
+                                        <div class="d-flex flex-column gap-2">
+                                            <MudSelect Variant="Variant.Outlined" T="PaymentSchedules.Schedule" @bind-Value="lvm.EditingAgreement.RepaymentSchedule" Label="Repayment Schedule">
+                                                @foreach (var v in Enum.GetValues<PaymentSchedules.Schedule>())
+                                                {
+                                                    <MudSelectItem Value="v">@v</MudSelectItem>
+                                                }
+                                            </MudSelect>
+                                            <MudSelect Variant="Variant.Outlined" T="PrepaymentPremiumTypes.Type" @bind-Value="lvm.EditingAgreement.PrepaymentPremium" Label="Prepayment Premium">
+                                                @foreach (var v in Enum.GetValues<PrepaymentPremiumTypes.Type>())
+                                                {
+                                                    <MudSelectItem Value="v">@v</MudSelectItem>
+                                                }
+                                            </MudSelect>
+                                            <MudNumericField Variant="Variant.Outlined" T="int" @bind-Value="lvm.EditingAgreement.ReserveInMonthsToCalculate" Label="Reserve Months" />
+                                            <MudNumericField Variant="Variant.Outlined" T="decimal" @bind-Value="lvm.EditingAgreement.ReserveSpecificAmount" Label="Reserve Specific Amount" />
+
+                                        </div>
+                                    </MudExpansionPanel>
+                                    <MudExpansionPanel Text="Additional Fees" MaxHeight="500">
+                                        <div class="d-flex flex-column gap-2">
+
+                                            <MudNumericField Variant="Variant.Outlined" T="decimal" @bind-Value="lvm.EditingAgreement.ServicingFeeAmount" Label="Servicing Fee Amount" />
+                                            <MudNumericField Variant="Variant.Outlined" T="decimal" @bind-Value="lvm.EditingAgreement.ExitFeeAmount" Label="Exit Fee Amount" />
+
+                                        </div>
+                                    </MudExpansionPanel>
+                                </MudExpansionPanels>
+                            </div>
+                        </MudPaper>
+
+
+                    </MudItem>
+                    <MudItem xs="12">
+
+
+
+                    </MudItem>
+                </MudGrid>
+
+
+
+
+            </MudTabPanel>
+            <MudTabPanel Class="tab-text-medium" Text="Borrower Information" Disabled="disableTabs">
+                <MudItem xs="12" md="12">
+                    @if (AddNewBorrower)
+                    {
+                        <Borrower OnComplete="HandleBorrowerComplete"
+                                  OnCancel="HandleBorrowerCancel" />
+                    }
+                    else
+                    {
+                        @if (!String.IsNullOrEmpty(SearchBorrower))
+                        {
+                            <MudTable Items="@BorrowerReload()" Context="borrowerContext" Hover="true" Bordered="true" Dense="true" @bind-SelectedItem="lvm.SelectedBorrower" @ref="borrowerTable" RowClick="OnSelectedBorrower" T="LiquidDocsData.Models.Borrower">
+                                <ToolBarContent>
+                                    <MudTextField T="string" ValueChanged="@(s => OnBorrowerSearch(s))" Placeholder="Search" Adornment="Adornment.Start"
+                                                  AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0"></MudTextField>
+                                </ToolBarContent>
+                                <HeaderContent>
+                                    <MudTh>Entity Name</MudTh>
+                                    <MudTh>Address</MudTh>
+                                    <MudTh>Phone</MudTh>
+                                    <MudTh>Email</MudTh>
+                                    <MudTh>
+
+                                    </MudTh>
+                                    <MudTh>
+                                        <MudButton Class="rounded-4" Disabled=@AddButtonDisabled Variant="Variant.Filled" Size="Size.Small" Color="Color.Primary" OnClick="OnAddBorrower">Add a new Borrower</MudButton>
+                                    </MudTh>
+                                </HeaderContent>
+                                <RowTemplate>
+                                    <MudTd DataLabel="Enitity Name">@borrowerContext.EntityName</MudTd>
+                                    <MudTd DataLabel="Address">@borrowerContext.FullAddress</MudTd>
+                                    <MudTd DataLabel="Phone">@borrowerContext.ContactPhoneNumber</MudTd>
+                                    <MudTd DataLabel="Email">@borrowerContext.ContactEmail</MudTd>
+                                    <MudTd DataLabel="Active">
+                                        <MudChip T="bool" Color="@((borrowerContext.IsActive) ? Color.Success : Color.Error)">
+                                            @(borrowerContext.IsActive ? "Yes" : "No")
+                                        </MudChip>
+                                    </MudTd>
+                                    <MudTd>
+                                        <MudIconButton Icon="@Icons.Material.Filled.Add" Color="Color.Info" OnClick="@(() => AddBorrowerToLoan(borrowerContext))" />
+                                    </MudTd>
+                                </RowTemplate>
+                                <NoRecordsContent>
+                                    <MudText Color="Color.Secondary" Class="pa-4">
+                                        🚫 No Active Borrowers Found. Please add!
+                                    </MudText>
+                                </NoRecordsContent>
+                            </MudTable>
+                        }
+                        else if (!AddEditBorrower)
+                        {
+                            <MudTable Items="@lvm.SelectedAgreement.Borrowers" Hover="true" Dense="true" Elevation="0">
+                                <ToolBarContent>
+                                    <MudTextField T="string" ValueChanged="@(s => OnBorrowerSearch(s))" Placeholder="Search for Borrowers" Adornment="Adornment.Start"
+                                                  AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0"></MudTextField>
+                                </ToolBarContent>
+                                <HeaderContent>
+                                    <MudTh><MudText Typo="Typo.h4" Align="Align.Left">Borrowers</MudText></MudTh>
+                                    <MudTh></MudTh>
+                                    <MudTh></MudTh>
+
+                                </HeaderContent>
+                                <RowTemplate>
+                                    <MudTd DataLabel="Name">
+                                        <div>
+                                            <MudText Typo="Typo.body1" Style="font-weight: 500;">@context.EntityName</MudText>
+                                            <MudText Typo="Typo.caption" Color="Color.Secondary">@context.ContactPhoneNumber</MudText>
+                                        </div>
+                                    </MudTd>
+                                    <MudTd DataLabel="Role">
+                                        <MudChip T="string" Color="@(context.BorrowerRole == BorrowerRoles.Role.Primary ? Color.Primary : Color.Secondary)" Size="Size.Small" Variant="Variant.Filled">
+                                            Role: @context.BorrowerRole
+                                        </MudChip>
+                                    </MudTd>
+                                    <MudTd DataLabel="">
+                                        <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                                       Color="Color.Info"
+                                                       OnClick="@(() => OnSelectBorrowerRemove(context))" />
+
+                                        <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                                                       Color="Color.Info"
+                                                       OnClick="@(() => OnSelectBorrowerEdit(context))" />
+                                    </MudTd>
+                                </RowTemplate>
+                                <NoRecordsContent>
+                                    <MudText Color="Color.Secondary" Class="pa-4">
+                                        🚫 No Active Borrowers Assinged to this Loan. Please add!
+                                    </MudText>
+                                </NoRecordsContent>
+                            </MudTable>
+                        }
+                    }
+
+                </MudItem>
+
+            </MudTabPanel>
+            <MudTabPanel Class="tab-text-medium" Text="Lender Information" Disabled="disableTabs">
+                @if (AddNewBorrower)
+                {
+                    <Lender OnComplete="HandleLenderComplete"
+                              OnCancel="HandleLenderCancel" />
+                }
+                else
+                {
+                    @if (!String.IsNullOrEmpty(SearchLender))
+                    {
+                        <MudTable Items="@LenderReload()" Context="lenderContext" Hover="true" Bordered="true" Dense="true" @bind-SelectedItem="lvm.SelectedLender" @ref="lenderTable" RowClick="OnSelectedLender" T="LiquidDocsData.Models.Lender">
+                            <ToolBarContent>
+                                <MudTextField T="string" ValueChanged="@(s => OnLenderSearch(s))" Placeholder="Search for a Lender" Adornment="Adornment.Start"
+                                              AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0"></MudTextField>
+                            </ToolBarContent>
+                            <HeaderContent>
+                                <MudTh>Entity Name</MudTh>
+                                <MudTh>Address</MudTh>
+                                <MudTh>Phone</MudTh>
+                                <MudTh>Email</MudTh>
+                                <MudTh>
+
+                                </MudTh>
+                                <MudTh>
+                                    <MudButton Class="rounded-4" Disabled=@AddButtonDisabled Variant="Variant.Filled" Size="Size.Small" Color="Color.Primary" OnClick="OnAddLender">Add a new Lender</MudButton>
+                                </MudTh>
+                            </HeaderContent>
+                            <RowTemplate>
+                                <MudTd DataLabel="Enitity Name">@lenderContext.EntityName</MudTd>
+                                <MudTd DataLabel="Address">@lenderContext.FullAddress</MudTd>
+                                <MudTd DataLabel="Phone">@lenderContext.ContactPhoneNumber</MudTd>
+                                <MudTd DataLabel="Email">@lenderContext.ContactEmail</MudTd>
+                                <MudTd DataLabel="Active">
+                                    <MudChip T="bool" Color="@((lenderContext.IsActive) ? Color.Success : Color.Error)">
+                                        @(lenderContext.IsActive ? "Yes" : "No")
+                                    </MudChip>
+                                </MudTd>
+                                <MudTd>
+                                    <MudIconButton Icon="@Icons.Material.Filled.Add" Color="Color.Info" OnClick="@(() => AddLenderToLoan(lenderContext))" />
+                                </MudTd>
+                            </RowTemplate>
+                            <NoRecordsContent>
+                                <MudText Color="Color.Secondary" Class="pa-4">
+                                    🚫 No Active Lenders Found. Please add!
+                                </MudText>
+                            </NoRecordsContent>
+                        </MudTable>
+                    }
+                    else if (!AddEditLender)
+                    {
+                        <MudTable Items="@lvm.SelectedAgreement.Lenders" Hover="true" Dense="true" Elevation="0">
+                            <ToolBarContent>
+                                <MudTextField T="string" ValueChanged="@(s => OnLenderSearch(s))" Placeholder="Search for Lenders" Adornment="Adornment.Start"
+                                              AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0"></MudTextField>
+                            </ToolBarContent>
+                            <HeaderContent>
+                                <MudTh><MudText Typo="Typo.h4" Align="Align.Left">Lenders</MudText></MudTh>
+                                <MudTh></MudTh>
+
+                            </HeaderContent>
+                            <RowTemplate>
+                                <MudTd DataLabel="Name">
+                                    <div>
+                                        <MudText Typo="Typo.body1" Style="font-weight: 500;">@context.EntityName</MudText>
+                                        <MudText Typo="Typo.caption" Color="Color.Secondary">@context.ContactPhoneNumber</MudText>
+                                    </div>
+                                </MudTd>
+                                <MudTd DataLabel="">
+                                    <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                                   Color="Color.Info"
+                                                   OnClick="@(() => OnSelectLenderRemove(context))" />
+
+                                    <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                                                   Color="Color.Info"
+                                                   OnClick="@(() => OnSelectLenderEdit(context))" />
+                                </MudTd>
+                            </RowTemplate>
+                            <NoRecordsContent>
+                                <MudText Color="Color.Secondary" Class="pa-4">
+                                    🚫 No Active Lenders Assinged to this Loan. Please add!
+                                </MudText>
+                            </NoRecordsContent>
+                        </MudTable>
+                    }
+                }
+
+            </MudTabPanel>
+            <MudTabPanel Class="tab-text-medium" Text="Guarantor Information" Disabled="disableTabs">
+                @if (AddNewGuarantor)
+                {
+                    <Guarantor OnComplete="HandleGuarantorComplete"
+                              OnCancel="HandleGuarantorCancel" />
+                }
+                else
+                {
+                    @if (!String.IsNullOrEmpty(SearchGuarantor))
+                    {
+                        <MudTable Items="@GuarantorReload()" Context="guarantorContext" Hover="true" Bordered="true" Dense="true" @bind-SelectedItem="lvm.SelectedGuarantor" @ref="guarantorTable" RowClick="OnSelectedGuarantor" T="LiquidDocsData.Models.Guarantor">
+                            <ToolBarContent>
+                                <MudTextField T="string" ValueChanged="@(s => OnGuarantorSearch(s))" Placeholder="Search Guarantor's'" Adornment="Adornment.Start"
+                                              AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0"></MudTextField>
+                            </ToolBarContent>
+                            <HeaderContent>
+                                <MudTh>Entity Name</MudTh>
+                                <MudTh>Address</MudTh>
+                                <MudTh>Phone</MudTh>
+                                <MudTh>Email</MudTh>
+                                <MudTh>
+
+                                </MudTh>
+                                <MudTh>
+                                    <MudButton Class="rounded-4" Disabled=@AddButtonDisabled Variant="Variant.Filled" Size="Size.Small" Color="Color.Primary" OnClick="OnAddGuarantor">Add a new Guarantor</MudButton>
+                                </MudTh>
+                            </HeaderContent>
+                            <RowTemplate>
+                                <MudTd DataLabel="Enitity Name">@guarantorContext.EntityName</MudTd>
+                                <MudTd DataLabel="Address">@guarantorContext.FullAddress</MudTd>
+                                <MudTd DataLabel="Phone">@guarantorContext.ContactPhoneNumber</MudTd>
+                                <MudTd DataLabel="Email">@guarantorContext.ContactEmail</MudTd>
+                                <MudTd DataLabel="Active">
+                                    <MudChip T="bool" Color="@((guarantorContext.IsActive) ? Color.Success : Color.Error)">
+                                        @(guarantorContext.IsActive ? "Yes" : "No")
+                                    </MudChip>
+                                </MudTd>
+                                <MudTd>
+                                    <MudIconButton Icon="@Icons.Material.Filled.Add" Color="Color.Info" OnClick="@(() => AddGuarantorToLoan(guarantorContext))" />
+                                </MudTd>
+                            </RowTemplate>
+                            <NoRecordsContent>
+                                <MudText Color="Color.Secondary" Class="pa-4">
+                                    🚫 No Active Guarantors Found. Please add!
+                                </MudText>
+                            </NoRecordsContent>
+                        </MudTable>
+                    }
+                    else if (!AddEditGuarantor)
+                    {
+                        <MudTable Items="@lvm.SelectedAgreement.Guarantors" Hover="true" Dense="true" Elevation="0">
+                            <ToolBarContent>
+                                <MudTextField T="string" ValueChanged="@(s => OnGuarantorSearch(s))" Placeholder="Search for Guarantors" Adornment="Adornment.Start"
+                                              AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0"></MudTextField>
+                            </ToolBarContent>
+                            <HeaderContent>
+                                <MudTh><MudText Typo="Typo.h4" Align="Align.Left">Guarantors</MudText></MudTh>
+                                <MudTh></MudTh>
+                                <MudTh></MudTh>
+
+                            </HeaderContent>
+                            <RowTemplate>
+                                <MudTd DataLabel="Name">
+                                    <div>
+                                        <MudText Typo="Typo.body1" Style="font-weight: 500;">@context.EntityName</MudText>
+                                        <MudText Typo="Typo.caption" Color="Color.Secondary">@context.ContactPhoneNumber</MudText>
+                                    </div>
+                                </MudTd>
+                                <MudTd DataLabel="Role">
+                                    <MudChip T="string" Color="Color.Primary" Size="Size.Small" Variant="Variant.Filled">
+                                        Type: @context.GuarantorType
+                                    </MudChip>
+                                </MudTd>
+                                <MudTd DataLabel="">
+                                    <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                                   Color="Color.Info"
+                                                   OnClick="@(() => OnSelectGuarantorRemove(context))" />
+
+                                    <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                                                   Color="Color.Info"
+                                                   OnClick="@(() => OnSelectGuarantorEdit(context))" />
+                                </MudTd>
+                            </RowTemplate>
+                            <NoRecordsContent>
+                                <MudText Color="Color.Secondary" Class="pa-4">
+                                    🚫 No Active Borrowers Assinged to this Loan. Please add!
+                                </MudText>
+                            </NoRecordsContent>
+                        </MudTable>
+                    }
+                }
+
+            </MudTabPanel>
+            <MudTabPanel Class="tab-text-medium" Text="Trustee Information" Disabled="disableTabs">
+                @if (AddNewTrustee)
+                {
+                    <Trustee OnComplete="HandleTrusteeComplete"
+                             OnCancel="HandleTrusteeCancel" />
+                }
+                else
+                {
+                    @if (!String.IsNullOrEmpty(SearchTrustee))
+                    {
+                        <MudTable Items="@TrusteeReload()" Context="trusteeContext" Hover="true" Bordered="true" Dense="true" @bind-SelectedItem="lvm.SelectedTrustee" @ref="trusteeTable" RowClick="OnSelectedTrustee" T="LiquidDocsData.Models.Trustee">
+                            <ToolBarContent>
+                                <MudTextField T="string" ValueChanged="@(s => OnTrusteeSearch(s))" Placeholder="Search Trustee's" Adornment="Adornment.Start"
+                                              AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0"></MudTextField>
+                            </ToolBarContent>
+                            <HeaderContent>
+                                <MudTh>Entity Name</MudTh>
+                                <MudTh>Address</MudTh>
+                                <MudTh>Phone</MudTh>
+                                <MudTh>Email</MudTh>
+                                <MudTh>
+
+                                </MudTh>
+                                <MudTh>
+                                    <MudButton Class="rounded-4" Disabled=@AddButtonDisabled Variant="Variant.Filled" Size="Size.Small" Color="Color.Primary" OnClick="OnAddTrustee">Add a new Trustee</MudButton>
+                                </MudTh>
+                            </HeaderContent>
+                            <RowTemplate>
+                                <MudTd DataLabel="Enitity Name">@trusteeContext.EntityName</MudTd>
+                                <MudTd DataLabel="Address">@trusteeContext.FullAddress</MudTd>
+                                <MudTd DataLabel="Phone">@trusteeContext.ContactPhoneNumber</MudTd>
+                                <MudTd DataLabel="Email">@trusteeContext.ContactEmail</MudTd>
+                                <MudTd DataLabel="Active">
+                                    <MudChip T="bool" Color="@((trusteeContext.IsActive) ? Color.Success : Color.Error)">
+                                        @(trusteeContext.IsActive ? "Yes" : "No")
+                                    </MudChip>
+                                </MudTd>
+                                <MudTd>
+                                    <MudIconButton Icon="@Icons.Material.Filled.Add" Color="Color.Info" OnClick="@(() => AddTrusteeToLoan(trusteeContext))" />
+                                </MudTd>
+                            </RowTemplate>
+                            <NoRecordsContent>
+                                <MudText Color="Color.Secondary" Class="pa-4">
+                                    🚫 No Active Trustees Found. Please add!
+                                </MudText>
+                            </NoRecordsContent>
+                        </MudTable>
+                    }
+                    else if (!AddEditGuarantor)
+                    {
+                        <MudTable Items="@lvm.SelectedAgreement.Trustees" Hover="true" Dense="true" Elevation="0">
+                            <ToolBarContent>
+                                <MudTextField T="string" ValueChanged="@(s => OnTrusteeSearch(s))" Placeholder="Search for Trustees" Adornment="Adornment.Start"
+                                              AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0"></MudTextField>
+                            </ToolBarContent>
+                            <HeaderContent>
+                                <MudTh><MudText Typo="Typo.h4" Align="Align.Left">Trustees</MudText></MudTh>
+                                <MudTh></MudTh>
+                                <MudTh></MudTh>
+
+                            </HeaderContent>
+                            <RowTemplate>
+                                <MudTd DataLabel="Name">
+                                    <div>
+                                        <MudText Typo="Typo.body1" Style="font-weight: 500;">@context.EntityName</MudText>
+                                        <MudText Typo="Typo.caption" Color="Color.Secondary">@context.ContactPhoneNumber</MudText>
+                                    </div>
+                                </MudTd>
+                                <MudTd DataLabel="Role">
+                                    <MudChip T="string" Color="Color.Primary" Size="Size.Small" Variant="Variant.Filled">
+                                        Type: @context.TrusteeRole
+                                    </MudChip>
+                                </MudTd>
+                                <MudTd DataLabel="">
+                                    <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                                   Color="Color.Info"
+                                                   OnClick="@(() => OnSelectTrusteeRemove(context))" />
+
+                                    <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                                                   Color="Color.Info"
+                                                   OnClick="@(() => OnSelectTrusteeEdit(context))" />
+                                </MudTd>
+                            </RowTemplate>
+                            <NoRecordsContent>
+                                <MudText Color="Color.Secondary" Class="pa-4">
+                                    🚫 No Active Trustees Assinged to this Loan. Please add!
+                                </MudText>
+                            </NoRecordsContent>
+                        </MudTable>
+                    }
+                }
+
+            </MudTabPanel>
+            <MudTabPanel Class="tab-text-medium" Text="Broker Information" Disabled="disableTabs">
+                @if (AddNewBroker)
+                {
+                    <Broker OnComplete="HandleBrokerComplete"
+                            OnCancel="HandleBrokerCancel" />
+                }
+                else
+                {
+                    @if (!String.IsNullOrEmpty(SearchBroker))
+                    {
+                        <MudTable Items="@BrokerReload()" Context="brokerContext" Hover="true" Bordered="true" Dense="true" @bind-SelectedItem="lvm.SelectedBroker" @ref="brokerTable" RowClick="OnSelectedBroker" T="LiquidDocsData.Models.Broker">
+                            <ToolBarContent>
+                                <MudTextField T="string" ValueChanged="@(s => OnBrokerSearch(s))" Placeholder="Search Broker's" Adornment="Adornment.Start"
+                                              AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0"></MudTextField>
+                            </ToolBarContent>
+                            <HeaderContent>
+                                <MudTh>Entity Name</MudTh>
+                                <MudTh>Address</MudTh>
+                                <MudTh>Phone</MudTh>
+                                <MudTh>Email</MudTh>
+                                <MudTh>
+
+                                </MudTh>
+                                <MudTh>
+                                    <MudButton Class="rounded-4" Disabled=@AddButtonDisabled Variant="Variant.Filled" Size="Size.Small" Color="Color.Primary" OnClick="OnAddBroker">Add a new Broker</MudButton>
+                                </MudTh>
+                            </HeaderContent>
+                            <RowTemplate>
+                                <MudTd DataLabel="Enitity Name">@brokerContext.EntityName</MudTd>
+                                <MudTd DataLabel="Address">@brokerContext.FullAddress</MudTd>
+                                <MudTd DataLabel="Phone">@brokerContext.ContactPhoneNumber</MudTd>
+                                <MudTd DataLabel="Email">@brokerContext.ContactEmail</MudTd>
+                                <MudTd DataLabel="Active">
+                                    <MudChip T="bool" Color="@((brokerContext.IsActive) ? Color.Success : Color.Error)">
+                                        @(brokerContext.IsActive ? "Yes" : "No")
+                                    </MudChip>
+                                </MudTd>
+                                <MudTd>
+                                    <MudIconButton Icon="@Icons.Material.Filled.Add" Color="Color.Info" OnClick="@(() => AddBrokerToLoan(brokerContext))" />
+                                </MudTd>
+                            </RowTemplate>
+                            <NoRecordsContent>
+                                <MudText Color="Color.Secondary" Class="pa-4">
+                                    🚫 No Active Brokers Found. Please add!
+                                </MudText>
+                            </NoRecordsContent>
+                        </MudTable>
+                    }
+                    else if (!AddEditBroker)
+                    {
+                        <MudTable Items="@lvm.SelectedAgreement.Brokers" Hover="true" Dense="true" Elevation="0">
+                            <ToolBarContent>
+                                <MudTextField T="string" ValueChanged="@(s => OnBrokerSearch(s))" Placeholder="Search for Brokers" Adornment="Adornment.Start"
+                                              AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0"></MudTextField>
+                            </ToolBarContent>
+                            <HeaderContent>
+                                <MudTh><MudText Typo="Typo.h4" Align="Align.Left">Brokers</MudText></MudTh>
+                                <MudTh></MudTh>
+                                <MudTh></MudTh>
+
+                            </HeaderContent>
+                            <RowTemplate>
+                                <MudTd DataLabel="Name">
+                                    <div>
+                                        <MudText Typo="Typo.body1" Style="font-weight: 500;">@context.EntityName</MudText>
+                                        <MudText Typo="Typo.caption" Color="Color.Secondary">@context.ContactPhoneNumber</MudText>
+                                    </div>
+                                </MudTd>
+                                <MudTd DataLabel="">
+                                    <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                                   Color="Color.Info"
+                                                   OnClick="@(() => OnSelectBrokerRemove(context))" />
+
+                                    <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                                                   Color="Color.Info"
+                                                   OnClick="@(() => OnSelectBrokerEdit(context))" />
+                                </MudTd>
+                            </RowTemplate>
+                            <NoRecordsContent>
+                                <MudText Color="Color.Secondary" Class="pa-4">
+                                    🚫 No Active Brokers Assinged to this Loan. Please add!
+                                </MudText>
+                            </NoRecordsContent>
+                        </MudTable>
+                    }
+                }
+
+            </MudTabPanel>
+            
+        </MudTabs>
+    </MudCardContent>
+    <MudCardActions Class="pa-4 d-flex justify-space-between" Style="background-color: var(--mud-palette-background-grey); border-top: 1px solid var(--mud-palette-divider);">
+        <MudLink OnClick="BackTab"
+                 Disabled="disableTabs"
+                 Color="Color.Primary"
+                 Class="d-flex align-center"
+                 Style="text-decoration: none; cursor: pointer;">
+            <MudIcon Icon="Icons.Material.Filled.NavigateBefore" Class="mr-1" />
+            Back
+        </MudLink>
+        <MudLink OnClick="NextTab"
+                 Disabled="disableTabs"
+                 Color="Color.Primary"
+                 Class="d-flex align-center"
+                 Style="text-decoration: none; cursor: pointer;">
+            <MudIcon Icon="Icons.Material.Filled.NavigateNext" Class="mr-1" />
+            Next
+        </MudLink>
+    </MudCardActions>
+</MudCard>
+
+
+
+
+@code {
+
+    [Parameter] public EventCallback<LiquidDocsData.Models.Broker> OnComplete { get; set; }
+    [Parameter] public EventCallback OnCancel { get; set; }
+
+    bool _saving = false;
+
+    int _tabIndex = 0;
+
+    private string SearchBorrower = string.Empty;
+    private string SearchLender = string.Empty;
+    private string SearchGuarantor = string.Empty;
+    private string SearchBroker = string.Empty;
+    private string SearchTrustee = string.Empty;
+    private string SearchProperty = string.Empty;
+
+    private IEnumerable<LiquidDocsData.Models.Borrower> borrowerList;
+    private IEnumerable<LiquidDocsData.Models.Lender> lenderList;
+    private IEnumerable<LiquidDocsData.Models.Guarantor> guarantorList;
+    private IEnumerable<LiquidDocsData.Models.Broker> brokerList;
+    private IEnumerable<LiquidDocsData.Models.Trustee> trusteeList;
+
+    private IEnumerable<LiquidDocsData.Models.PropertyRecord> propertyList;
+
+    private List<DocumentSet> docSetList;
+    private DocumentSet selectedDocumentSet = new();
+    private bool disableTabs = false;
+
+    private bool AddNewBorrower = false;
+    private bool AddNewLender = false;
+    private bool AddNewGuarantor = false;
+    private bool AddNewBroker = false;
+    private bool AddNewTrustee = false;
+    private bool AddNewProperty = false;
+
+
+
+
+    private bool AddEditBorrower = false;
+    private bool AddEditLender = false;
+    private bool AddEditBroker = false;
+    private bool AddEditGuarantor = false;
+    private bool AddEditTrustee = false;
+    private bool AddEditProperty = false;
+    private bool AddEditAgreement = false;
+
+    private bool AddButtonDisabled = false;
+
+    private MudTable<LiquidDocsData.Models.Borrower> borrowerTable = new();
+    private MudTable<LiquidDocsData.Models.Lender> lenderTable = new();
+    private MudTable<LiquidDocsData.Models.PropertyRecord> propertyTable = new();
+    private MudTable<LiquidDocsData.Models.Guarantor> guarantorTable = new();
+    private MudTable<LiquidDocsData.Models.Trustee> trusteeTable = new();
+    private MudTable<LiquidDocsData.Models.Broker> brokerTable = new();
+
+    private bool additionalOptionsInfoOpen = false;
+    private bool loanSaleInfoOpen = false;
+    private bool preparrerInfoOpen = false;
+    private string activeheader = "active-header";
+
+    MudForm _form1, _form2, _form3;
+
+    private MudTabs? tabs;          // reference to the tab control
+    private int activeTabIndex = 0;    // current tab index (0‑based)
+
+    // void Cancel() => MudDialog.Cancel();
+    // void Delete() => MudDialog.Close(DialogResult.Ok(true));
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            if (lvm.SelectedAgreement is not null)
+            {
+                lvm.EditingAgreement = lvm.SelectedAgreement;
+
+                string loanUserId = Session.UserId.ToString().Substring(0, 6).ToUpper();
+
+                lvm.EditingAgreement.Lenders = dbApp.GetRecords<LiquidDocsData.Models.Lender>().Where(l => l.UserId == Guid.Parse(Session.UserId)).ToList();
+
+                if (lvm.EditingAgreement.Lenders is not null)
+                {
+                    // int loanCount = Session..LoanAgreementList.Count() + 1;
+                    // lvm.EditingAgreement.LoanNumber = $"L{loanUserId}-{loanCount + 1:D3}";
+                }
+
+                // if (lvm.EditingAgreement.LoanNumber == 0)
+                // {
+                //     lvm.EditingAgreement.LoanNumber = lvm.EditingAgreement.LoanNumber + 1;
+                // }
+
+                docSetList = dbApp.GetRecords<DocumentSet>().ToList();
+
+                disableTabs = false;
+            }
+        }
+        catch (Exception ex)
+        {
+            string msg = ex.Message;
+        }
+    }
+
+    private void OnReferenceNameChanged(string value)
+    {
+        lvm.UpsertAgreementCommand.Execute(lvm.EditingAgreement);
+
+        disableTabs = false;
+
+
+    }
+
+    private void SaveAgreement()
+    {
+
+        // await _form1.Validate();
+        // await _form2.Validate();
+        // await _form3.Validate();
+        // if (!_form1.IsValid || !_form2.IsValid || !_form3.IsValid)
+        // {
+
+        //     return;
+        // }
+
+        lvm.SelectAgreementCommand.Execute(lvm.EditingAgreement);
+
+        Nav.NavigateTo("/loanagreements");
+    }
+
+    private void NextTab()
+    {
+        // avoid overrun
+        if (tabs is null) return;
+
+        var lastIndex = tabs.Panels.Count - 1;
+        if (activeTabIndex < lastIndex)
+        {
+            activeTabIndex++;          // triggers UI to switch tabs
+        }
+        else
+        {
+
+            activeTabIndex = 0; // reset to first tab
+        }
+
+        lvm.UpsertAgreementCommand.Execute(null);
+    }
+
+    private void AddBorrowerToLoan(LiquidDocsData.Models.Borrower r)
+    {
+      //  lvm.AddBorrowerToLoanCommand.Execute(r);
+        AddEditBorrower = false;
+        SearchBorrower = string.Empty;
+
+        StateHasChanged();
+    }
+
+    private void AddLenderToLoan(LiquidDocsData.Models.Lender r)
+    {
+       // lvm.AddLenderToLoanCommand.Execute(r);
+        AddEditLender = false;
+        SearchLender = string.Empty;
+
+        StateHasChanged();
+    }
+
+    private void AddGuarantorToLoan(LiquidDocsData.Models.Guarantor r)
+    {
+       // lvm.AddGuarantorToLoanCommand.Execute(r);
+        AddEditGuarantor = false;
+        SearchGuarantor = string.Empty;
+
+        StateHasChanged();
+    }
+
+    private void AddTrusteeToLoan(LiquidDocsData.Models.Trustee r)
+    {
+      //  lvm.AddTrusteeToLoanCommand.Execute(r);
+        AddEditTrustee = false;
+        SearchTrustee = string.Empty;
+
+        StateHasChanged();
+    }
+
+    private void AddPropertyToLoan(LiquidDocsData.Models.PropertyRecord r)
+    {
+      //  lvm.AddPropertyToLoanCommand.Execute(r);
+        AddEditProperty = false;
+        SearchProperty = string.Empty;
+
+        StateHasChanged();
+    }
+
+    private void AddBrokerToLoan(LiquidDocsData.Models.Broker r)
+    {
+       // lvm.AddBrokerToLoanCommand.Execute(r);
+        AddEditBroker = false;
+        SearchBroker = string.Empty;
+
+        StateHasChanged();
+    }
+
+    private void OnSelectedBorrower(LiquidDocsData.Models.Borrower r)
+    {
+       // if (r is not null) lvm.SelectBorrowerCommand.Execute(r);
+
+        AddEditBorrower = true;
+    }
+
+
+
+    private void OnSelectedLender(LiquidDocsData.Models.Lender r)
+    {
+        if (r is not null) lvm.SelectLenderCommand.Execute(r);
+
+        AddEditLender = true;
+    }
+
+    private void OnSelectedGuarantor(LiquidDocsData.Models.Guarantor r)
+    {
+        if (r is not null) lvm.SelectGuarantorCommand.Execute(r);
+
+        AddEditGuarantor = true;
+    }
+
+    private void OnSelectedTrustee(LiquidDocsData.Models.Trustee r)
+    {
+        if (r is not null) lvm.SelectTrusteeCommand.Execute(r);
+
+        AddEditTrustee = true;
+    }
+
+    private void OnSelectedBroker(LiquidDocsData.Models.Broker r)
+    {
+        if (r is not null) lvm.SelectBrokerCommand.Execute(r);
+
+        AddEditBroker = true;
+    }
+
+    private void OnSelectedProperty(LiquidDocsData.Models.PropertyRecord r)
+    {
+        if (r is not null) lvm.SelectPropertyCommand.Execute(r);
+
+        AddEditProperty = true;
+    }
+
+    private void BackTab()
+    {
+        // avoid underrun
+        if (tabs is null) return;
+
+        if (activeTabIndex > 0)
+        {
+            activeTabIndex--;          // triggers UI to switch tabs
+        }
+        else
+        {
+            var lastIndex = tabs.Panels.Count - 1;
+            activeTabIndex = lastIndex; // go to last tab
+        }
+
+        lvm.UpsertAgreementCommand.Execute(null);
+    }
+
+
+
+    private void OnAddBorrower()
+    {
+
+
+        AddNewBorrower = true;
+    }
+
+    private void OnAddLender()
+    {
+
+
+        AddEditLender = true;
+    }
+
+    private void OnAddGuarantor()
+    {
+
+
+        AddEditGuarantor = true;
+    }
+
+    private void OnAddTrustee()
+    {
+
+
+        AddEditTrustee = true;
+    }
+
+    private void OnAddProperty()
+    {
+
+
+        AddEditProperty = true;
+    }
+
+    private void OnAddBroker()
+    {
+
+
+        AddEditBroker = true;
+    }
+
+
+
+
+    private void OnBorrowerSearch(string text)
+    {
+        SearchBorrower = text;
+        borrowerTable.ReloadServerData();
+    }
+
+    private IEnumerable<LiquidDocsData.Models.Borrower> BorrowerReload()
+    {
+        // borrowerList = lvm.BorrowerList.Where(element =>
+        // {
+        //     if (!string.IsNullOrWhiteSpace(SearchBorrower))
+        //     {
+        //         if (element.EntityName is not null)
+        //         {
+        //             if (element.EntityName.Contains(SearchBorrower, StringComparison.OrdinalIgnoreCase))
+        //                 return true;
+        //         }
+
+        //         if (element.ContactName is not null)
+        //         {
+        //             if (element.ContactName.Contains(SearchBorrower, StringComparison.OrdinalIgnoreCase))
+        //                 return true;
+        //         }
+        //     }
+        //     return false;
+        // });
+
+        int totalItems = borrowerList.Count();
+
+
+        IEnumerable<LiquidDocsData.Models.Borrower> pagedData = borrowerList;
+
+        return pagedData;
+    }
+
+
+    private void OnLenderSearch(string text)
+    {
+        SearchLender = text;
+        lenderTable.ReloadServerData();
+    }
+
+    private IEnumerable<LiquidDocsData.Models.Lender> LenderReload()
+    {
+        // lenderList = lvm.LenderList.Where(element =>
+        // {
+        //     if (!string.IsNullOrWhiteSpace(SearchLender))
+        //     {
+        //         if (element.EntityName is not null)
+        //         {
+        //             if (element.EntityName.Contains(SearchLender, StringComparison.OrdinalIgnoreCase))
+        //                 return true;
+        //         }
+
+        //         if (element.ContactName is not null)
+        //         {
+        //             if (element.ContactName.Contains(SearchLender, StringComparison.OrdinalIgnoreCase))
+        //                 return true;
+        //         }
+        //     }
+        //     return false;
+        // });
+
+        int totalItems = lenderList.Count();
+
+
+        IEnumerable<LiquidDocsData.Models.Lender> pagedData = lenderList;
+
+        return pagedData;
+    }
+
+
+    private void OnPropertySearch(string text)
+    {
+        SearchProperty = text;
+        propertyTable.ReloadServerData();
+    }
+
+    private IEnumerable<LiquidDocsData.Models.PropertyRecord> PropertyReload()
+    {
+        propertyList = lvm.PropertyList.Where(element =>
+        {
+            if (!string.IsNullOrWhiteSpace(SearchProperty))
+            {
+                if (element.LegalDescription is not null)
+                {
+                    if (element.LegalDescription.Contains(SearchProperty, StringComparison.OrdinalIgnoreCase))
+                        return true;
+                }
+
+
+            }
+            return false;
+        });
+
+        int totalItems = propertyList.Count();
+
+
+        IEnumerable<LiquidDocsData.Models.PropertyRecord> pagedData = propertyList;
+
+        return pagedData;
+    }
+
+    private void OnGuarantorSearch(string text)
+    {
+        SearchGuarantor = text;
+        guarantorTable.ReloadServerData();
+    }
+
+    private IEnumerable<LiquidDocsData.Models.Guarantor> GuarantorReload()
+    {
+        // guarantorList = lvm.GuarantorList.Where(element =>
+        // {
+        //     if (!string.IsNullOrWhiteSpace(SearchGuarantor))
+        //     {
+        //         if (element.EntityName is not null)
+        //         {
+        //             if (element.EntityName.Contains(SearchGuarantor, StringComparison.OrdinalIgnoreCase))
+        //                 return true;
+        //         }
+
+        //         if (element.ContactName is not null)
+        //         {
+        //             if (element.ContactName.Contains(SearchGuarantor, StringComparison.OrdinalIgnoreCase))
+        //                 return true;
+        //         }
+        //     }
+        //     return false;
+        // });
+
+        int totalItems = guarantorList.Count();
+
+
+        IEnumerable<LiquidDocsData.Models.Guarantor> pagedData = guarantorList;
+
+        return pagedData;
+    }
+
+    private void OnTrusteeSearch(string text)
+    {
+        SearchTrustee = text;
+        trusteeTable.ReloadServerData();
+    }
+
+    private IEnumerable<LiquidDocsData.Models.Trustee> TrusteeReload()
+    {
+        trusteeList = lvm.TrusteeList.Where(element =>
+        {
+            if (!string.IsNullOrWhiteSpace(SearchTrustee))
+            {
+                if (element.EntityName is not null)
+                {
+                    if (element.EntityName.Contains(SearchTrustee, StringComparison.OrdinalIgnoreCase))
+                        return true;
+                }
+
+                if (element.ContactName is not null)
+                {
+                    if (element.ContactName.Contains(SearchTrustee, StringComparison.OrdinalIgnoreCase))
+                        return true;
+                }
+            }
+            return false;
+        });
+
+        int totalItems = trusteeList.Count();
+
+
+        IEnumerable<LiquidDocsData.Models.Trustee> pagedData = trusteeList;
+
+        return pagedData;
+    }
+
+    private void OnBrokerSearch(string text)
+    {
+        SearchBroker = text;
+        brokerTable.ReloadServerData();
+    }
+
+    private IEnumerable<LiquidDocsData.Models.Broker> BrokerReload()
+    {
+        // brokerList = lvm.BrokerList.Where(element =>
+        // {
+        //     if (!string.IsNullOrWhiteSpace(SearchBroker))
+        //     {
+        //         if (element.EntityName is not null)
+        //         {
+        //             if (element.EntityName.Contains(SearchBroker, StringComparison.OrdinalIgnoreCase))
+        //                 return true;
+        //         }
+
+        //         if (element.ContactName is not null)
+        //         {
+        //             if (element.ContactName.Contains(SearchBroker, StringComparison.OrdinalIgnoreCase))
+        //                 return true;
+        //         }
+        //     }
+        //     return false;
+        // });
+
+        int totalItems = trusteeList.Count();
+
+
+        IEnumerable<LiquidDocsData.Models.Broker> pagedData = brokerList;
+
+        return pagedData;
+    }
+
+
+
+
+
+    private void OnSelectBorrowerRemove(LiquidDocsData.Models.Borrower r)
+    {
+        if (lvm.EditingAgreement.Borrowers.Contains(r)) lvm.EditingAgreement.Borrowers.Remove(r);
+
+        lvm.UpsertAgreementCommand.Execute(null);
+
+    }
+
+    private void OnSelectBorrowerEdit(LiquidDocsData.Models.Borrower r)
+    {
+        lvm.SelectedBorrower = r;
+
+        borrowerVm.EditingRecord = r;
+        Nav.NavigateTo("/borrower");
+
+    }
+
+
+    private void OnSelectGuarantorRemove(LiquidDocsData.Models.Guarantor r)
+    {
+        if (lvm.EditingAgreement.Guarantors.Contains(r)) lvm.EditingAgreement.Guarantors.Remove(r);
+
+        lvm.UpsertAgreementCommand.Execute(null);
+
+    }
+
+    private void OnSelectGuarantorEdit(LiquidDocsData.Models.Guarantor r)
+    {
+        lvm.SelectedGuarantor = r;
+
+        guarantorVm.EditingRecord = r;
+        Nav.NavigateTo("/guarantor");
+
+    }
+
+
+    private void OnSelectLenderRemove(LiquidDocsData.Models.Lender r)
+    {
+        if (lvm.EditingAgreement.Lenders.Contains(r)) lvm.EditingAgreement.Lenders.Remove(r);
+
+        lvm.UpsertAgreementCommand.Execute(null);
+
+    }
+
+    private void OnSelectLenderEdit(LiquidDocsData.Models.Lender r)
+    {
+        lvm.SelectedLender = r;
+
+        lenderVm.EditingRecord = r;
+        Nav.NavigateTo("/lender");
+
+    }
+
+
+    private void OnSelectBrokerRemove(LiquidDocsData.Models.Broker r)
+    {
+        if (lvm.EditingAgreement.Brokers.Contains(r)) lvm.EditingAgreement.Brokers.Remove(r);
+
+        lvm.UpsertAgreementCommand.Execute(null);
+
+    }
+
+    private void OnSelectBrokerEdit(LiquidDocsData.Models.Broker r)
+    {
+        lvm.SelectedBroker = r;
+
+        brokerVm.EditingRecord = r;
+        Nav.NavigateTo("/broker");
+
+    }
+
+    private void OnSelectTrusteeRemove(LiquidDocsData.Models.Trustee r)
+    {
+        if (lvm.EditingAgreement.Trustees.Contains(r)) lvm.EditingAgreement.Trustees.Remove(r);
+
+        lvm.UpsertAgreementCommand.Execute(null);
+
+    }
+
+    private void OnSelectTrusteeEdit(LiquidDocsData.Models.Trustee r)
+    {
+        lvm.SelectedTrustee = r;
+
+        trusteeVm.EditingRecord = r;
+        Nav.NavigateTo("/trustee");
+
+    }
+
+
+    private void HandleBorrowerComplete(LiquidDocsData.Models.Borrower r)
+    {
+        AddNewBorrower = false;
+
+        AddBorrowerToLoan(r);
+        // Control has returned to parent
+    }
+
+    private void HandleBorrowerCancel()
+    {
+        AddNewBorrower = false;
+        // Handle cancellation
+    }
+
+
+    private void HandleLenderComplete(LiquidDocsData.Models.Lender r)
+    {
+        AddNewLender = false;
+
+        AddLenderToLoan(r);
+        // Control has returned to parent
+    }
+
+    private void HandleLenderCancel()
+    {
+        AddNewLender = false;
+        // Handle cancellation
+    }
+
+
+    private void HandleGuarantorComplete(LiquidDocsData.Models.Guarantor r)
+    {
+        AddNewGuarantor = false;
+
+        AddGuarantorToLoan(r);
+        // Control has returned to parent
+    }
+
+    private void HandleGuarantorCancel()
+    {
+        AddNewGuarantor = false;
+        // Handle cancellation
+    }
+
+
+    private void HandleBrokerComplete(LiquidDocsData.Models.Broker r)
+    {
+        AddNewBroker = false;
+
+        AddBrokerToLoan(r);
+        // Control has returned to parent
+    }
+
+    private void HandleBrokerCancel()
+    {
+        AddNewBroker = false;
+        // Handle cancellation
+    }
+
+
+    private void HandleTrusteeComplete(LiquidDocsData.Models.Trustee r)
+    {
+        AddNewTrustee = false;
+
+        AddTrusteeToLoan(r);
+        // Control has returned to parent
+    }
+
+    private void HandleTrusteeCancel()
+    {
+        AddNewTrustee = false;
+        // Handle cancellation
+    }
+
+
+    private void HandlePropertyComplete(LiquidDocsData.Models.PropertyRecord r)
+    {
+        AddNewProperty = false;
+
+        AddPropertyToLoan(r);
+        // Control has returned to parent
+    }
+
+    private void HandlePropertyCancel()
+    {
+        AddNewProperty = false;
+        // Handle cancellation
+    }
+
+    private async Task Complete()
+    {
+        await OnComplete.InvokeAsync();
+    }
+
+    private async Task Cancel()
+    {
+        await OnCancel.InvokeAsync();
+    }
+
+
+}

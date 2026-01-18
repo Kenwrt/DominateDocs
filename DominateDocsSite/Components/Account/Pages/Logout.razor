@@ -1,0 +1,13 @@
+﻿@page "/account/logout"
+@inject NavigationManager Nav
+
+<h3>Logging out...</h3>
+
+@code {
+    protected override void OnInitialized()
+    {
+        // If you already have an API endpoint that logs out, navigate to it.
+        // For Identity default templates, logout is typically POST, but if you already built one, use it.
+        Nav.NavigateTo("/Account/Logout", forceLoad: true);
+    }
+}

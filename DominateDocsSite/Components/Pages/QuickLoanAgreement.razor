@@ -1,0 +1,500 @@
+﻿@page "/quickloanagreement"
+
+@using DominateDocsData.Models.MergeDTOs
+@using DominateDocsSite.Helpers
+@using MudBlazor
+@using DominateDocsData.Models
+@using System.Collections.Generic;
+@using System.Collections.ObjectModel;
+@using System.Globalization
+@using System.ComponentModel
+
+@inject NavigationManager Nav
+@inject QuickLoanAgreementViewModel vm
+@inject QuickLoanAgreementValidator loanValidator
+@inject UserSession Session
+
+
+<style>
+    .quick-stepper .mud-stepper-content {
+        padding-left: 0;
+        padding-right: 0;
+    }
+
+    .loan-tile {
+        transition: transform 120ms ease, box-shadow 120ms ease, border-color 120ms ease;
+    }
+
+        .loan-tile:hover {
+            transform: translateY(-2px);
+        }
+
+    .loan-tile-icon {
+        opacity: 0.9;
+    }
+</style>
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="mt-10 mb-10">
+
+    <!-- Header -->
+    <MudStack AlignItems="AlignItems.Center" Spacing="1">
+        <MudText Typo="Typo.h3" Align="Align.Center">Create Loan Documents</MudText>
+        <MudText Typo="Typo.subtitle2" Align="Align.Center" Color="Color.Secondary">
+            Three quick steps to generate your documents
+        </MudText>
+    </MudStack>
+
+    <!-- Stepper -->
+    <MudPaper Class="mt-6 pa-6" Elevation="0" Outlined="true" Style="border-radius:16px;">
+        <MudStepper @bind-ActiveIndex="vm.ActiveStepIndex"
+                    Linear="true"
+                    Elevation="0"
+                    Class="quick-stepper">
+
+            <!-- STEP 1 -->
+            <MudStep Label="Loan Type">
+                <MudText Typo="Typo.h5" Class="mb-1">What type of loan is this?</MudText>
+                <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-6">
+                    Select the loan type to load the right document package.
+                </MudText>
+
+                <MudGrid Spacing="3">
+                    @if (vm.LoanTypes is not null)
+                    {
+                        @foreach (var lt in vm.LoanTypes)
+                        {
+                            <MudItem xs="12" sm="6" md="4">
+                                <MudPaper Outlined="true"
+                                          Class="loan-tile pa-6"
+                                          Style="@GetTileStyle(lt)"
+                                          @onclick="() => vm.SelectLoanTypeCommand.Execute(lt)">
+
+                                    <MudStack AlignItems="AlignItems.Center" Spacing="2">
+                                        <MudIcon Icon="@vm.GetIconForLoanType(lt)"
+                                                 Size="Size.Large"
+                                                 Class="loan-tile-icon" />
+
+                                        <MudText Typo="Typo.subtitle1" Align="Align.Center" Class="mt-1">
+                                            @lt.Name
+                                        </MudText>
+
+                                        @if (!string.IsNullOrWhiteSpace(lt.Description))
+                                        {
+                                            <MudText Typo="Typo.caption" Align="Align.Center" Color="Color.Secondary">
+                                                @lt.Description
+                                            </MudText>
+                                        }
+                                    </MudStack>
+                                </MudPaper>
+                            </MudItem>
+                        }
+                    }
+                </MudGrid>
+
+                <MudStack Row="true" Justify="Justify.FlexEnd" Class="mt-8">
+                    <MudButton Variant="Variant.Filled"
+                               Color="Color.Dark"
+                               Disabled="@(vm.CanGoNextFromLoanTypeStep is false)"
+                               OnClick="() => vm.NextStepCommand.Execute(null)">
+                        Next
+                        <MudIcon Icon="@Icons.Material.Filled.ArrowForward" Class="ml-2" />
+                    </MudButton>
+                </MudStack>
+            </MudStep>
+
+            <!-- STEP 2 -->
+            <MudStep Label="Details">
+                <MudText Typo="Typo.h5" Class="mb-2">Loan details</MudText>
+                <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-6">
+                    Placeholder. Wire your real fields here.
+                </MudText>
+
+                <MudGrid Spacing="3">
+                    <MudItem xs="12" md="6">
+                        <MudTextField Label="Loan Number"
+                                      Value="@(vm.EditingAgreement?.LoanNumber)"
+                                      ReadOnly="true" />
+                    </MudItem>
+
+                    <MudItem xs="12" md="6">
+                        <MudTextField Label="Selected Loan Type"
+                                      Value="@(vm.SelectedLoanType?.Name)"
+                                      ReadOnly="true" />
+                    </MudItem>
+
+                    <MudItem xs="12" md="6">
+                        <MudNumericField T="decimal"
+                                         Label="Principal Amount"
+                                         @bind-Value="vm.EditingAgreement.PrincipalAmount"
+                                         Immediate="true" />
+                    </MudItem>
+
+                    <MudItem xs="12" md="6">
+                        <MudNumericField T="decimal"
+                                         Label="Down Payment %"
+                                         @bind-Value="vm.EditingAgreement.DownPaymentPercentage"
+                                         Immediate="true" />
+                    </MudItem>
+
+                    <MudItem xs="12">
+                        <MudAlert Severity="Severity.Info" Variant="Variant.Outlined">
+                            Estimated down payment: @vm.EstimatedDownPayment.ToString("C")
+                        </MudAlert>
+                    </MudItem>
+                </MudGrid>
+
+                <MudStack Row="true" Justify="Justify.SpaceBetween" Class="mt-8">
+                    <MudButton Variant="Variant.Outlined"
+                               OnClick="() => vm.PreviousStepCommand.Execute(null)">
+                        Back
+                    </MudButton>
+
+                    <MudButton Variant="Variant.Filled"
+                               Color="Color.Dark"
+                               OnClick="() => vm.NextStepCommand.Execute(null)">
+                        Next
+                        <MudIcon Icon="@Icons.Material.Filled.ArrowForward" Class="ml-2" />
+                    </MudButton>
+                </MudStack>
+            </MudStep>
+
+            <!-- STEP 3 -->
+            <MudStep Label="Generate">
+                <MudText Typo="Typo.h5" Class="mb-2">Generate</MudText>
+                <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-6">
+                    Placeholder. Put your “generate docs” workflow here.
+                </MudText>
+
+                <MudStack Spacing="2">
+                    <MudAlert Severity="Severity.Success" Variant="Variant.Outlined">
+                        Ready to generate documents for: <b>@(vm.SelectedLoanType?.Name)</b>
+                    </MudAlert>
+
+                    <MudStack Row="true" Spacing="2">
+                        <MudButton Variant="Variant.Outlined"
+                                   OnClick="() => vm.PreviousStepCommand.Execute(null)">
+                            Back
+                        </MudButton>
+
+                        <MudButton Variant="Variant.Filled"
+                                   Color="Color.Primary"
+                                   OnClick="OnGenerateClicked">
+                            Generate Documents
+                        </MudButton>
+                    </MudStack>
+                </MudStack>
+            </MudStep>
+
+        </MudStepper>
+    </MudPaper>
+</MudContainer>
+
+
+
+
+
+
+@code {
+
+    public decimal RateFraction { get; set; } = 0.075m;
+
+    private readonly Converter<decimal> PercentConverter = new()
+    {
+        // model (0–1) -> UI text (0–100)
+        SetFunc = v => (v * 100m).ToString("0.##", CultureInfo.InvariantCulture),
+        // UI text (accepts "7.5" or "7.5%") -> model (0–1)
+        GetFunc = s =>
+        {
+            if (string.IsNullOrWhiteSpace(s)) return 0m;
+            s = s.Trim().TrimEnd('%');
+            return decimal.TryParse(s, NumberStyles.Number, CultureInfo.InvariantCulture, out var n)
+                ? n / 100m
+                : 0m;
+        }
+    };
+
+    private MudStepper stepper = default!;
+    private string selectedLoanType = "";
+    private int currentStepIndex = 0;
+    private string home = "home";
+    private string auto = "auto";
+    private string personal = "personal";
+    private string business = "business";
+
+    private bool AddProperty = true;
+
+
+    private PropertyChangedEventHandler? _handler;
+
+    protected override async Task OnInitializedAsync()
+    {
+        vm.InitializePageCommand.Execute(null);
+
+        // Keep UI updating when VM properties change.
+
+        _handler = (_, __) => InvokeAsync(StateHasChanged);
+
+        vm.PropertyChanged += _handler;
+
+
+    }
+
+    private void OnMinusClick(DominateDocsData.Models.PropertyRecord r)
+    {
+        if (vm.EditingAgreement.Properties.Contains(r)) vm.EditingAgreement.Properties.Remove(r);
+
+        if (vm.EditingAgreement.Properties.Count == 0) AddProperty = true;
+
+
+
+    }
+
+    private void OnPlusClick()
+    {
+        AddProperty = true;
+
+    }
+
+    private List<DominateDocsData.Models.AddressDTO> PropertyAddressesToDTO()
+    {
+        List<DominateDocsData.Models.AddressDTO> addresses = new();
+
+        if (vm.EditingAgreement.Properties is not null)
+        {
+            foreach (var addr in vm.EditingAgreement.Properties)
+            {
+                addresses.Add(new AddressDTO
+                {
+                    FullAddress = addr.FullAddress,
+                    StreetAddress = addr.StreetAddress,
+                    City = addr.City,
+                    ZipCode = addr.ZipCode,
+                    County = addr.County,
+                    Country = addr.Country,
+                    Lat = addr.Lat,
+                    Lng = addr.Lng
+                });
+            }
+        }
+
+        return addresses;
+
+    }
+
+    private async Task OnPreviewInteraction(StepperInteractionEventArgs arg)
+    {
+        if (arg.Action == StepAction.Complete)
+        {
+            if (arg.StepIndex == 7)
+            {
+                vm.UpsertRecordCommand.Execute(vm.EditingAgreement);
+
+                Nav.NavigateTo("/DashBoard");
+
+            } else if (arg.StepIndex == 0)
+            {
+                //Loan Type
+
+
+            }
+            else if (arg.StepIndex == 1)
+            {
+                //Property Info
+
+            }
+            else if (arg.StepIndex == 2)
+            {
+                //Borrower Info
+
+            }
+            else if (arg.StepIndex == 3)
+            {
+                //Lender Info
+
+            }
+            else if (arg.StepIndex == 4)
+            {
+                //Broker Info
+
+            }
+            else if (arg.StepIndex == 5)
+            {
+                //Guarantor Info
+
+            }
+            else if (arg.StepIndex == 6)
+            {
+                //Summary
+
+            }
+
+
+        }
+        else if (arg.Action == StepAction.Activate)
+        {
+            // occurrs when clicking a step header with the mouse
+            // await ControlStepNavigation(arg);
+        }
+    }
+
+    // private void SelectLoanType(DocumentSet docSet)
+    // {
+    //     vm.EditingAgreement.DocumentSet = docSet;
+
+    //     StateHasChanged();
+    // }
+
+    private string GetCardStyle(string loanType)
+    {
+        if (selectedLoanType == loanType)
+        {
+            return "border: 2px solid var(--mud-palette-primary) !important; background-color: var(--mud-palette-primary-lighten) !important;";
+        }
+        return "border: 2px solid transparent;";
+    }
+
+    // private string GetTermText()
+    // {
+    //     return loanModel.TermMonths switch
+    //     {
+    //         0 => "Other (to be discussed)",
+    //         > 0 => $"{loanModel.TermMonths} months",
+    //         _ => "Not specified"
+    //     };
+    // }
+
+    private async Task NextStep()
+    {
+        if (currentStepIndex == 7)
+        {
+            // Final submission
+            vm.UpsertRecordCommand.Execute(vm.EditingAgreement);
+            //await SubmitLoanApplication();
+        }
+        else
+        {
+            currentStepIndex++;
+            stepper.NextStepAsync();
+            StateHasChanged();
+        }
+    }
+
+    private async Task PreviousStep()
+    {
+        if (currentStepIndex > 0)
+        {
+            currentStepIndex--;
+            stepper.PreviousStepAsync();
+            StateHasChanged();
+        }
+    }
+
+    private void OnLenderComplete(List<DominateDocsData.Models.Lender> lendeList)
+    {
+        vm.EditingAgreement.Lenders.Clear();
+        vm.EditingAgreement.Lenders = lendeList;
+        vm.UpsertRecordCommand.Execute(null);
+
+    }
+
+    private void OnGuarantorComplete(List<DominateDocsData.Models.Guarantor> guarantorList)
+    {
+        vm.EditingAgreement.Guarantors.Clear();
+        vm.EditingAgreement.Guarantors = guarantorList; 
+        vm.UpsertRecordCommand.Execute(null);
+
+    }
+
+    private string GetTileStyle(DominateDocsData.Models.DTOs.LoanTypeListDTO lt)
+    {
+        var selected = vm.SelectedLoanType?.Id == lt.Id;
+        return selected
+            ? "border-radius:14px; cursor:pointer; border:2px solid var(--mud-palette-primary); background: rgba(0,0,0,0.02);"
+            : "border-radius:14px; cursor:pointer;";
+    }
+
+    private async Task OnGenerateClicked()
+    {
+        // You can replace this with your real pipeline:
+        // - vm.UpsertRecordCommand.ExecuteAsync(null)
+        // - enqueue background doc generation
+        // - navigate to status page, etc.
+        await vm.UpsertRecordCommand.ExecuteAsync(null);
+    }
+
+    public void Dispose()
+    {
+        if (_handler is not null)
+            vm.PropertyChanged -= _handler;
+    }
+
+    private void OnBrokerComplete(List<DominateDocsData.Models.Broker> brokerList)
+    {
+       
+        vm.EditingAgreement.Brokers.Clear();
+        vm.EditingAgreement.Brokers = brokerList;
+        vm.UpsertRecordCommand.Execute(null);
+    }
+
+    private async Task OnBorrowerCompleteAsync(List<DominateDocsData.Models.Borrower> borrowerList)
+    {
+        vm.EditingAgreement.Borrowers.Clear();
+
+        vm.EditingAgreement.Borrowers = borrowerList;
+
+        vm.UpsertRecordCommand.Execute(null);
+    }
+
+    private void OnBorrowerCanceled()
+    {
+      
+    }
+
+    private void OnGuarantorCanceled()
+    {
+
+    }
+
+    private void OnBrokerCanceled()
+    {
+
+    }
+
+    private void OnLenderCanceled()
+    {
+
+    }
+       
+    private void OnPropertyAddressComplete(List<AddressDTO> addressList)
+    {
+        if (vm.EditingAgreement.Properties is not null)
+        {
+            vm.EditingAgreement.Properties.Clear();
+        }
+
+        foreach (var p in addressList)
+        {
+            PropertyRecord propertyRecord = new()
+            {
+                FullAddress = p.FullAddress,
+                StreetAddress = p.StreetAddress,
+                City = p.City,
+                ZipCode = p.ZipCode,
+                County = p.County,
+                Country = p.Country,
+                Lat = p.Lat,
+                Lng = p.Lng
+            };
+           
+            if (!vm.EditingAgreement.Properties.Any(x => x.FullAddress != p.FullAddress))
+            {
+                vm.EditingAgreement.Properties.Add(propertyRecord);
+            }
+        }
+       
+        vm.UpsertRecordCommand.Execute(null);
+    }
+
+   
+   
+}

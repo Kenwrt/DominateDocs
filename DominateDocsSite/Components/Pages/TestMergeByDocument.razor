@@ -1,0 +1,148 @@
+﻿@page "/testmergebydocument"
+
+@using Microsoft.AspNetCore.Components.Forms
+
+
+@inject IWebHostEnvironment Env
+@inject TestMergeViewModel vm
+
+<h3>Test Templates</h3>
+
+ <MudGrid GutterSize="3">
+
+    <MudItem md="4">
+        <div class="d-flex flex-column gap-2">
+
+            <MudSelect Class="ml-4" T="DominateDocsData.Enums.DocumentTypes.TestTypes" Style="background-color: white;" Variant="Variant.Outlined" Label="Select Entity Type" @bind-Value="vm.TestType" Dense="true">
+
+                @foreach (var gt in Enum.GetValues<DominateDocsData.Enums.DocumentTypes.TestTypes>())
+                {
+                    <MudSelectItem Style="background-color: white;" T="DominateDocsData.Enums.DocumentTypes.TestTypes" Value="gt">@gt.GetDescription()</MudSelectItem>
+                }
+
+            </MudSelect>
+
+        @if (vm.TestType == DominateDocsData.Enums.DocumentTypes.TestTypes.Document)
+        {
+                <MudSelect Class="ml-4" T="DominateDocsData.Models.Document" Style="background-color: white;" Variant="Variant.Outlined" Label="Select Document" @bind-Value="vm.EditingDocument" Dense="true">
+
+                    @foreach (var doc in vm.DocumentList)
+                    {
+                        <MudSelectItem Style="background-color: white;" T="DominateDocsData.Models.Document" Value="doc">@doc.Name</MudSelectItem>
+                    }
+
+                </MudSelect>
+        }
+        else
+        {
+               @*  <MudSelect Class="ml-4" T="DominateDocsData.Models.DocumentSet" Style="background-color: white;" Variant="Variant.Outlined" Label="Select Document Set" @bind-Value="vm.EditingDocumentSet" Dense="true">
+
+                    @foreach (var docSet in vm.DocumentSetList)
+                    {
+                        <MudSelectItem Style="background-color: white;" T="DominateDocsData.Models.DocumentSet" Value="docSet">@docSet.Name</MudSelectItem>
+                    }
+
+                </MudSelect> *@
+                
+        }
+
+        <MudSelect Class="ml-4" T="DominateDocsData.Models.LoanAgreement" Style="background-color: white;" Variant="Variant.Outlined" Label="Select Loan Agreement" @bind-Value="vm.LoanAgreement" Dense="true">
+
+            @foreach (var loan in vm.LoanAgreementList)
+            {
+                <MudSelectItem Style="background-color: white;" T="DominateDocsData.Models.LoanAgreement" Value="loan">@loan.ReferenceName</MudSelectItem>
+            }
+
+        </MudSelect>
+
+        <MudTextField Class="ml-4" @bind-Value="vm.EditingMailMsg.To" Style="background-color: white;" Variant="Variant.Outlined" Label="Email Address"
+                        Placeholder="example@domain.com"
+                        Required="true"
+                        RequiredError="Email is required"
+                        Pattern="@emailPattern"
+                        PatternErrorMessage="Invalid email format"
+                        Immediate="true" />
+
+        <MudSelect Class="ml-4" T="DominateDocsData.Enums.DocumentTypes.OutputTypes" Style="background-color: white;" Variant="Variant.Outlined" Label="Select Entity Type" @bind-Value="vm.OutputType" Dense="true">
+
+            @foreach (var gt in Enum.GetValues<DominateDocsData.Enums.DocumentTypes.OutputTypes>())
+            {
+                <MudSelectItem Style="background-color: white;" T="DominateDocsData.Enums.DocumentTypes.OutputTypes" Value="gt">@gt.GetDescription()</MudSelectItem>
+            }
+
+        </MudSelect>
+
+            
+
+        <MudCheckBox @bind-Value="@vm.IsZipFile">Send in ZIP File</MudCheckBox>
+
+        <MudGrid Justify="Justify.Center" AlignItems="AlignItems.Center" Class="mt-2 mb-10">
+            <MudItem md="4">
+                <MudButton Class="" Type="Submit" OnClick="OnMergeDocumentAsync" Color="Color.Success" Variant="Variant.Filled">Merge Document</MudButton>
+            </MudItem>
+            <MudItem md="4">
+                    <MudButton Class="" OnClick="OnClearDocumentSelectionAsync" Color="Color.Secondary" Variant="Variant.Filled">Clear</MudButton>
+            </MudItem>
+
+
+              
+        </MudGrid>
+                   
+
+        </div>
+    </MudItem>
+
+</MudGrid>  
+
+
+
+@code {
+
+    private string emailPattern = @"^[\w\-\.]+@([\w\-]+\.)+[\w\-]{2,4}$";
+
+    private string emailAddress = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await vm.InitializePageCommand.ExecuteAsync(null);
+    }
+
+    private async Task OnMergeDocumentAsync()
+    {
+
+        await vm.MergeDocumentCommand.ExecuteAsync(null);
+
+        vm.EditingDocument = null;
+
+       
+
+        //vm.EditingDocumentSet = null;
+
+        vm.SelectedDocument = null;
+
+        vm.SelectedDocumentSet = null;
+
+
+        StateHasChanged();
+
+
+    }
+
+    // private void OnMoveDocument()
+    // {
+
+    //     vm.MoveDocumentsCommand.Execute(null);
+
+    //     StateHasChanged();
+
+
+    // }
+
+    private async Task OnClearDocumentSelectionAsync()
+    {
+        vm.ClearDocumentSelectionCommand.Execute(null);
+        
+    }
+
+   
+}

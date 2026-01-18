@@ -1,0 +1,70 @@
+﻿@page "/carddisplay"
+@using MudBlazor
+
+<MudPaper Class="d-flex flex-row flex-nowrap overflow-auto p-2" Style="background: #f8f9fa;">
+    @foreach (var card in Cards)
+    {
+        <MudCard Class="mx-2 pastel-card" Style="min-width:250px; max-width:300px;">
+            <MudCardContent>
+                <MudText Typo="Typo.h6">@card.Title</MudText>
+                <MudText Typo="Typo.body2">@card.Description</MudText>
+            </MudCardContent>
+        </MudCard>
+    }
+</MudPaper>
+
+@code {
+
+    private List<string> PastelColors;
+    private List<CardItem> Cards;
+
+    protected override void OnInitialized()
+    {
+        // Initialize pastel colors
+        PastelColors = new List<string>
+        {
+            "#A8D5BA", // soft green
+            "#F7C8E0", // pink
+            "#B5EAEA", // blue
+            "#F9F7A1", // yellow
+            "#F6D6AD", // orange
+            "#D3C0F9"  // purple
+        };
+
+        // Initialize card items
+        Cards = new List<CardItem>
+        {
+            new CardItem { Title = "Card 1", Description = "This is the description for card 1." },
+            new CardItem { Title = "Card 2", Description = "This is the description for card 2." },
+            new CardItem { Title = "Card 3", Description = "This is the description for card 3." },
+            new CardItem { Title = "Card 4", Description = "This is the description for card 4." },
+            new CardItem { Title = "Card 5", Description = "This is the description for card 5." },
+        };
+    }
+
+    public class CardItem
+    {
+        public string Title { get; set; }
+        public string Description { get; set; }
+    }
+
+    // Example pastel colors (can be expanded)
+    // private List<string> PastelColors = new()
+    // {
+    //     "#A8D5BA", // soft green
+    //     "#F7C8E0", // pink
+    //     "#B5EAEA", // blue
+    //     "#F9F7A1", // yellow
+    //     "#F6D6AD", // orange
+    //     "#D3C0F9"  // purple
+    // };
+
+    // private List<CardItem> Cards = new()
+    // {
+    //     new CardItem { Title = "Card 1", Description = "This is the description for card 1." },
+    //     new CardItem { Title = "Card 2", Description = "This is the description for card 2." },
+    //     new CardItem { Title = "Card 3", Description = "This is the description for card 3." },
+    //     new CardItem { Title = "Card 4", Description = "This is the description for card 4." },
+    //     new CardItem { Title = "Card 5", Description = "This is the description for card 5." },
+    // };
+}

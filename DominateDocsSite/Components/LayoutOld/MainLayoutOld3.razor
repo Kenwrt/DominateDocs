@@ -1,0 +1,249 @@
+﻿@using LiquidDocsSite.Components.Account
+@using LiquidDocsSite.Components.Pages
+@using System.ComponentModel
+@using System.Security.Claims
+@using LiquidDocsSite.State
+@using Microsoft.AspNetCore.Identity
+
+@namespace LiquidDocsSite.Components.Layout
+
+
+
+@inherits LayoutComponentBase
+@inject AuthenticationStateProvider AuthProvider
+@inject NavigationManager NavigationManager
+@inject ISessionStateManager sessionManager
+
+
+
+<style>
+    .menu-item-spaced {
+        margin-right: 24px; /* or any value you prefer */
+    }
+
+        .menu-item-spaced:last-child {
+            margin-right: 0;
+        }
+</style>
+
+
+
+<MudThemeProvider />
+<MudPopoverProvider />
+<MudDialogProvider />
+<MudSnackbarProvider />
+
+
+
+<CascadingAuthenticationState>
+    <MudLayout>
+        <MudAppBar>
+
+
+            @if (!isAuthenticated)
+            {
+            @* <MudToolbar>
+                <!-- Horizontal Menu -->
+                <MudTabs @bind-ActivePanelIndex="_activeIndex"
+                         Rounded="false"
+                         Border="false"
+                         TextColor="Color.Default"
+                         Centered="false"
+                         Style="flex-grow: 1;">
+                    @foreach (var item in _menuItems)
+                    {
+                    <MudTabPanel Text="@item.Label" Style="min-width: 100px;"
+                                 OnClick="@(() => Navigate(item.Url))" />
+                    }
+                </MudTabs>
+
+                <!-- Login Link -->
+                <MudText Typo="Typo.subtitle2" Class="me-4" Style="cursor:pointer;" OnClick="@(() => Navigate(" /login"))">
+                    Login
+                </MudText>
+            </MudToolbar> *@
+
+
+            <NudToolbar>
+                <NudToolbarRow>
+                    <NudToolbarSection>
+                        <!-- AppBar Menu -->
+                        <NudMenu Text="Menu">
+                            <NudMenuItem class="menu-item-spaced">
+                                @if (!isAuthenticated)
+                                {
+                                <img src="images/liquiddocslogoImageOnly.png" height="60" width="77">
+                                }
+                            </NudMenuItem>
+                            <NudMenuItem class="menu-item-spaced">Home</NudMenuItem>
+                            <NudMenuItem class="menu-item-spaced">Whats the difference</NudMenuItem>
+                            <NudMenuItem class="menu-item-spaced">FAQs</NudMenuItem>
+                            <NudMenuItem class="menu-item-spaced">About</NudMenuItem>
+                            <NudMenuItem class="menu-item-spaced">Contact</NudMenuItem>
+                        </NudMenu>
+                    </NudToolbarSection>
+                    <NudToolbarSection Align="End">
+
+                    </NudToolbarSection>
+                </NudToolbarRow>
+            </NudToolbar>
+
+            <MudSpacer />
+            @* <MudNavLink Href="Account/Register" Match="NavLinkMatch.Prefix">Signup</MudNavLink> *@
+            <MudButton Variant=Variant.Text Class="text-white" OnClick="Registration">Signup</MudButton>
+            <MudButton Variant=Variant.Text Class="text-white" OnClick="Login">Login</MudButton>
+            }
+            else
+            {
+            <img src="images/liquiddocslogoImageOnly.png" height="60" width="77">
+            <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" OnClick="@DrawerToggle" />
+
+
+
+            <MudSpacer />
+            <MudMenu OffsetY="true">
+                <ActivatorContent>
+
+                    <MudAvatar Color="Color.Secondary">@userName.Substring(0,1)</MudAvatar>
+
+                </ActivatorContent>
+                <ChildContent>
+                    <MudMenuItem Href="Account/Manage">Profile</MudMenuItem>
+                    <div class="nav-item px-3">
+                        <form action="Account/Logout" method="post">
+                            <AntiforgeryToken />
+                            <input type="hidden" name="ReturnUrl" value="@currentUrl" />
+                            <button type="submit" class="nav-link">
+                                <span Style="background-color: white;" class="bi bi-arrow-bar-left-nav-menu" aria-hidden="true"></span> Logout
+                            </button>
+                        </form>
+                    </div>
+                </ChildContent>
+            </MudMenu>
+
+            }
+        </MudAppBar>
+        <MudDrawer @bind-Open="@_drawerOpen">
+            <MudDrawerHeader>
+              
+            </MudDrawerHeader>
+            <MudBlazorNavMenu/>
+        </MudDrawer>
+        <MudMainContent >
+            <MudContainer MaxWidth="MaxWidth.ExtraExtraLarge">
+                @Body
+                @* <CookieConsent /> *@
+            </MudContainer>
+        </MudMainContent>
+    </MudLayout>
+</CascadingAuthenticationState>
+       
+
+@code {
+     [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = default!;
+
+   
+    private LiquidDocsSite.Data.ApplicationUser user = default!;
+    private string? username;
+    private string? phoneNumber;
+    private LiquidDocsSite.Data.ApplicationUser userProfile;
+    private bool _drawerOpen = false;
+    private bool isAuthenticated = false;
+    private string userName = string.Empty;
+    private string currentUrl = string.Empty;
+
+    private int _activeIndex = 0;
+
+    private List<(string Label, string Url)> _menuItems = new()
+    {
+        ("Home", "/"),
+        ("FAQs", "/faqs"),
+        ("About Us", "/about"),
+        ("Contact Us", "/contact")
+    };
+
+
+
+
+    protected override async Task OnInitializedAsync()
+    {
+       
+
+            // var auth = await AuthProvider.GetAuthenticationStateAsync();
+            // var user = auth.User;
+
+            // currentUrl = NavigationManager.ToBaseRelativePath(NavigationManager.Uri);
+            // isAuthenticated = auth.User.Identity.IsAuthenticated;
+            // userName = auth.User.Identity.Name ?? "";
+                    
+            // if (isAuthenticated)
+            // {
+            //     userProfile = await sessionManager.GetUserProfileByUserNameAsync(userName);
+                
+
+            //     if (!sessionManager.ActiveSessions.ContainsKey(userName)) sessionManager.ActiveSessions.TryAdd(userName, userProfile);
+
+
+                
+            // }
+
+       
+
+        NavigationManager.LocationChanged += OnLocationChanged;
+    }
+
+    
+
+    private void Navigate(string url)
+    {
+        NavigationManager.NavigateTo(url);
+        _activeIndex = _menuItems.FindIndex(x => x.Url == url);
+    }
+       
+
+   
+
+    private void Login()
+    {
+        // Redirect to login page or show your login dialog
+        NavigationManager.NavigateTo("/Account/Login", forceLoad: true);
+        
+    }
+
+    private void Registration()
+    {
+        // Redirect to login page or show your login dialog
+        NavigationManager.NavigateTo("/Account/Register", forceLoad: true);
+
+    }
+
+    private void OnLocationChanged(object? sender, LocationChangedEventArgs e)
+    {
+        currentUrl = NavigationManager.ToBaseRelativePath(e.Location);
+        StateHasChanged();
+    }
+
+    public void Dispose()
+    {
+        NavigationManager.LocationChanged -= OnLocationChanged;
+    }
+
+
+    private void Logout()
+    {
+        // Redirect to logout page or clear token/session
+        NavigationManager.NavigateTo("authentication/logout");
+    }
+    
+
+    void DrawerToggle()
+    {
+        _drawerOpen = !_drawerOpen;
+    }
+
+   
+}
+
+
+

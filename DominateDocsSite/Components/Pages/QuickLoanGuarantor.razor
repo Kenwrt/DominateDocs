@@ -1,0 +1,573 @@
+﻿
+
+@using System.Text
+@using DominateDocsData.Models
+@using System.Globalization
+@using System.Collections.ObjectModel
+@using DominateDocsData.Models.MergeDTOs
+@using DominateDocsSite.Helpers
+
+@rendermode InteractiveServer
+@inject QuickGuarantorViewModel vm
+@inject QuickLoanAgreementViewModel qlVm
+@inject NavigationManager NavigationManager
+@inject ISnackbar Snackbar
+@inject QuickGuarantorValidator GuarantorValidator
+@inject SigningAuthorityValidator SigningAuthorityValidator
+@inject AliasValidator AliasValidator
+@inject EntityOwnerValidator EntityOwnerValidator
+@inject UserSession Session
+
+
+@if (!String.IsNullOrEmpty(searchString))
+{
+    <MudGrid>
+
+       <MudItem md="12">
+
+            <MudText class="pl-4 mt-5" Typo="Typo.h6">Existing Guarantors</MudText>
+            <MudTable Items="FilteredList" Context="GuarantorContext" Hover="true" Bordered="true" Dense="true" @bind-SelectedItem="vm.SelectedRecord" @ref="searchTable" RowClick="OnSelectedGuarantor" T="DominateDocsData.Models.Guarantor">
+                <ToolBarContent>
+                    <MudTextField @bind-Value="searchString"
+                                  Placeholder="Search..."
+                                  Immediate="true" />
+                </ToolBarContent>
+                <HeaderContent>
+                    <MudTh>Entity Name</MudTh>
+                    <MudTh>Address</MudTh>
+                    <MudTh>Phone</MudTh>
+                    <MudTh>Email</MudTh>
+                    <MudTh>Add</MudTh>
+                    <MudTh>
+                        <MudButton Class="rounded-4"
+                                   Variant="Variant.Text"
+                                   Size="Size.Small"
+                                   Color="Color.Primary"
+                                   StartIcon="@Icons.Material.Filled.ArrowBack"
+                                   OnClick="SearchBackAsync">
+                            Back
+                        </MudButton>
+                    </MudTh>
+
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd DataLabel="Enitity Name">@GuarantorContext.EntityName</MudTd>
+                    <MudTd DataLabel="Address">@GuarantorContext.FullAddress</MudTd>
+                    <MudTd DataLabel="Phone">@GuarantorContext.ContactPhoneNumber</MudTd>
+                    <MudTd DataLabel="Email">@GuarantorContext.ContactEmail</MudTd>
+                    <MudTd>
+                        <MudButton Class="rounded-4"
+                                   Variant="Variant.Text"
+                                   Size="Size.Small"
+                                   Color="Color.Primary"
+                                   StartIcon="@Icons.Material.Filled.Add"
+                                   OnClick="@(() => AddSearchForEditAsync(GuarantorContext))">
+                            Add Guarantor
+                        </MudButton>
+                    </MudTd>
+                </RowTemplate>
+                <NoRecordsContent>
+                    <MudText Color="Color.Secondary" Class="pa-4">
+                        🚫 No Active Guarantors Found!
+                    </MudText>
+                </NoRecordsContent>
+            </MudTable>
+
+        </MudItem>
+
+    </MudGrid>
+}
+else
+{
+    @if (displayList)
+    {
+
+        <MudGrid>
+
+            <MudItem md="12">
+                
+                <div class="d-flex justify-space-between align-center">
+
+                    <MudTable Items="vm.MyGuarantorList" Context="GuarantorContext" Hover="true" Bordered="false" Dense="true" @bind-SelectedItem="vm.SelectedRecord" @ref="listTable" RowClick="OnSelectedGuarantorFromList" T="DominateDocsData.Models.Guarantor">
+                       
+                        <HeaderContent>
+                            <MudTh>Name</MudTh>
+                            <MudTh>Address</MudTh>
+                            <MudTh></MudTh>
+                        </HeaderContent>
+                        <RowTemplate>
+                            <MudTd DataLabel="Enitity Name">@GuarantorContext.EntityName</MudTd>
+                            <MudTd DataLabel="Address">@GuarantorContext.FullAddress</MudTd>
+                                <MudTd>
+                                <MudButton Variant="Variant.Text"
+                                           Size="Size.Small"
+                                           Color="Color.Info"
+                                           StartIcon="@Icons.Material.Filled.Edit"
+                                           OnClick="@(() => OnSelectedRecord(GuarantorContext))">
+                                    Edit
+                                </MudButton>
+
+                                <MudButton Variant="Variant.Text"
+                                           Size="Size.Small"
+                                           Color="Color.Error"
+                                           StartIcon="@Icons.Material.Filled.Delete"
+                                           OnClick="@(() => DeleteRecordAsync(GuarantorContext))">
+                                    Delete
+                                </MudButton>
+                            </MudTd>
+                        </RowTemplate>
+                        <NoRecordsContent>
+                            <MudText Color="Color.Secondary" Class="pa-4">
+                                🚫 No Active Guarantors Found!
+                            </MudText>
+                        </NoRecordsContent>
+                    </MudTable>
+                   
+                </div>
+            `
+            </MudItem>
+            <MudItem md="12">
+                
+                <div class="d-flex justify-start mb-4 ml-20">
+                    <div class="add-display-button-container">
+                        <MudButton Variant="Variant.Text"
+                                   Size="Size.Small"
+                                   Color="Color.Error"
+                                   StartIcon="@Icons.Material.Filled.Delete"
+                                   OnClick="AddAdditionalButton">
+                            Additional Gurantors?
+                        </MudButton>
+                    </div>
+                </div>
+
+            </MudItem>
+
+        </MudGrid>
+    }
+    else
+    {
+        <MudGrid>
+
+            <MudItem md="12">
+
+                <MudTextField @bind-Value="searchString"
+                              Placeholder="Search..."
+                              Immediate="true" />
+           
+                
+
+            </MudItem>
+
+            <MudItem md="12">
+
+                <MudForm Context="contextGuarantor" Model="@vm.EditingRecord" @ref="@formEditRecord" Validation="@GuarantorValidator" ValidationDelay="0">
+                     
+                    <MudGrid>
+
+                        <MudItem md="4">
+
+                            <div class="d-flex flex-column gap-2">
+            
+                                <MudSelect Class="ml-4 mt-5" T="DominateDocsData.Enums.Entity.Types" Style="background-color: white;" Variant="Variant.Outlined" Label="Select Entity Type" @bind-Value="vm.EditingRecord.EntityType" Dense="true">
+
+                                    @foreach (var gt in Enum.GetValues<DominateDocsData.Enums.Entity.Types>())
+                                    {
+                                        <MudSelectItem Style="background-color: white;" T="DominateDocsData.Enums.Entity.Types" Value="gt">@gt.GetDescription()</MudSelectItem>
+                                    }
+
+                                </MudSelect>
+
+                                @if (vm.EditingRecord.EntityType == DominateDocsData.Enums.Entity.Types.Entity)
+                                {
+                                    <MudTextField Class="pl-4" Style="background-color: white;" Variant="Variant.Outlined" @bind-Value="vm.EditingRecord.EntityName" For="@(() => vm.EditingRecord.EntityName)" Label="Entity Name" Required="true" />
+
+                                    <MudSelect Class="ml-4" T="DominateDocsData.Enums.Entity.Structures" Style="background-color: white;" Variant="Variant.Outlined" Label="Select Entity Structure" @bind-Value="vm.EditingRecord.EntityStructure" Dense="true">
+
+                                        @foreach (var gt in Enum.GetValues<DominateDocsData.Enums.Entity.Structures>())
+                                        { 
+                                            <MudSelectItem Style="background-color: white;" T="DominateDocsData.Enums.Entity.Structures" Value="gt">@gt.GetDescription()</MudSelectItem>
+                                        }
+
+                                    </MudSelect>
+
+                                    <MudSelect Class="ml-4" T="DominateDocsData.Enums.UsStates.UsState" Style="background-color: white;" Variant="Variant.Outlined" Label="Select State of Incorporation" @bind-Value="vm.EditingRecord.StateOfIncorporation" Dense="true">
+
+                                        @foreach (var tr in Enum.GetValues<DominateDocsData.Enums.UsStates.UsState>())
+                                        {
+                                            <MudSelectItem Style="background-color: white;" T="DominateDocsData.Enums.UsStates.UsState" Value="tr">@tr.GetDescription()</MudSelectItem>
+                                        }
+
+                                    </MudSelect>
+
+
+                                    <MudTextField Class="pl-4" Style="background-color: white;" Variant="Variant.Outlined" @bind-Value="vm.EditingRecord.EIN" Label="EIN#" Required="false" />
+                                    <MudTextField Class="pl-4" Style="background-color: white;" Variant="Variant.Outlined" @bind-Value="vm.EditingRecord.ContactName" For="@(() => vm.EditingRecord.ContactName)" Label="Contact Name" Required="true" />
+
+                                    <MudSelect Class="ml-4" T="DominateDocsData.Enums.Entity.ContactRoles" Style="background-color: white;" Variant="Variant.Outlined" Label="Contact's Role" @bind-Value="vm.EditingRecord.ContactsRole" Dense="true">
+
+                                        @foreach (var gt in Enum.GetValues<DominateDocsData.Enums.Entity.ContactRoles>())
+                                        {
+                                            <MudSelectItem Style="background-color: white;" T="DominateDocsData.Enums.Entity.ContactRoles" Value="gt">@gt.GetDescription()</MudSelectItem>
+                                        }
+
+                                    </MudSelect>
+
+                                }
+                                else
+                                {
+                                    <MudTextField Class="pl-4" Style="background-color: white;" Variant="Variant.Outlined" @bind-Value="vm.EditingRecord.ContactName" For="@(() => vm.EditingRecord.ContactName)" Label="ContactName" Required="true" />
+
+
+
+                                    <MudTextField Class="pl-4" @bind-Value="vm.EditingRecord.ContactEmail" Style="background-color: white;" Variant="Variant.Outlined"
+                                                    Label="Contact Email"
+                                                    Placeholder="example@domain.com"
+                                                    Required="true"
+                                                    RequiredError="Email is required"
+                                                    Pattern="@emailPattern"
+                                                    PatternErrorMessage="Invalid email format"
+                                                    Immediate="true" />
+
+
+                                    <MudTextField Label="Contact Phone" Class="pl-4" Style="background-color: white;" Variant="Variant.Outlined"
+                                                    @bind-Value="vm.EditingRecord.ContactPhoneNumber"
+                                                    Mask="@phoneMask"
+                                                    Placeholder="(___) ___-____"
+                                                    Required="true"
+                                                    Immediate="true" />
+                                }
+
+                            </div> 
+
+                        </MudItem>
+
+                        <MudItem md="4">
+
+                            <div class="d-flex flex-column gap-2">
+
+                                @if (vm.EditingRecord.EntityType == Entity.Types.Individual)
+                                {
+                                    <MudTextField Class="pl-4 mt-5" @bind-Value="vm.EditingRecord.SSN" Style="background-color: white;" Variant="Variant.Outlined"
+                                                    Label="SSN"
+                                                    Mask="@socialMask"
+                                                    Required="true"
+                                                    RequiredError="SSN is required"
+                                                    Pattern="^\d{3}-\d{2}-\d{4}$"
+                                                    PatternErrorMessage="Invalid SSN format" />
+
+                                }
+                                else
+                                {
+                                    <MudTextField Class="pl-4 mt-5" @bind-Value="vm.EditingRecord.ContactEmail" Style="background-color: white;" Variant="Variant.Outlined"
+                                                    Label="Contact Email"
+                                                    Placeholder="example@domain.com"
+                                                    Required="true"
+                                                    RequiredError="Email is required"
+                                                    Pattern="@emailPattern"
+                                                    PatternErrorMessage="Invalid email format"
+                                                    Immediate="true" />
+
+
+                                    <MudTextField Label="Contact Phone" Class="pl-4" Style="background-color: white;" Variant="Variant.Outlined"
+                                                    @bind-Value="vm.EditingRecord.ContactPhoneNumber"
+                                                    Mask="@phoneMask"
+                                                    Placeholder="(___) ___-____"
+                                                    Required="true"
+                                                    Immediate="true" />
+                                }
+
+
+                                <AddressCompleteMap OnAddressChange="OnAddressComplete" Row="false" MultipleAddress="false" AddressList="@addresDTOList" />
+
+
+                                
+                                <MudStack Row Justify="Justify.SpaceEvenly" AlignItems="AlignItems.Center" Class="mb-5 w-full">
+                                    <MudButton Type="Submit" OnClick="HandleSubmit" Color="Color.Success" Variant="Variant.Filled">
+                                        @(!editRecord ? "Add" : "Save")
+                                    </MudButton>
+
+                                    <MudButton OnClick="ClearSelection" Color="Color.Secondary" Variant="Variant.Filled">
+                                        Clear
+                                    </MudButton>
+                                </MudStack>
+                                 
+                            </div>
+
+                        </MudItem>
+
+                     </MudGrid>
+
+                </MudForm>
+
+            </MudItem>
+
+        </MudGrid>
+    }
+}
+
+
+
+
+
+@code
+{
+
+    [Parameter] public EventCallback<List<DominateDocsData.Models.Guarantor>> OnGuarantorComplete { get; set; }
+    [Parameter] public EventCallback OnGuarantorCanceled { get; set; }
+
+    public MudTable<DominateDocsData.Models.Guarantor> listTable = null;
+    private MudTable<DominateDocsData.Models.Guarantor> searchTable = new();
+
+    private MudForm formEditRecord;
+
+    private bool editRecord = false;
+
+    private bool displayList = false;
+    private bool AddButtonDisabled = false;
+
+    private List<DominateDocsData.Models.Guarantor> searchList = new();
+    private List<AddressDTO> addresDTOList = new();
+
+    private string emailPattern = @"^[\w\-\.]+@([\w\-]+\.)+[\w\-]{2,4}$";
+
+    private readonly PatternMask phoneMask = new("(000)000-0000");
+
+    private readonly PatternMask einMask = new("00-0000000");
+
+    private readonly PatternMask socialMask = new("000-00-0000");
+    private int editingIndex = -1;
+
+    private string searchString = "";
+
+    // Filtered view of the Guarantor based on searchString
+    private IEnumerable<DominateDocsData.Models.Guarantor> FilteredList =>
+        string.IsNullOrWhiteSpace(searchString)
+            ? vm.RecordList
+            : vm.RecordList.Where(l =>
+                   (!string.IsNullOrEmpty(l.EntityName) &&
+                    l.EntityName.Contains(searchString, StringComparison.OrdinalIgnoreCase))
+                || (!string.IsNullOrEmpty(l.FullAddress) &&
+                    l.FullAddress.Contains(searchString, StringComparison.OrdinalIgnoreCase))
+                || (!string.IsNullOrEmpty(l.ContactPhoneNumber) &&
+                    l.ContactPhoneNumber.Contains(searchString, StringComparison.OrdinalIgnoreCase))
+                || (!string.IsNullOrEmpty(l.ContactEmail) &&
+                    l.ContactEmail.Contains(searchString, StringComparison.OrdinalIgnoreCase)));
+
+    protected override async Task OnInitializedAsync()
+    {
+        await vm.InitializePageCommand.ExecuteAsync(null);
+
+        if (!String.IsNullOrEmpty(vm.EditingRecord.FullAddress))
+        {
+            AddressDTO dto = new()
+            {
+                FullAddress = vm.EditingRecord.FullAddress,
+                StreetAddress = vm.EditingRecord.StreetAddress,
+                City = vm.EditingRecord.City,
+                ZipCode = vm.EditingRecord.ZipCode,
+                County = vm.EditingRecord.County,
+                Country = vm.EditingRecord.Country,
+                State = vm.EditingRecord.State,
+                Lat = vm.EditingRecord.Lat,
+                Lng = vm.EditingRecord.Lng
+            };
+
+            addresDTOList.Add(dto);
+        }
+
+        displayList = true;
+
+
+
+    }
+
+    private async Task HandleSubmit()
+    {
+        await formEditRecord.Validate();
+
+        if (!formEditRecord.IsValid)
+        {
+            Snackbar.Add("Please correct the errors in the form.", Severity.Error);
+            return;
+        }
+        else
+        {
+            if (!editRecord)
+            {
+
+                if (vm.RecordList.Any(x => (x.SSN == vm.EditingRecord.SSN && vm.EditingRecord.SSN != null) || (x.EIN == vm.EditingRecord.EIN && vm.EditingRecord.EIN != null)))
+                {
+
+                    Snackbar.Add("A Guarantor already exists choose from the list of Guarantors.", Severity.Error);
+                    return;
+                }
+            }
+
+            vm.UpsertRecordCommand.Execute(null);
+
+            await OnGuarantorComplete.InvokeAsync(vm.MyGuarantorList.ToList());
+
+            displayList = true;
+
+            editRecord = false;
+
+            AddButtonDisabled = false;
+
+            StateHasChanged();
+        }
+    }
+
+    private void OnAddressComplete(List<AddressDTO> addressList)
+    {
+        if (addressList == null || addressList.Count == 0)
+        {
+            vm.EditingRecord.FullAddress = string.Empty;
+            vm.EditingRecord.StreetAddress = string.Empty;
+            vm.EditingRecord.City = string.Empty;
+            vm.EditingRecord.ZipCode = string.Empty;
+            vm.EditingRecord.County = string.Empty;
+            vm.EditingRecord.Country = string.Empty;
+
+        }
+        else
+        {
+            var addressDTO = addressList.FirstOrDefault();
+
+            vm.EditingRecord.FullAddress = addressDTO.FullAddress;
+            vm.EditingRecord.StreetAddress = addressDTO.StreetAddress;
+            vm.EditingRecord.City = addressDTO.City;
+            vm.EditingRecord.ZipCode = addressDTO.ZipCode;
+            vm.EditingRecord.County = addressDTO.County;
+            vm.EditingRecord.Country = addressDTO.Country;
+            vm.EditingRecord.State = addressDTO.State;
+            vm.EditingRecord.Lat = addressDTO.Lat;  
+            vm.EditingRecord.Lng = addressDTO.Lng;  
+        }
+
+    }
+
+    private async Task SearchBackAsync()
+    {
+        searchString = "";
+
+    }
+
+    private async Task DeleteRecordAsync(DominateDocsData.Models.Guarantor r)
+    {
+        vm.SelectedRecord = r;
+
+        vm.DeleteRecordCommand.Execute(r);
+
+        displayList = true;
+
+        StateHasChanged();
+
+        await OnGuarantorComplete.InvokeAsync(vm.MyGuarantorList.ToList());
+
+
+
+    }
+
+    private void ClearSelection()
+    {
+        vm.ClearSelectionCommand.Execute(null);
+        StateHasChanged();
+    }
+
+    private async Task AddSearchForEditAsync(DominateDocsData.Models.Guarantor r)
+    {
+        vm.EditingRecord = r;
+
+        AddressDTO address = new()
+        {
+            FullAddress = r.FullAddress,
+            Lat = r.Lat,
+            Lng = r.Lng,
+            StreetAddress = r.StreetAddress,
+            City = r.City,
+            State = r.State,
+            ZipCode = r.ZipCode,
+            County = r.County,
+            Country = r.Country
+        };
+
+        addresDTOList.Add(address);
+
+        searchString = "";
+
+        AddButtonDisabled = true;
+        StateHasChanged();
+    }
+
+    private void AddButton()
+    {
+        vm.GetNewRecordCommand.Execute(null);
+
+        AddButtonDisabled = true;
+        displayList = true;
+    }
+
+    private void AddAdditionalButton()
+    {
+
+        vm.GetNewRecordCommand.Execute(null);
+
+        addresDTOList.Clear();
+
+
+        AddButtonDisabled = true;
+        displayList = false;
+    }
+
+
+    private void OnSelectedRecord(DominateDocsData.Models.Guarantor Guarantor)
+    {
+        vm.SelectRecordCommand.Execute(Guarantor);
+
+        editRecord = true;
+
+        if (!String.IsNullOrEmpty(vm.EditingRecord.FullAddress))
+        {
+            addresDTOList.Clear();
+
+            AddressDTO dto = new()
+                {
+                FullAddress = vm.EditingRecord.FullAddress,
+                StreetAddress = vm.EditingRecord.StreetAddress,
+                City = vm.EditingRecord.City,
+                ZipCode = vm.EditingRecord.ZipCode,
+                County = vm.EditingRecord.County,
+                Country = vm.EditingRecord.Country,
+                State = vm.EditingRecord.State,
+                Lat = vm.EditingRecord.Lat,
+                Lng = vm.EditingRecord.Lng
+                };
+
+            addresDTOList.Add(dto);
+        }
+    }
+
+
+
+
+    private async Task EditRecordAsync(DominateDocsData.Models.Guarantor r)
+    {
+        OnSelectedRecord(r);
+
+        editRecord = true;
+
+        displayList = false;
+
+        StateHasChanged();
+
+    }
+
+    private void CancelEdit()
+    {
+        editingIndex = -1;
+
+        StateHasChanged();
+    }
+   
+   
+}

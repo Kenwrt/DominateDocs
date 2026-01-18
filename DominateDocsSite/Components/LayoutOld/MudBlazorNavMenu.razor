@@ -1,0 +1,87 @@
+﻿@implements IDisposable
+
+@inject NavigationManager NavigationManager
+
+@inherits LayoutComponentBase
+
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+
+
+
+<MudNavMenu>
+    
+    
+    <AuthorizeView>
+        <Authorized>
+            <MudNavLink Href="Account/Manage" Match="NavLinkMatch.Prefix">My Account Profile</MudNavLink>
+
+            <div class="nav-item px-3">
+                <form action="Account/Logout" method="post">
+                    <AntiforgeryToken />
+                    <input type="hidden" name="ReturnUrl" value="@currentUrl" />
+                    <button type="submit" class="nav-link">
+                        <span class="bi bi-arrow-bar-left-nav-menu" aria-hidden="true"></span> Logout
+                    </button>
+                </form>
+            </div>
+        </Authorized>
+    </AuthorizeView>
+    <AuthorizeView>
+            <MudNavGroup Title="App Profiles" Expanded="true">
+                <MudNavLink Href="/users" Match="NavLinkMatch.Prefix">Users Managment</MudNavLink>
+                <MudNavLink Href="/lenderlist" Match="NavLinkMatch.Prefix">Lender List</MudNavLink>
+                <MudNavLink Href="/guarantorlist" Match="NavLinkMatch.Prefix">Guarantor</MudNavLink>
+                <MudNavLink Href="/signingauthority" Match="NavLinkMatch.Prefix">Siging Authority</MudNavLink>
+                <MudNavLink Href="/security" Match="NavLinkMatch.Prefix">Security</MudNavLink>
+                <MudNavLink Href="/Trusteelist" Match="NavLinkMatch.Prefix">Trustee</MudNavLink>
+                <MudNavLink Href="/borrowerlist" Match="NavLinkMatch.Prefix">Browwer List</MudNavLink>
+                <MudNavLink Href="/loanagreementssecurity" Match="NavLinkMatch.Prefix">Loan Application List</MudNavLink>
+                <MudNavLink Href="/propertyownerlist" Match="NavLinkMatch.Prefix">Property Owner</MudNavLink>
+                <MudNavLink Href="/propertylist" Match="NavLinkMatch.Prefix">Property</MudNavLink>
+                <MudNavLink Href="/akaalias" Match="NavLinkMatch.Prefix">AKA Alias</MudNavLink>
+                <MudNavLink Href="/documentlibrary" Match="NavLinkMatch.Prefix">Document Library</MudNavLink>
+                <MudNavLink Href="/loanagreements" Match="NavLinkMatch.Prefix">Loan Agreements</MudNavLink>
+                <MudNavLink Href="/sendemailpage" Match="NavLinkMatch.Prefix">Send Mail Test</MudNavLink>
+                <MudNavLink Href="auth" Match="NavLinkMatch.Prefix">Auth Required</MudNavLink>
+                <MudNavLink Href="/title" Match="NavLinkMatch.Prefix">Title</MudNavLink>
+
+                <MudNavLink Href="/uploadfile" Match="NavLinkMatch.Prefix">Upload Edited Template</MudNavLink>
+                <MudNavLink Href="/convertwordtopdf" Match="NavLinkMatch.Prefix">Convert Word To PDF</MudNavLink>
+                <MudNavLink Href="/dashboard" Match="NavLinkMatch.All">Dashboard2</MudNavLink>
+            </MudNavGroup>
+    
+    
+    </AuthorizeView>
+    
+</MudNavMenu>
+
+@code {
+
+   
+    private string? currentUrl;
+ 
+
+    protected override async Task OnInitializedAsync()
+    {
+        // var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        // var user = authState.User;
+
+        currentUrl = NavigationManager.ToBaseRelativePath(NavigationManager.Uri);
+        NavigationManager.LocationChanged += OnLocationChanged;
+    }
+
+    private void OnLocationChanged(object? sender, LocationChangedEventArgs e)
+    { 
+        currentUrl = NavigationManager.ToBaseRelativePath(e.Location);
+        StateHasChanged();
+    }
+
+   
+
+    public void Dispose()
+    {
+        NavigationManager.LocationChanged -= OnLocationChanged;
+    }
+
+}

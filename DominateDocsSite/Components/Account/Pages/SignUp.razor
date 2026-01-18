@@ -1,0 +1,293 @@
+﻿@page "/Account/SignUp"
+
+@using System.ComponentModel.DataAnnotations
+@using System.Text
+@using System.Text.Encodings.Web
+@using DominateDocsSite.Components.Account.Shared
+@using Microsoft.AspNetCore.Identity
+@using Microsoft.AspNetCore.Identity.EntityFrameworkCore
+@using Microsoft.AspNetCore.WebUtilities
+@using DominateDocsSite.Data
+@using DominateDocsSite.Helpers;
+@using MongoDB.Bson
+@using MongoDB.Bson.Serialization.Attributes
+@using MudBlazor
+@using MudBlazor.StaticInput
+@using DominateDocsData.Models
+@using DominateDocsData.Enums
+@using Newtonsoft.Json
+@using Newtonsoft.Json.Converters
+
+
+@inject RegistrationViewModel viewModel
+@inject RegistrationValidator RegistrationValidator
+@inject IMongoDatabaseRepo dbApp
+@inject UserManager<DominateDocsSite.Data.ApplicationUser> UserManager
+@inject IUserStore<DominateDocsSite.Data.ApplicationUser> UserStore
+@inject AuthenticationStateProvider AuthStateProvider
+@inject NavigationManager NavigationManager
+@inject SignInManager<DominateDocsSite.Data.ApplicationUser> SignInManager
+@inject IEmailSender<DominateDocsSite.Data.ApplicationUser> EmailSender
+@inject IEncryptAes encryptAes
+@inject IdentityRedirectManager RedirectManager
+
+
+
+         <MudPaper Elevation="3" Class="pa-4 mx-auto" >
+            <StatusMessage Message="@Message" />
+
+            <MudText Class="mx-auto" Typo="Typo.h5" GutterBottom="true">Signup</MudText>
+
+            <MudText Class="mb-5 mx-auto" Typo="Typo.body1" GutterBottom="true">Create a new account.</MudText>
+
+            <EditForm Model="Input" asp-route-returnUrl="@ReturnUrl" method="post" OnValidSubmit="RegisterUser" FormName="register">
+                <DataAnnotationsValidator />
+
+                <MudGrid>
+                    <MudItem md="6">
+                        <div class="d-flex flex-column gap-4">
+                        
+                        <MudStaticTextField Variant="Variant.Outlined" For="@(() => Input.Email)" @bind-Value="Input.Email"
+                                            Label="User Name/Email" Placeholder="name@example.com"
+                                            UserAttributes="@(new() { { "autocomplete", "username" }, { "aria-required", "true" } })" />
+                    
+                        <MudStaticTextField Variant="Variant.Outlined" For="@(() => Input.Password)" @bind-Value="Input.Password"
+                                            Label="Password" InputType="InputType.Password" Placeholder="password"
+                                            UserAttributes="@(new() { { "autocomplete", "new-password" }, { "aria-required", "true" } })" />
+                    
+                        <MudStaticTextField Variant="Variant.Outlined" For="@(() => Input.ConfirmPassword)" @bind-Value="Input.ConfirmPassword"
+                                            Label="Confirm Password" InputType="InputType.Password" Placeholder="confirm password"
+                                            UserAttributes="@(new() { { "autocomplete", "new-password" }, { "aria-required", "true" } })" />
+                    
+                        <MudStaticTextField Variant="Variant.Outlined" For="@(() => Input.Name)" @bind-Value="Input.Name"
+                                            Label="Name" InputType="InputType.Text" Placeholder="Name" />
+                    
+
+                        <MudStaticTextField Variant="Variant.Outlined" For="@(() => Input.PhoneNumber)" @bind-Value="Input.PhoneNumber"
+                                            Label="Phone Number" InputType="InputType.Text" Placeholder="(###) ###-####" />
+
+                   
+                        <MudStaticTextField Variant="Variant.Outlined" For="@(() => Input.DateOfBirth)" @bind-Value="Input.DateOfBirth"
+                                            Label="Date of Birth" InputType="InputType.Text" Placeholder="##-##-####" />
+                        </div>
+                    </MudItem>
+                    <MudItem md="6">
+                        <div class="d-flex flex-column gap-4">
+                            <MudStaticTextField Variant="Variant.Outlined" For="@(() => Input.StreetAddress)" @bind-Value="Input.StreetAddress"
+                                                Label="Stree Address" InputType="InputType.Text" Placeholder="Street Address" />
+                            <MudStaticTextField Variant="Variant.Outlined" For="@(() => Input.City)" @bind-Value="Input.City"
+                                                Label="City" InputType="InputType.Text" Placeholder="City" />
+                            <MudStaticTextField Variant="Variant.Outlined" For="@(() => Input.State)" @bind-Value="Input.State"
+                                                Label="State" InputType="InputType.Text" Placeholder="CA" />
+
+                            <MudStaticTextField Variant="Variant.Outlined" For="@(() => Input.ZipCode)" @bind-Value="Input.ZipCode"
+                                                Label="Zip Code" InputType="InputType.Text" Placeholder="Zip Code" />
+                            <MudStaticButton Variant="Variant.Filled" Color="Color.Primary" FullWidth="true" FormAction="FormAction.Submit">Join</MudStaticButton>
+                        </div>
+
+                    </MudItem>
+
+              </MudGrid>
+
+           
+        </EditForm>
+        </MudPaper>
+
+
+
+
+@code {
+
+    private bool cleanDb = false; // Set to true to clean the database on initialization, for testing purposes.
+    private MudForm formEditRecord;
+    private IEnumerable<IdentityError>? identityErrors;
+
+    private string emailPattern = @"^[\w\-\.]+@([\w\-]+\.)+[\w\-]{2,4}$";
+
+    [SupplyParameterFromForm]
+    private InputModel Input { get; set; } = new();
+
+    [SupplyParameterFromQuery]
+    private string? ReturnUrl { get; set; }
+
+    private string? Message => identityErrors is null ? null : $"Error: {string.Join(", ", identityErrors.Select(error => error.Description))}";
+
+    protected override async Task OnInitializedAsync()
+    {
+
+        // if (cleanDb)
+        // {
+
+            //     var user = await UserManager.FindByEmailAsync("kenwrt@gmail.com");
+
+
+
+            //     if (user != null)
+            //     {
+
+            //         cleanDb = false;
+            //         //var result = await UserManager.DeleteAsync(user);
+
+            //         // if (result.Succeeded)
+            //         // {
+
+            //         //     // Optionally log out the user or refresh the admin view
+
+            //         // }
+
+            //         // else
+
+            //         // {
+
+            //         //     foreach (var error in result.Errors)
+
+            //         //     {
+
+            //         //         Console.WriteLine(error.Description); // Or show error to UI
+
+            //         //     }
+
+            //         // }
+            //     }
+
+       // }
+
+    }
+
+
+
+    public async Task RegisterUser()
+    {
+        var user = CreateUser();
+
+        user.StreetAddress = Input.StreetAddress;
+        user.City = Input.City;
+        user.State = Input.State;
+        user.ZipCode = Input.ZipCode;
+        user.DateOfBirth = Input.DateOfBirth;
+        user.Name = Input.Name;
+        user.PhoneNumber = Input.PhoneNumber;
+        user.ProfilePictureUrl = Input.ProfilePictureUrl;
+        user.UserName = Input.Email;
+        user.Email = Input.Email;
+        user.DateOfBirth = Input.DateOfBirth;
+
+        UserProfile userProfile = new UserProfile
+        {
+            Id = Guid.NewGuid(),
+            UserId = Guid.Parse(user.Id),
+           // Email = Input.Email,
+            UserName = Input.Email,
+            Password = encryptAes.Encrypt(Input.Password),
+            ConfirmedPassword = encryptAes.Encrypt(Input.ConfirmPassword),
+            // Name = Input.Name,
+            // DateOfBirth = Input.DateOfBirth,
+            // PhoneNumber = Input.PhoneNumber,
+            // StreetAddress = Input.StreetAddress,
+            // City = Input.City,
+            // State = Input.State,
+            // ZipCode = Input.ZipCode,
+            ProfilePictureUrl = Input.ProfilePictureUrl,
+            UserRole = UserEnums.Roles.User
+        };
+
+        dbApp.UpSertRecord<DominateDocsData.Models.UserProfile>(userProfile);
+
+        await UserStore.SetUserNameAsync(user, Input.Email, CancellationToken.None);
+        var emailStore = GetEmailStore();
+        await emailStore.SetEmailAsync(user, Input.Email, CancellationToken.None);
+        var result = await UserManager.CreateAsync(user, Input.Password);
+        var result2 = await UserManager.AddToRoleAsync(user, "User");
+
+        await UserManager.UpdateAsync(user);
+
+        if (!result.Succeeded)
+        {
+            identityErrors = result.Errors;
+            return;
+        }
+
+        //Logger.LogInformation("User created a new account with password.");
+
+        var userId = await UserManager.GetUserIdAsync(user);
+        var code = await UserManager.GenerateEmailConfirmationTokenAsync(user);
+        code = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(code));
+        var callbackUrl = NavigationManager.GetUriWithQueryParameters(
+            NavigationManager.ToAbsoluteUri("Account/ConfirmEmail").AbsoluteUri,
+            new Dictionary<string, object?> { ["userId"] = userId, ["code"] = code, ["returnUrl"] = ReturnUrl });
+
+        await EmailSender.SendConfirmationLinkAsync(user, Input.Email, HtmlEncoder.Default.Encode(callbackUrl));
+
+        if (UserManager.Options.SignIn.RequireConfirmedAccount)
+        {
+            RedirectManager.RedirectTo(
+                "Account/RegisterConfirmation",
+                new() { ["email"] = Input.Email, ["returnUrl"] = ReturnUrl });
+        }
+
+        await SignInManager.SignInAsync(user, isPersistent: false);
+        RedirectManager.RedirectTo(ReturnUrl);
+    }
+
+    private static DominateDocsSite.Data.ApplicationUser CreateUser()
+    {
+        try
+        {
+            return Activator.CreateInstance<DominateDocsSite.Data.ApplicationUser>();
+        }
+        catch
+        {
+            throw new InvalidOperationException($"Can't create an instance of '{nameof(DominateDocsSite.Data.ApplicationUser)}'. " +
+                $"Ensure that '{nameof(DominateDocsSite.Data.ApplicationUser)}' is not an abstract class and has a parameterless constructor.");
+        }
+    }
+
+    private IUserEmailStore<DominateDocsSite.Data.ApplicationUser> GetEmailStore()
+    {
+        if (!UserManager.SupportsUserEmail)
+        {
+            throw new NotSupportedException("The default UI requires a user store with email support.");
+        }
+        return (IUserEmailStore<DominateDocsSite.Data.ApplicationUser>)UserStore;
+    }
+
+    private sealed class InputModel
+    {
+        [Required]
+        [EmailAddress]
+        [Display(Name = "Email")]
+        public string Email { get; set; } = "";
+
+        [Required]
+        [StringLength(100, ErrorMessage = "The {0} must be at least {2} and at max {1} characters long.", MinimumLength = 6)]
+        [DataType(DataType.Password)]
+        [Display(Name = "Password")]
+        public string Password { get; set; } = "";
+
+        [DataType(DataType.Password)]
+        [Display(Name = "Confirm password")]
+        [Compare("Password", ErrorMessage = "The password and confirmation password do not match.")]
+        public string ConfirmPassword { get; set; } = "";
+
+        public string? Name { get; set; }
+
+        public string? DateOfBirth { get; set; }
+
+        public string? PhoneNumber { get; set; }
+
+        public string? StreetAddress { get; set; }
+
+        public string? City { get; set; }
+
+
+        public string? State { get; set; }
+
+        public string? ZipCode { get; set; }
+
+        public string? ProfilePictureUrl { get; set; }
+
+
+
+    }
+
+}

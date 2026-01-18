@@ -1,0 +1,15 @@
+﻿@using MudBlazor
+
+@namespace DominateDocsSite.Components.Account
+
+@if (!string.IsNullOrWhiteSpace(Message))
+{
+    <MudAlert Severity="@Severity.Info">@Message</MudAlert>
+}
+
+@code {
+    [Parameter]
+    public string? Message { get; set; }
+}
+
+

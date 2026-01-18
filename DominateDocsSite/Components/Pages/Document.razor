@@ -1,0 +1,268 @@
+﻿@page "/document"
+@* @attribute [Authorize(Roles = "Admin")] *@
+
+@using DocumentManager.Services
+@using DocumentManager.State
+@using DominateDocsData.Enums
+@using Microsoft.AspNetCore.Authorization
+@using Newtonsoft.Json
+
+@inject NavigationManager Navigation
+@inject DocumentViewModel vm
+@inject DocumentValidator docVal
+@inject ISnackbar Snackbar
+@inject IConfiguration config
+@inject HttpClient httpClient
+@inject IJSRuntime JS
+@inject IDocumentManagerState docState
+
+
+<script>
+        window.downloadFileFromStream = (fileName, streamRef) => {
+        const blob = new Blob([streamRef], { type: 'application/octet-stream' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = fileName;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    };
+
+</script>
+
+
+<MudPaper Elevation="1" Class="pa-4">
+
+    @if (vm.SelectedLibrary is not null)
+    {
+        <MudText Class="mb-5" Typo="Typo.body1">Library: <b>@vm.SelectedLibrary.Name</b></MudText>
+    }
+
+   @*  @if (vm.SelectedDocumentSet is not null)
+    {
+        <MudText Class="mb-5" Typo="Typo.body1">Document Set: <b>@vm.SelectedDocumentSet.Name</b></MudText>
+    } *@
+   
+    <MudGrid>
+        <MudItem xs="12" md="8">
+            <MudTable Items="vm.RecordList" Hover="true" Dense="true" @bind-SelectedItem="vm.SelectedRecord" RowClick="OnRowClick">
+                <ToolBarContent>`
+                </ToolBarContent>
+                <HeaderContent>
+                    <MudTh>Name</MudTh>
+                    <MudTh>Last Updated</MudTh>
+                    <MudTh>Template</MudTh>
+                    <MudTh>Output As</MudTh>
+                    <MudTh></MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd>@context.Name</MudTd>
+                    <MudTd>@context.UpdatedAt</MudTd>
+                     <MudTd>
+                             <MudChip OnClick="@(() => EditRecordAsync(context))" T="bool" Color="@((context.UpdatedAt is null) ? Color.Success : Color.Error)">
+                            @if (context.UpdatedAt is null)
+                            {
+                                documentExists = false;
+                            }
+                            else
+                            {
+                                documentExists = true;
+                            }
+                            @(documentExists ? "Update" : "Create")
+                        </MudChip>
+                    </MudTd>
+                    <MudTd>
+                        <MudChip T="string")">
+                            @context.OutputType.GetDescription()
+                        </MudChip>
+                    </MudTd>
+                    <MudTd>
+
+                        <MudIconButton Icon="@Icons.Material.Filled.Merge"
+                                       Color="Color.Info"
+                                       OnClick="@(() => MergeTestAsync(context))" />
+                        <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                                       Color="Color.Info"
+                                       OnClick="@(() => SelectRecordAsync(context))" />
+                        <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                       Color="Color.Error"
+                                       OnClick="@(() => DeleteRecordAsync(context))" />
+                    </MudTd>
+                </RowTemplate>
+            </MudTable>
+        </MudItem>
+        <MudItem xs="12" md="4">
+            <MudPaper Elevation="0" Class="pa-4">
+                <MudText Typo="Typo.h6">
+                    @(vm.SelectedRecord == null ? "Add Document" : "Edit Document")
+                </MudText>
+                <MudForm Model="@vm.EditingRecord" @ref="@formEditRecord" Validation="@docVal" ValidationDelay="0">
+                    <div class="d-flex flex-column gap-2">
+                            <MudTextField @bind-Value="vm.EditingRecord.Name" Label="Name" Required="true" />
+                            <MudSelect Class="ml-4" T="DominateDocsData.Enums.DocumentTypes.OutputTypes" Style="background-color: white;" Variant="Variant.Outlined" Label="Generate As:" @bind-Value="vm.EditingRecord.OutputType" Dense="true">
+
+                                @foreach (var t in Enum.GetValues<DominateDocsData.Enums.DocumentTypes.OutputTypes>())
+                                {
+                                    <MudSelectItem Style="background-color: white;" T="DominateDocsData.Enums.DocumentTypes.OutputTypes" Value="t">@t.GetDescription()</MudSelectItem>
+                                }
+
+                            </MudSelect>
+
+                          @*   <MudSelect Class="ml-4" T="DominateDocsData.Enums.DocumentTypes.Types" Style="background-color: white;" Variant="Variant.Outlined" Label="Generate As:" @bind-Value="vm.EditingRecord.DocumentType" Dense="true">
+
+                                @foreach (var dt in Enum.GetValues<DominateDocsData.Enums.DocumentTypes.Types>())
+                                {
+                                    <MudSelectItem Style="background-color: white;" T="DominateDocsData.Enums.DocumentTypes.Types" Value="dt">@dt.GetDescription()</MudSelectItem>
+                                }
+
+                            </MudSelect> *@
+
+                            <MudStack Row="true" Spacing="2" Class="mt-4">
+                                <MudButton Type="Submit" OnClick="HandleSubmitAsync" Color="Color.Success" Variant="Variant.Filled">
+                                    @(vm.SelectedRecord == null ? "Add" : "Save")
+                                </MudButton>
+                                <MudButton OnClick="ClearFormAsync" Color="Color.Secondary" Variant="Variant.Outlined">Clear</MudButton>
+                            </MudStack>
+                    </div>
+                </MudForm>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+</MudPaper>
+
+
+@code {
+
+
+    private string _search = "";
+
+
+
+    private bool documentExists = false;
+
+    private MudForm formEditRecord;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _search = "";  
+
+        await vm.InitializeRecordCommand.ExecuteAsync(null);
+
+    }
+
+    private async Task HandleSubmitAsync()
+    {
+
+        await formEditRecord.Validate();
+
+        if (!formEditRecord.IsValid)
+        {
+            Snackbar.Add("Please correct the errors in the form.", Severity.Error);
+            return;
+        }
+        else
+        {
+
+            if (vm.SelectedRecord is null)
+            {
+                await  vm.AddRecordCommand.ExecuteAsync(null);
+
+                
+
+               
+            }
+            else
+            {
+                await vm.EditRecordCommand.ExecuteAsync(null);
+               
+
+               
+
+               
+            }
+
+        }
+        
+    }
+
+    private async Task DeleteRecordAsync(DominateDocsData.Models.Document doc)
+    {
+        await vm.DeleteRecordCommand.ExecuteAsync(doc);
+    }
+
+    private async Task ClearFormAsync()
+    {
+       await vm.ClearEditingCommand.ExecuteAsync(null);
+    }
+
+
+
+    private async Task EditRecordAsync(DominateDocsData.Models.Document doc)
+    {
+
+        string baseLineUrl = config.GetValue<string>("ApiBaseUrl") ?? "http://DominateDocs.law";
+        var response = await httpClient.GetAsync($"{baseLineUrl}/api/v1/DownloadDocument/{doc.Id}");
+
+
+        string fileName = $"{doc.Name}--{doc.Id.ToString().Substring(0, 12)}--{System.DateTime.UtcNow.ToString("MM-dd-yyyy-HH-MM")}.docm";
+
+        Navigation.NavigateTo($"{baseLineUrl}/api/v1/DownloadDocument/{doc.Id}", forceLoad: true);
+
+        StateHasChanged();
+
+    }
+
+    private async Task MergeTestAsync(DominateDocsData.Models.Document doc)
+    {
+        DocumentMerge documentMerge = new()
+        {
+            Id = Guid.NewGuid(),
+            Document = doc,
+            
+
+        };
+
+        LoanAgreement loanAgreement = new();
+
+       // documentMerge.Document.MergeValues = JsonConvert.SerializeObject(loanAgreement, Formatting.Indented);
+
+        docState.DocumentProcessingQueue.Enqueue(documentMerge);
+
+        StateHasChanged();
+
+    }
+
+
+
+    private async Task SelectRecordAsync(DominateDocsData.Models.Document doc)
+    {
+       await vm.SelectRecordCommand.ExecuteAsync(doc);
+    }
+
+    private async Task OnRowClickAsync(TableRowClickEventArgs<DominateDocsData.Models.Document> e)
+    {
+       await vm.SelectRecordCommand.ExecuteAsync(e.Item);
+    }
+
+    private string GetFileNameFromContentDisposition(string? contentDisposition)
+    {
+        if (string.IsNullOrWhiteSpace(contentDisposition))
+            return "downloaded.file";
+
+        var fileNamePart = contentDisposition.Split(';')
+            .FirstOrDefault(p => p.Trim().StartsWith("filename=", StringComparison.OrdinalIgnoreCase));
+
+        if (fileNamePart != null)
+        {
+            var fileName = fileNamePart.Substring("filename=".Length).Trim(' ', '\"');
+            return fileName;
+        }
+
+        return "downloaded.file";
+    }
+
+
+}
+

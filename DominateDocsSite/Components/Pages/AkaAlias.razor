@@ -1,0 +1,223 @@
+﻿@page "/akaalias"
+
+@using System.Text;
+@using DominateDocsData.Models;
+@using System.Globalization;
+@using System.Collections.ObjectModel;
+@using DominateDocsData.Models.MergeDTOs;
+
+@rendermode InteractiveServer
+@inject AkaViewModel vm
+@inject NavigationManager NavigationManager
+@inject ISnackbar Snackbar
+@inject AliasValidator AliasValidator
+@inject UserSession Session
+
+
+@if (displayList)
+{
+
+        <MudGrid>
+
+            <MudItem xs="12" md="12">
+
+                <MudTable Class="ml-4 mr-5" Style="background-color: #FCFCFC;" Items="vm.MyRecordList" Context="contextAlias" Hover="true" Bordered="true" Dense="true" @bind-SelectedItem="vm.SelectedRecord" RowClick="OnSelectedRecord">
+                    <HeaderContent>
+                        <MudTh>Name</MudTh>
+                        <MudTh>Alias</MudTh>
+                        <MudTh HeaderCellClass="text-right">
+                            <MudButton Variant="Variant.Text"
+                                       Size="Size.Small"
+                                       Color="Color.Info"
+                                       StartIcon="@Icons.Material.Filled.Add"
+                                       OnClick="AddButton">
+                                Add Name
+                            </MudButton>
+                        </MudTh>
+
+                    </HeaderContent>
+
+                    <RowTemplate>
+                        <MudTd DataLabel="Name">@contextAlias.Name</MudTd>
+                        <MudTd DataLabel="Alias">@contextAlias.AlsoKnownAs</MudTd>
+
+                        <MudTd>
+                            <MudButton Variant="Variant.Text"
+                                       Size="Size.Small"
+                                       Color="Color.Info"
+                                       StartIcon="@Icons.Material.Filled.Edit"
+                                       OnClick="@(() => OnSelectedRecord(contextAlias))">
+                                Edit
+                            </MudButton>
+
+                            <MudButton Variant="Variant.Text"
+                                       Size="Size.Small"
+                                       Color="Color.Error"
+                                       StartIcon="@Icons.Material.Filled.Delete"
+                                       OnClick="@(() => DeleteRecordAsync(contextAlias))">
+                                Delete
+                            </MudButton>
+                        </MudTd>
+                        
+                    </RowTemplate>
+                    <NoRecordsContent>
+                        <MudText Color="Color.Secondary" Class="pa-4">
+                            🚫 No Active Alias Names Found. Please add!
+                        </MudText>
+                    </NoRecordsContent>
+
+                </MudTable>
+
+            </MudItem>
+
+        </MudGrid>
+
+}
+else
+{
+        <MudGrid>
+
+            <MudItem md="12">
+
+                <MudForm Context="contextAlias" Model="@vm.EditingRecord" @ref="@form" Validation="@AliasValidator" ValidationDelay="0">
+
+                    <MudGrid>
+
+                        <MudItem md="4">
+
+                            <div class="d-flex flex-column gap-2">
+
+
+                                <MudTextField Class="ml-4" Style="background-color: white;" Variant="Variant.Outlined" @bind-Value="vm.EditingRecord.Name" For="@(() => vm.EditingRecord.Name)" Label="Name" Required="true" />
+
+                                <MudTextField Class="pl-4" Style="background-color: white;" Variant="Variant.Outlined" @bind-Value="vm.EditingRecord.AlsoKnownAs" Label="Also Known As" Required="false" />
+
+                                <MudStack Row="true" Spacing="10" Class="mt-4 mb-10">
+                                    <MudButton Class="ml-10" Type="Submit" OnClick="HandleSubmit" Color="Color.Success" Variant="Variant.Filled">@(vm.SelectedRecord == null ? "Add" : "Save")</MudButton>
+                                    <MudButton OnClick="ClearSelection" Color="Color.Secondary" Variant="Variant.Filled">Clear</MudButton>
+                                </MudStack>
+
+                            </div>
+
+                        </MudItem>
+
+                    </MudGrid>
+
+                </MudForm>
+
+            </MudItem>
+
+        </MudGrid>
+}
+
+
+
+
+@code
+{
+
+    [Parameter] public EventCallback<List<DominateDocsData.Models.AkaName>> OnAliasComplete { get; set; }
+    [Parameter] public EventCallback OnAliasCanceled { get; set; }
+    [Parameter] public List<DominateDocsData.Models.AkaName> AliasList { get; set; }
+
+    private MudForm form;
+    private bool editRecord = false;
+    private bool displayList = false;
+    private bool AddButtonDisabled = false;
+
+    private int editingIndex = -1;
+
+    protected override async Task OnInitializedAsync()
+    {
+
+        vm.InitializeLoadPageCommand.Execute(AliasList);
+
+        displayList = true;
+    }
+
+    private async Task HandleSubmit()
+    {
+        await form.Validate();
+
+        if (!form.IsValid)
+        {
+            Snackbar.Add("Please correct the errors in the form.", Severity.Error);
+            return;
+        }
+        else
+        {
+            if (!editRecord)
+            {
+                if (vm.MyRecordList.Any(x => x.Name == vm.EditingRecord.Name))
+                {
+                    Snackbar.Add("A Duplicate Name can't exists.", Severity.Error);
+
+                    return;
+                }
+            }
+
+            vm.UpsertRecordCommand.Execute(null);
+
+            await OnAliasComplete.InvokeAsync(vm.MyRecordList.ToList());
+                        
+            displayList = true;
+
+            editRecord = false;
+
+            StateHasChanged();
+
+            AddButtonDisabled = false;
+        }
+    }
+
+    private async Task DeleteRecordAsync(DominateDocsData.Models.AkaName r)
+    {
+
+        vm.DeleteRecordCommand.Execute(r);  
+        
+        vm.ClearSelectionCommand.Execute(null);
+
+        displayList = true;
+
+        editRecord = false;
+
+        await OnAliasComplete.InvokeAsync(vm.MyRecordList.ToList());
+
+        StateHasChanged();
+    }
+
+    private void ClearSelection()
+    {
+        vm.ClearSelectionCommand.Execute(null);
+        StateHasChanged();
+    }
+
+    private void AddButton()
+    {
+        vm.GetNewRecordCommand.Execute(null);
+     
+        AddButtonDisabled = false;
+
+        displayList = false;
+    }
+
+   
+    private void OnSelectedRecord(DominateDocsData.Models.AkaName r)
+    {
+
+        if (r is not null) vm.SelectRecordCommand.Execute(r);
+
+        editRecord = true;  
+
+        displayList = false;
+
+    }
+        
+    private void CancelEdit()
+    {
+        editingIndex = -1;
+
+        StateHasChanged();
+    }
+
+}

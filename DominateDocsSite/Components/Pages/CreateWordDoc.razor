@@ -1,0 +1,78 @@
+﻿@page "/createworddoc"
+
+
+@using DocumentFormat.OpenXml.Drawing
+@using DocumentFormat.OpenXml.Drawing.Wordprocessing
+@using DocumentFormat.OpenXml.Wordprocessing
+@using DocumentManager.Services
+@using Microsoft.AspNetCore.Components.Forms
+@using Microsoft.AspNetCore.Hosting
+@using OpenXmlPowerTools
+@using System.Text
+@using System.IO;
+
+@inject IWordServices wordServices
+@inject IWebHostEnvironment webEnv
+
+<script src="js/downloadHelper.js"></script>
+
+<MudPaper Elevation="4" Class="p-6 max-w-md mx-auto mt-12">
+    <MudText Typo="Typo.h5">Create Sample Document</MudText>
+
+    <MudButton OnClick="CreateDoc" Class="mt-4" Color="MudBlazor.Color.Primary">
+        Create Simple Word Document
+    </MudButton>
+</MudPaper>
+
+@code {
+
+    private const long MaxFileSize = 2L * 1024 * 1024 * 1024; // 2 GB
+    private string? FilePath;
+
+    private async Task CreateDoc()
+    {
+        try
+        {
+
+            var fileName = $"word-{Guid.NewGuid()}.docx";
+            //  Directory.CreateDirectory(Path.Combine(webEnv.WebRootPath,"CreatedWordDocs"));
+          //  var fullPath = Path.Combine(webEnv.WebRootPath,"CreatedWordDocs", fileName);
+
+          // var stream = await wordServices.GenerateBaselineDocument("KensFirm",fileName);
+                       
+           
+          
+          // await JS.InvokeVoidAsync("downloadFile", _fileName, _base64Content, _mimeType);
+          
+
+            
+
+        }
+        catch (Exception ex)
+        {
+            // Handle exceptions (e.g., show a message to the user)
+            Console.WriteLine($"Error saving files: {ex.Message}");
+        }
+
+
+
+    }
+
+    private async Task HandleFileSelected(InputFileChangeEventArgs e)
+    {
+        // _selectedFile = e.File;
+        // _fileName = _selectedFile.Name;
+        // _mimeType = _selectedFile.ContentType;
+
+        // using var stream = _selectedFile.OpenReadStream(maxAllowedSize: 10_000_000); // 10MB limit
+        // using var ms = new MemoryStream();
+        // await stream.CopyToAsync(ms);
+        // var bytes = ms.ToArray();
+
+        // _base64Content = Convert.ToBase64String(bytes);
+        // _fileReady = true;
+    }
+    
+       
+}
+ 

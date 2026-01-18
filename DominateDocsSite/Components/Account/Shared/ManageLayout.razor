@@ -1,0 +1,23 @@
+﻿@inherits LayoutComponentBase
+@layout DominateDocsSite.Components.Layout.MainLayout
+
+
+
+<MudGrid>
+
+    <MudItem md="4">
+        <MudText Typo="Typo.h4" GutterBottom="true">Manage your account</MudText>
+        <MudText Typo="Typo.body1" GutterBottom="true">Change your account settings</MudText>
+        <ManageNavMenu />
+    </MudItem>
+
+    <MudItem md="8">
+
+        <MudContainer MaxWidth="MaxWidth.False">
+            @Body
+        </MudContainer>
+
+
+    </MudItem>
+
+</MudGrid>

@@ -1,0 +1,589 @@
+﻿@page "/"
+@using MudBlazor
+
+@inject NavigationManager Nav
+
+<PageTitle>Liquid Documents - Hard Money Lending Document Platform</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="pa-0">
+    
+    <!-- Hero Section -->
+    <MudPaper Elevation="0" Class="pa-8" Style="background: linear-gradient(135deg, var(--mud-palette-primary) 0%, var(--mud-palette-primary-darken) 100%); color: white; min-height: 500px;">
+        <MudGrid Justify="Justify.Center" AlignItems="Align.Center" Style="min-height: 400px;">
+            <MudItem xs="12" md="8" Class="text-center">
+                <MudText Typo="Typo.h2" Class="mb-4" Style="font-weight: 700; font-size: 3.5rem;">
+                    Dynamic Hard Money Lending Documents
+                </MudText>
+                <MudText Typo="Typo.h5" Class="mb-6" Style="opacity: 0.9; font-weight: 300;">
+                    Generate state-compliant lending documents tailored to your specific requirements and venue needs
+                </MudText>
+                <MudGrid Justify="Justify.Center" Spacing="3">
+                    <MudItem>
+                        <!-- Fixed: high-contrast, actually clickable CTA -->
+                        <MudButton Variant="Variant.Filled"
+                                   Color="Color.Primary"
+                                   Size="Size.Large"
+                                   Class="px-8 py-3"
+                                   OnClick="@(() => Nav.NavigateTo("/documents/new"))">
+                           @*  <MudIcon Color="Color.Success" Icon="Icons.Material.Filled.Description" Class="mr-2" /> *@
+                            Start Creating Documents
+                        </MudButton>
+                    </MudItem>
+                    <MudItem>
+                        <MudButton Variant="Variant.Filled"
+                                   Color="Color.Primary"
+                                   Size="Size.Large"
+                                   Class="px-8 py-3"
+                                   OnClick="@(() => Nav.NavigateTo("/demo"))">
+                            @* <MudIcon Color="Color.Success" Icon="Icons.Material.Filled.OndemandVideo" Class="mr-2" /> *@
+                            View Demo
+                        </MudButton>
+                       
+                    </MudItem>
+                </MudGrid>
+            </MudItem>
+        </MudGrid>
+    </MudPaper>
+
+    <!-- Features Section -->
+    <MudPaper Elevation="0" Class="pa-8" Style="background-color: var(--mud-palette-surface);">
+        <MudContainer MaxWidth="MaxWidth.Large">
+            <MudGrid Justify="Justify.Center" Class="mb-8">
+                <MudItem xs="12" Class="text-center">
+                    <MudText Typo="Typo.h3" Class="mb-4" Style="font-weight: 700; color: var(--mud-palette-text-primary);">
+                        Why Hard Money Lenders Choose Liquid Documents
+                    </MudText>
+                    <MudText Typo="Typo.body1" Style="color: var(--mud-palette-text-secondary); max-width: 600px; margin: 0 auto;">
+                        Our platform streamlines document creation with state-specific compliance, custom terms, and venue requirements built-in.
+                    </MudText>
+                </MudItem>
+            </MudGrid>
+            
+            <MudGrid Spacing="4">
+                <MudItem xs="12" sm="6" md="4">
+                    <MudCard Elevation="3" Class="pa-6 h-100" Style="transition: transform 0.3s ease;">
+                        <MudCardContent Class="text-center">
+                            <MudAvatar Color="Color.Primary" Size="Size.Large" Class="mb-4">
+                                <MudIcon Icon="Icons.Material.Filled.Gavel" Size="Size.Large" />
+                            </MudAvatar>
+                            <MudText Typo="Typo.h6" Class="mb-3" Style="font-weight: 600;">
+                                State-Specific Compliance
+                            </MudText>
+                            <MudText Typo="Typo.body2" Style="color: var(--mud-palette-text-secondary);">
+                                Automatically generate documents that comply with all 50 state regulations and local venue requirements.
+                            </MudText>
+                        </MudCardContent>
+                    </MudCard>
+                </MudItem>
+                
+                <MudItem xs="12" sm="6" md="4">
+                    <MudCard Elevation="3" Class="pa-6 h-100">
+                        <MudCardContent Class="text-center">
+                            <MudAvatar Color="Color.Secondary" Size="Size.Large" Class="mb-4">
+                                <MudIcon Icon="Icons.Material.Filled.AutoAwesome" Size="Size.Large" />
+                            </MudAvatar>
+                            <MudText Typo="Typo.h6" Class="mb-3" Style="font-weight: 600;">
+                                Dynamic Document Generation
+                            </MudText>
+                            <MudText Typo="Typo.body2" Style="color: var(--mud-palette-text-secondary);">
+                                Create promissory notes, deeds of trust, and loan agreements with custom terms in seconds.
+                            </MudText>
+                        </MudCardContent>
+                    </MudCard>
+                </MudItem>
+                
+                <MudItem xs="12" sm="6" md="4">
+                    <MudCard Elevation="3" Class="pa-6 h-100">
+                        <MudCardContent Class="text-center">
+                            <MudAvatar Color="Color.Tertiary" Size="Size.Large" Class="mb-4">
+                                <MudIcon Icon="Icons.Material.Filled.AccountBalance" Size="Size.Large" />
+                            </MudAvatar>
+                            <MudText Typo="Typo.h6" Class="mb-3" Style="font-weight: 600;">
+                                Venue-Specific Forms
+                            </MudText>
+                            <MudText Typo="Typo.body2" Style="color: var(--mud-palette-text-secondary);">
+                                Tailored documents for specific counties, courts, and recording offices across all jurisdictions.
+                            </MudText>
+                        </MudCardContent>
+                    </MudCard>
+                </MudItem>
+                
+                <MudItem xs="12" sm="6" md="4">
+                    <MudCard Elevation="3" Class="pa-6 h-100">
+                        <MudCardContent Class="text-center">
+                            <MudAvatar Color="Color.Warning" Size="Size.Large" Class="mb-4">
+                                <MudIcon Icon="Icons.Material.Filled.Speed" Size="Size.Large" />
+                            </MudAvatar>
+                            <MudText Typo="Typo.h6" Class="mb-3" Style="font-weight: 600;">
+                                Instant Document Creation
+                            </MudText>
+                            <MudText Typo="Typo.body2" Style="color: var(--mud-palette-text-secondary);">
+                                Generate complete loan packages in under 5 minutes with our streamlined workflow system.
+                            </MudText>
+                        </MudCardContent>
+                    </MudCard>
+                </MudItem>
+                
+                <MudItem xs="12" sm="6" md="4">
+                    <MudCard Elevation="3" Class="pa-6 h-100">
+                        <MudCardContent Class="text-center">
+                            <MudAvatar Color="Color.Info" Size="Size.Large" Class="mb-4">
+                                <MudIcon Icon="Icons.Material.Filled.Edit" Size="Size.Large" />
+                            </MudAvatar>
+                            <MudText Typo="Typo.h6" Class="mb-3" Style="font-weight: 600;">
+                                Custom Terms & Clauses
+                            </MudText>
+                            <MudText Typo="Typo.body2" Style="color: var(--mud-palette-text-secondary);">
+                                Add your own custom clauses, terms, and conditions while maintaining legal compliance.
+                            </MudText>
+                        </MudCardContent>
+                    </MudCard>
+                </MudItem>
+                
+                <MudItem xs="12" sm="6" md="4">
+                    <MudCard Elevation="3" Class="pa-6 h-100">
+                        <MudCardContent Class="text-center">
+                            <MudAvatar Color="Color.Success" Size="Size.Large" Class="mb-4">
+                                <MudIcon Icon="Icons.Material.Filled.VerifiedUser" Size="Size.Large" />
+                            </MudAvatar>
+                            <MudText Typo="Typo.h6" Class="mb-3" Style="font-weight: 600;">
+                                Legal Review & Updates
+                            </MudText>
+                            <MudText Typo="Typo.body2" Style="color: var(--mud-palette-text-secondary);">
+                                All templates are attorney-reviewed and automatically updated when regulations change.
+                            </MudText>
+                        </MudCardContent>
+                    </MudCard>
+                </MudItem>
+            </MudGrid>
+        </MudContainer>
+    </MudPaper>
+
+    <!-- Stats Section -->
+    <MudPaper Elevation="0" Class="pa-8" Style="background-color: var(--mud-palette-primary); color: white;">
+        <MudContainer MaxWidth="MaxWidth.Large">
+            <MudGrid Justify="Justify.SpaceAround" AlignItems="Align.Center">
+                <MudItem xs="6" sm="3" Class="text-center">
+                    <MudText Typo="Typo.h3" Style="font-weight: 700; margin-bottom: 8px;">
+                        50,000+
+                    </MudText>
+                    <MudText Typo="Typo.body1" Style="opacity: 0.9;">
+                        Documents Generated
+                    </MudText>
+                </MudItem>
+                <MudItem xs="6" sm="3" Class="text-center">
+                    <MudText Typo="Typo.h3" Style="font-weight: 700; margin-bottom: 8px;">
+                        1,200+
+                    </MudText>
+                    <MudText Typo="Typo.body1" Style="opacity: 0.9;">
+                        Active Lenders
+                    </MudText>
+                </MudItem>
+                <MudItem xs="6" sm="3" Class="text-center">
+                    <MudText Typo="Typo.h3" Style="font-weight: 700; margin-bottom: 8px;">
+                        50
+                    </MudText>
+                    <MudText Typo="Typo.body1" Style="opacity: 0.9;">
+                        States Supported
+                    </MudText>
+                </MudItem>
+                <MudItem xs="6" sm="3" Class="text-center">
+                    <MudText Typo="Typo.h3" Style="font-weight: 700; margin-bottom: 8px;">
+                        99.8%
+                    </MudText>
+                    <MudText Typo="Typo.body1" Style="opacity: 0.9;">
+                        Compliance Rate
+                    </MudText>
+                </MudItem>
+            </MudGrid>
+        </MudContainer>
+    </MudPaper>
+
+    <!-- About Section -->
+    <MudPaper Elevation="0" Class="pa-8" Style="background-color: var(--mud-palette-background);">
+        <MudContainer MaxWidth="MaxWidth.Large">
+            <MudGrid AlignItems="Center" Spacing="6">
+                <MudItem xs="12" md="6">
+                    <MudText Typo="Typo.h3" Class="mb-4" Style="font-weight: 700;">
+                        Built for Hard Money Lenders
+                    </MudText>
+                    <MudText Typo="Typo.body1" Class="mb-4" Style="line-height: 1.7; color: var(--mud-palette-text-secondary);">
+                        Liquid Documents was created specifically for hard money lenders who need to generate compliant, 
+                        professional loan documents quickly and accurately. Our platform understands the unique requirements 
+                        of private lending across different states and venues.
+                    </MudText>
+                    <MudText Typo="Typo.body1" Class="mb-4" Style="line-height: 1.7; color: var(--mud-palette-text-secondary);">
+                        From fix-and-flip loans to bridge financing, our dynamic document system adapts to your specific 
+                        lending criteria while ensuring full legal compliance in every jurisdiction.
+                    </MudText>
+                    <MudGrid Spacing="2">
+                        <MudItem>
+                            <MudChip T="bool" Color="Color.Primary" Size="Size.Medium">
+                                <MudIcon Icon="Icons.Material.Filled.Check" Size="Size.Small" Class="mr-2" />
+                                Attorney Reviewed
+                            </MudChip>
+                        </MudItem>
+                        <MudItem>
+                            <MudChip T="bool" Color="Color.Secondary" Size="Size.Medium">
+                                <MudIcon Icon="Icons.Material.Filled.Check" Size="Size.Small" Class="mr-2" />
+                                50-State Compliant
+                            </MudChip>
+                        </MudItem>
+                        <MudItem>
+                            <MudChip T="bool" Color="Color.Tertiary" Size="Size.Medium">
+                                <MudIcon Icon="Icons.Material.Filled.Check" Size="Size.Small" Class="mr-2" />
+                                Real-Time Updates
+                            </MudChip>
+                        </MudItem>
+                    </MudGrid>
+                </MudItem>
+                <MudItem xs="12" md="6">
+                    <MudPaper Elevation="5" Class="pa-0" Style="border-radius: 12px; overflow: hidden;">
+                        <MudImage Src="https://cdn.abacus.ai/images/e4836de9-b4db-412c-a2ba-468ae08d7064.png" 
+                                  Alt="Document Generation Platform" 
+                                  Style="width: 100%; height: 350px; object-fit: cover;" />
+                    </MudPaper>
+                </MudItem>
+            </MudGrid>
+        </MudContainer>
+    </MudPaper>
+
+    <!-- Document Types Section -->
+    <MudPaper Elevation="0" Class="pa-8" Style="background-color: var(--mud-palette-surface);">
+        <MudContainer MaxWidth="MaxWidth.Large">
+            <MudGrid Justify="Justify.Center" Class="mb-6">
+                <MudItem xs="12" Class="text-center">
+                    <MudText Typo="Typo.h3" Class="mb-4" Style="font-weight: 700;">
+                        Complete Document Library
+                    </MudText>
+                    <MudText Typo="Typo.body1" Style="color: var(--mud-palette-text-secondary);">
+                        Generate all the documents you need for your hard money lending operations.
+                    </MudText>
+                </MudItem>
+            </MudGrid>
+            
+            <MudGrid Spacing="3">
+                <MudItem xs="12" sm="6" md="4">
+                    <MudPaper Elevation="2" Class="pa-4">
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3">
+                            <MudIcon Icon="Icons.Material.Filled.Description" Color="Color.Primary" Size="Size.Large" />
+                            <MudStack Spacing="0">
+                                <MudText Typo="Typo.subtitle1" Style="font-weight: 600;">Promissory Notes</MudText>
+                                <MudText Typo="Typo.body2" Style="color: var(--mud-palette-text-secondary);">State-specific terms & conditions</MudText>
+                            </MudStack>
+                        </MudStack>
+                    </MudPaper>
+                </MudItem>
+                
+                <MudItem xs="12" sm="6" md="4">
+                    <MudPaper Elevation="2" Class="pa-4">
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3">
+                            <MudIcon Icon="Icons.Material.Filled.Home" Color="Color.Secondary" Size="Size.Large" />
+                            <MudStack Spacing="0">
+                                <MudText Typo="Typo.subtitle1" Style="font-weight: 600;">Deeds of Trust</MudText>
+                                <MudText Typo="Typo.body2" Style="color: var(--mud-palette-text-secondary);">Venue-specific recording requirements</MudText>
+                            </MudStack>
+                        </MudStack>
+                    </MudPaper>
+                </MudItem>
+                
+                <MudItem xs="12" sm="6" md="4">
+                    <MudPaper Elevation="2" Class="pa-4">
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3">
+                            <MudIcon Icon="Icons.Material.Filled.Assignment" Color="Color.Tertiary" Size="Size.Large" />
+                            <MudStack Spacing="0">
+                                <MudText Typo="Typo.subtitle1" Style="font-weight: 600;">Loan Agreements</MudText>
+                                <MudText Typo="Typo.body2" Style="color: var(--mud-palette-text-secondary);">Comprehensive lending terms</MudText>
+                            </MudStack>
+                        </MudStack>
+                    </MudPaper>
+                </MudItem>
+                
+                <MudItem xs="12" sm="6" md="4">
+                    <MudPaper Elevation="2" Class="pa-4">
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3">
+                            <MudIcon Icon="Icons.Material.Filled.Security" Color="Color.Warning" Size="Size.Large" />
+                            <MudStack Spacing="0">
+                                <MudText Typo="Typo.subtitle1" Style="font-weight: 600;">Security Agreements</MudText>
+                                <MudText Typo="Typo.body2" Style="color: var(--mud-palette-text-secondary);">Personal property collateral</MudText>
+                            </MudStack>
+                        </MudStack>
+                    </MudPaper>
+                </MudItem>
+                
+                <MudItem xs="12" sm="6" md="4">
+                    <MudPaper Elevation="2" Class="pa-4">
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3">
+                            <MudIcon Icon="Icons.Material.Filled.Receipt" Color="Color.Info" Size="Size.Large" />
+                            <MudStack Spacing="0">
+                                <MudText Typo="Typo.subtitle1" Style="font-weight: 600;">Disclosure Forms</MudText>
+                                <MudText Typo="Typo.body2" Style="color: var(--mud-palette-text-secondary);">Required state disclosures</MudText>
+                            </MudStack>
+                        </MudStack>
+                    </MudPaper>
+                </MudItem>
+                
+                <MudItem xs="12" sm="6" md="4">
+                    <MudPaper Elevation="2" Class="pa-4">
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3">
+                            <MudIcon Icon="Icons.Material.Filled.Gavel" Color="Color.Success" Size="Size.Large" />
+                            <MudStack Spacing="0">
+                                <MudText Typo="Typo.subtitle1" Style="font-weight: 600;">Default Notices</MudText>
+                                <MudText Typo="Typo.body2" Style="color: var(--mud-palette-text-secondary);">Foreclosure & collection docs</MudText>
+                            </MudStack>
+                        </MudStack>
+                    </MudPaper>
+                </MudItem>
+            </MudGrid>
+        </MudContainer>
+    </MudPaper>
+
+    <!-- Contact Section -->
+    <MudPaper Elevation="0" Class="pa-8" Style="background-color: var(--mud-palette-background);">
+        <MudContainer MaxWidth="MaxWidth.Large">
+            <MudGrid Justify="Justify.Center" Class="mb-6">
+                <MudItem xs="12" Class="text-center">
+                    <MudText Typo="Typo.h3" Class="mb-4" Style="font-weight: 700;">
+                        Ready to Streamline Your Document Process?
+                    </MudText>
+                    <MudText Typo="Typo.body1" Style="color: var(--mud-palette-text-secondary);">
+                        Join over 1,200 hard money lenders who trust Liquid Documents for their lending needs.
+                    </MudText>
+                </MudItem>
+            </MudGrid>
+            
+            <MudGrid Spacing="6" AlignItems="Stretch">
+                <MudItem xs="12" md="8">
+                    <MudPaper Elevation="3" Class="pa-6">
+                        <MudText Typo="Typo.h5" Class="mb-4" Style="font-weight: 600;">
+                            Start Your Free Trial
+                        </MudText>
+                        <MudForm>
+                            <MudGrid Spacing="3">
+                                <MudItem xs="12" sm="6">
+                                    <MudTextField @bind-Value="contactForm.FirstName" 
+                                                  Label="First Name" 
+                                                  Variant="Variant.Outlined" 
+                                                  Required="true" 
+                                                  FullWidth="true" />
+                                </MudItem>
+                                <MudItem xs="12" sm="6">
+                                    <MudTextField @bind-Value="contactForm.LastName" 
+                                                  Label="Last Name" 
+                                                  Variant="Variant.Outlined" 
+                                                  Required="true" 
+                                                  FullWidth="true" />
+                                </MudItem>
+                                <MudItem xs="12" sm="6">
+                                    <MudTextField @bind-Value="contactForm.Email" 
+                                                  Label="Email Address" 
+                                                  Variant="Variant.Outlined" 
+                                                  Required="true" 
+                                                  FullWidth="true" />
+                                </MudItem>
+                                <MudItem xs="12" sm="6">
+                                    <MudTextField @bind-Value="contactForm.Company" 
+                                                  Label="Lending Company" 
+                                                  Variant="Variant.Outlined" 
+                                                  FullWidth="true" />
+                                </MudItem>
+                                <MudItem xs="12">
+                                    <MudSelect @bind-Value="contactForm.LendingType" 
+                                               Label="Primary Lending Focus" 
+                                               Variant="Variant.Outlined" 
+                                               FullWidth="true">
+                                        <MudSelectItem Value="@("Fix and Flip")">Fix and Flip Loans</MudSelectItem>
+                                        <MudSelectItem Value="@("Bridge Loans")">Bridge Loans</MudSelectItem>
+                                        <MudSelectItem Value="@("Rental Properties")">Rental Property Loans</MudSelectItem>
+                                        <MudSelectItem Value="@("Commercial")">Commercial Real Estate</MudSelectItem>
+                                        <MudSelectItem Value="@("Mixed Portfolio")">Mixed Portfolio</MudSelectItem>
+                                    </MudSelect>
+                                </MudItem>
+                                <MudItem xs="12">
+                                    <MudSelect @bind-Value="contactForm.PrimaryState" 
+                                               Label="Primary Lending State" 
+                                               Variant="Variant.Outlined" 
+                                               FullWidth="true">
+                                        <MudSelectItem Value="@("California")">California</MudSelectItem>
+                                        <MudSelectItem Value="@("Texas")">Texas</MudSelectItem>
+                                        <MudSelectItem Value="@("Florida")">Florida</MudSelectItem>
+                                        <MudSelectItem Value="@("New York")">New York</MudSelectItem>
+                                        <MudSelectItem Value="@("Arizona")">Arizona</MudSelectItem>
+                                        <MudSelectItem Value="@("Multiple States")">Multiple States</MudSelectItem>
+                                    </MudSelect>
+                                </MudItem>
+                                <MudItem xs="12">
+                                    <MudTextField @bind-Value="contactForm.Message" 
+                                                  Label="Tell us about your lending volume and needs" 
+                                                  Variant="Variant.Outlined" 
+                                                  Lines="4" 
+                                                  FullWidth="true" />
+                                </MudItem>
+                                <MudItem xs="12">
+                                    <MudButton Variant="Variant.Filled" 
+                                               Color="Color.Primary" 
+                                               Size="Size.Large" 
+                                               FullWidth="true"
+                                               OnClick="SubmitForm">
+                                        <MudIcon Icon="Icons.Material.Filled.Send" Class="mr-2" />
+                                        Start Free Trial - Generate 10 Documents Free
+                                    </MudButton>
+                                </MudItem>
+                            </MudGrid>
+                        </MudForm>
+                    </MudPaper>
+                </MudItem>
+                
+                <MudItem xs="12" md="4">
+                    <MudPaper Elevation="3" Class="pa-6 h-100">
+                        <MudText Typo="Typo.h5" Class="mb-4" Style="font-weight: 600;">
+                            Contact Our Team
+                        </MudText>
+                        
+                        <MudStack Spacing="4">
+                            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3">
+                                <MudAvatar Color="Color.Primary" Size="Size.Medium">
+                                    <MudIcon Icon="Icons.Material.Filled.Phone" />
+                                </MudAvatar>
+                                <MudStack Spacing="0">
+                                    <MudText Typo="Typo.subtitle2" Style="font-weight: 600;">Phone</MudText>
+                                    <MudText Typo="Typo.body2" Style="color: var(--mud-palette-text-secondary);">
+                                        +1 (555) LENDING (536-3464)
+                                    </MudText>
+                                </MudStack>
+                            </MudStack>
+                            
+                            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3">
+                                <MudAvatar Color="Color.Secondary" Size="Size.Medium">
+                                    <MudIcon Icon="Icons.Material.Filled.Email" />
+                                </MudAvatar>
+                                <MudStack Spacing="0">
+                                    <MudText Typo="Typo.subtitle2" Style="font-weight: 600;">Email</MudText>
+                                    <MudText Typo="Typo.body2" Style="color: var(--mud-palette-text-secondary);">
+                                        lenders@liquiddocuments.com
+                                    </MudText>
+                                </MudStack>
+                            </MudStack>
+                            
+                            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3">
+                                <MudAvatar Color="Color.Tertiary" Size="Size.Medium">
+                                    <MudIcon Icon="Icons.Material.Filled.LocationOn" />
+                                </MudAvatar>
+                                <MudStack Spacing="0">
+                                    <MudText Typo="Typo.subtitle2" Style="font-weight: 600;">Address</MudText>
+                                    <MudText Typo="Typo.body2" Style="color: var(--mud-palette-text-secondary);">
+                                        456 Financial Plaza<br />Dallas, TX 75201
+                                    </MudText>
+                                </MudStack>
+                            </MudStack>
+                            
+                            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3">
+                                <MudAvatar Color="Color.Info" Size="Size.Medium">
+                                    <MudIcon Icon="Icons.Material.Filled.Schedule" />
+                                </MudAvatar>
+                                <MudStack Spacing="0">
+                                    <MudText Typo="Typo.subtitle2" Style="font-weight: 600;">Business Hours</MudText>
+                                    <MudText Typo="Typo.body2" Style="color: var(--mud-palette-text-secondary);">
+                                        Mon-Fri: 8AM-7PM CST<br />Sat: 9AM-2PM CST
+                                    </MudText>
+                                </MudStack>
+                            </MudStack>
+                        </MudStack>
+                    </MudPaper>
+                </MudItem>
+            </MudGrid>
+        </MudContainer>
+    </MudPaper>
+
+    <!-- Footer -->
+    <MudPaper Elevation="0" Class="pa-6" Style="background-color: #2c2c2c; color: white;">
+        <MudContainer MaxWidth="MaxWidth.Large">
+            <MudGrid Spacing="4">
+                <MudItem xs="12" sm="6" md="3">
+                    <MudText Typo="Typo.h6" Class="mb-3" Style="font-weight: 600;">
+                        Liquid Documents
+                    </MudText>
+                    <MudText Typo="Typo.body2" Style="opacity: 0.8; line-height: 1.6;">
+                        The leading platform for hard money lenders to create compliant, dynamic documents tailored to state and venue requirements.
+                    </MudText>
+                </MudItem>
+                <MudItem xs="12" sm="6" md="3">
+                    <MudText Typo="Typo.h6" Class="mb-3" Style="font-weight: 600;">
+                        Document Types
+                    </MudText>
+                    <MudStack Spacing="1">
+                        <MudLink Href="#" Style="color: rgba(255,255,255,0.8); text-decoration: none;">Promissory Notes</MudLink>
+                        <MudLink Href="#" Style="color: rgba(255,255,255,0.8); text-decoration: none;">Deeds of Trust</MudLink>
+                        <MudLink Href="#" Style="color: rgba(255,255,255,0.8); text-decoration: none;">Loan Agreements</MudLink>
+                        <MudLink Href="#" Style="color: rgba(255,255,255,0.8); text-decoration: none;">Security Agreements</MudLink>
+                    </MudStack>
+                </MudItem>
+                <MudItem xs="12" sm="6" md="3">
+                    <MudText Typo="Typo.h6" Class="mb-3" Style="font-weight: 600;">
+                        Resources
+                    </MudText>
+                    <MudStack Spacing="1">
+                        <MudLink Href="#" Style="color: rgba(255,255,255,0.8); text-decoration: none;">State Requirements</MudLink>
+                        <MudLink Href="#" Style="color: rgba(255,255,255,0.8); text-decoration: none;">Legal Updates</MudLink>
+                        <MudLink Href="#" Style="color: rgba(255,255,255,0.8); text-decoration: none;">Training Center</MudLink>
+                        <MudLink Href="#" Style="color: rgba(255,255,255,0.8); text-decoration: none;">API Documentation</MudLink>
+                    </MudStack>
+                </MudItem>
+                <MudItem xs="12" sm="6" md="3">
+                    <MudText Typo="Typo.h6" Class="mb-3" Style="font-weight: 600;">
+                        Legal
+                    </MudText>
+                    <MudStack Spacing="1">
+                        <MudLink Href="#" Style="color: rgba(255,255,255,0.8); text-decoration: none;">Privacy Policy</MudLink>
+                        <MudLink Href="#" Style="color: rgba(255,255,255,0.8); text-decoration: none;">Terms of Service</MudLink>
+                        <MudLink Href="#" Style="color: rgba(255,255,255,0.8); text-decoration: none;">Compliance</MudLink>
+                        <MudLink Href="#" Style="color: rgba(255,255,255,0.8); text-decoration: none;">Attorney Reviews</MudLink>
+                    </MudStack>
+                </MudItem>
+            </MudGrid>
+            <MudDivider Class="my-4" Style="border-color: rgba(255,255,255,0.2);" />
+            <MudGrid Justify="Justify.SpaceBetween" AlignItems="Align.Center">
+                <MudItem>
+                    <MudText Typo="Typo.body2" Style="opacity: 0.6;">
+                        © 2024 Liquid Documents. All rights reserved. Not a law firm - document generation platform only.
+                    </MudText>
+                </MudItem>
+                <MudItem>
+                    <MudStack Row="true" Spacing="2">
+                        <MudIconButton Icon="Icons.Custom.Brands.Twitter" Color="Color.Inherit" Style="opacity: 0.8;" />
+                        <MudIconButton Icon="Icons.Custom.Brands.LinkedIn" Color="Color.Inherit" Style="opacity: 0.8;" />
+                        <MudIconButton Icon="Icons.Custom.Brands.YouTube" Color="Color.Inherit" Style="opacity: 0.8;" />
+                    </MudStack>
+                </MudItem>
+            </MudGrid>
+        </MudContainer>
+    </MudPaper>
+</MudContainer>
+
+@code {
+    private ContactFormModel contactForm = new();
+
+    private async Task SubmitForm()
+    {
+        // Here you would typically validate and submit the form
+        // For demo purposes, we'll just show a success message
+        await Task.Delay(500); // Simulate API call
+        
+        // Reset form or show success message
+        contactForm = new ContactFormModel();
+        
+        // You could use MudBlazor's Snackbar service here
+        // Snackbar.Add("Thank you! We'll set up your free trial and contact you within 24 hours.", Severity.Success);
+    }
+
+    public class ContactFormModel
+    {
+        public string FirstName { get; set; } = string.Empty;
+        public string LastName { get; set; } = string.Empty;
+        public string Email { get; set; } = string.Empty;
+        public string Company { get; set; } = string.Empty;
+        public string LendingType { get; set; } = string.Empty;
+        public string PrimaryState { get; set; } = string.Empty;
+        public string Message { get; set; } = string.Empty;
+    }
+}

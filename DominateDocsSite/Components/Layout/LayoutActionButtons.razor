@@ -1,0 +1,27 @@
+﻿@page "/layoutactionbuttons"
+
+@rendermode InteractiveServer
+
+<MudButton Variant=Variant.Text Class="text-white" OnClick="SignUp">Signup</MudButton>
+<MudButton Variant=Variant.Text Class="text-white" OnClick="Login">Login</MudButton>
+
+@code {
+
+
+    [Inject] NavigationManager NavigationManager { get; set; } = default!;
+
+  
+    private void Login()
+    {
+        // Redirect to login page or show your login dialog
+        NavigationManager.NavigateTo("Account/Login", forceLoad: true);
+
+    }
+
+    private void SignUp()
+    {
+        // Redirect to login page or show your login dialog
+        NavigationManager.NavigateTo("Account/SignUp", forceLoad: true);
+
+    }
+}

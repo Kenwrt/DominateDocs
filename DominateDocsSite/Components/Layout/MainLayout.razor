@@ -1,0 +1,318 @@
+﻿@using DominateDocsSite.State
+@using MudBlazor.StaticInput
+@using MudBlazor
+
+@inherits LayoutComponentBase
+
+@inject AuthenticationStateProvider AuthProvider
+@inject NavigationManager NavigationManager
+@inject UserSession Session
+@inject IApplicationStateManager appState
+@inject IJSRuntime JS
+@inject NavigationManager Nav
+
+<style>
+    .menu-item-spaced {
+        margin-right: 24px; /* or any value you prefer */
+    }
+
+        .menu-item-spaced:last-child {
+            margin-right: 0;
+        }
+
+    .menu-items {
+        display: flex;
+        justify-content: space-evenly;
+        flex: 1;
+        align-items: center;
+    }
+
+    .menu-link {
+        color: white !important; /* ensure white font */
+        text-decoration: none;
+        font-weight: 500;
+        padding: 0 12px;
+        font-size: 16px;
+    }
+
+        .menu-link:hover {
+            text-decoration: underline;
+        }
+</style>
+
+
+<MudThemeProvider Theme="(IsDark ? DominateDocsTheme.Dark : DominateDocsTheme.Light)" />
+
+<MudPopoverProvider />
+<MudDialogProvider />
+<MudSnackbarProvider />
+
+<CascadingAuthenticationState>
+    <MudLayout>
+
+        @if (!isAuthenticated)
+        {
+            <MudAppBar Elevation="1">
+
+                    <!-- Horizontal menu items -->
+                    <MudItem Class="menu-items">
+
+                        <MudText Typo="Typo.button">
+
+
+                            <MudLink Href="/" Class="menu-link">
+                               <img src="images/Dominate Docs Logo_Horizontal-03.png" height="60" width="150"> 
+                            </MudLink>
+
+
+                        </MudText>
+
+                        <MudText Typo="Typo.button">
+                            <MudLink Href="/" Class="menu-link">Home</MudLink>
+                        </MudText>
+                        <MudText Typo="Typo.button">
+                            <MudLink Href="/whyarewedifferent" Class="menu-link">Why are we different</MudLink>
+                        </MudText>
+                        <MudText Typo="Typo.button">
+                            <MudLink Href="/faqs" Class="menu-link">FAQs</MudLink>
+                        </MudText>
+                        <MudText Typo="Typo.button">
+                            <MudLink Href="/about" Class="menu-link">About</MudLink>
+                        </MudText>
+                        <MudText Typo="Typo.button">
+                            <MudLink Href="/contactus" Class="menu-link">Contact Us</MudLink>
+                        </MudText>
+
+                    </MudItem>
+              
+                <MudSpacer />
+
+                <LayoutActionButtons />
+            </MudAppBar>
+
+        }
+        else
+        {
+            <MudAppBar Elevation="1">
+                             
+                @* <MudToolbar> *@
+
+                    <!-- Horizontal menu items -->
+                    <MudItem Class="menu-items">
+
+                        <MudText Typo="Typo.button">
+
+
+                            <MudLink Href="/" Class="menu-link">
+                                <img src="images/Dominate Docs Logo_Horizontal-03.png" height="60" width="150">
+                            </MudLink>
+
+
+                        </MudText>
+
+                        <MudText Typo="Typo.button">
+
+
+                            <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" OnClick="@DrawerToggle" />
+
+
+                        </MudText>
+
+                        <MudText Typo="Typo.button">
+                            <MudLink Href="/test" Class="menu-link">Home</MudLink>
+                        </MudText>
+                        <MudText Typo="Typo.button">
+                            <MudLink Href="/why-are-we-different" Class="menu-link">Why are we different</MudLink>
+                        </MudText>
+                        <MudText Typo="Typo.button">
+                            <MudLink Href="/faqs" Class="menu-link">FAQs</MudLink>
+                        </MudText>
+                        <MudText Typo="Typo.button">
+                            <MudLink Href="/about" Class="menu-link">About</MudLink>
+                        </MudText>
+                        <MudText Typo="Typo.button">
+                            <MudLink Href="/contactus" Class="menu-link">Contact</MudLink>
+                        </MudText>
+                    </MudItem>
+               @*  </MudToolbar> *@
+
+
+
+                <MudSpacer />
+                <MudMenu AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight">
+
+                    <ActivatorContent>
+                        <MudAvatar Size="Size.Small">K</MudAvatar>
+                    </ActivatorContent>
+
+                    <ChildContent>
+                        <MudList T="string" Dense="true">
+                            <MudListItem Text="Account Settings" Href="/Account/Manage" />
+                            <MudListItem Text="Default Profiles" Href="/UserDefaultProfile" />
+                            <MudDivider />
+                            <MudListItem Icon="@Icons.Material.Filled.Logout"
+                                         Text="Logout"
+                                         OnClick="SubmitLogout"
+                                         Class="logout-item" />
+
+                          
+                        </MudList>
+                    </ChildContent>
+
+                </MudMenu>
+
+                <form @ref="_logoutForm" method="post" action="/auth/logout" style="display:none">
+                    <button type="submit">Logout</button>
+                </form>
+
+            </MudAppBar>
+
+        }
+
+        @if (ShowAppSidebar)
+        {
+
+            <MudDrawer id="nav-drawer" @bind-Open="_drawerOpen" ClipMode="DrawerClipMode.Always" Elevation="2">
+
+                <MudBlazorNavMenu />
+            </MudDrawer>
+        }
+        <MudMainContent>
+            <MudContainer MaxWidth="MaxWidth.False" Class="pa-4">
+                @Body
+               
+            </MudContainer>
+        </MudMainContent>
+    </MudLayout>
+</CascadingAuthenticationState>
+
+
+<div id="blazor-error-ui" data-nosnippet>
+    An unhandled error has occurred.
+    <a href="." class="reload">Reload</a>
+    <span class="dismiss">🗙</span>
+</div>
+
+@code {
+
+
+    [CascadingParameter] public bool ShowAppSidebar { get; set; } = true;
+
+
+    private bool IsDark = false;
+
+
+    private DominateDocsSite.Data.ApplicationUser user = default!;
+    private string? username;
+    private string? phoneNumber;
+    private DominateDocsData.Models.UserProfile userProfile;
+    private bool _drawerOpen = false;
+    private bool isAuthenticated = false;
+    private string userName = string.Empty;
+  
+    private ElementReference _logoutForm;
+
+    private string currentUrl => Nav.ToBaseRelativePath(Nav.Uri) == ""
+        ? "/"
+        : "/" + Nav.ToBaseRelativePath(Nav.Uri);
+
+    private async Task SubmitLogout()
+    {
+        await JS.InvokeVoidAsync("submitLogoutForm", _logoutForm);
+    }
+
+
+
+    private MudTheme AppMudTheme = new MudTheme
+    {
+        PaletteLight = new PaletteLight
+        {
+            Primary = "#0d6efd",
+            Secondary = "#6c757d"
+        },
+        PaletteDark = new PaletteDark
+        {
+            Primary = "#0d6efd",
+            Secondary = "#6c757d"
+        },
+        LayoutProperties = new LayoutProperties
+        {
+            DefaultBorderRadius = "0.25rem"
+        }
+    };
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        var auth = await AuthProvider.GetAuthenticationStateAsync();
+        var user = auth.User;
+        var userId = auth.User.GetUserId();
+        var name = auth.User.GetDisplayName();
+
+        isAuthenticated = auth.User.Identity.IsAuthenticated;
+        userName = auth.User.Identity.Name ?? "";
+
+        if (isAuthenticated)
+        {
+            userProfile = await appState.GetUserProfileByIdAsync(Guid.Parse(userId));
+
+            if (userProfile is null)
+            {
+                userProfile = new UserProfile
+                {
+                    UserId = Guid.Parse(userId),
+                    UserName = userName,
+                    Name = name,
+                    Email = auth.User.Identity.Name,
+                    
+                };
+
+                appState.CreateUserProfile(userProfile);
+            }
+
+
+            Session.UserId = userProfile.UserId;
+
+            Session.UserName = userProfile.UserName;
+
+            Session.DocLibId = Guid.Parse("533fb231-20f3-4819-8d83-64ede387bd02");
+
+            var roles = appState.GetRoles();
+
+            Session.UserRole = roles.FirstOrDefault();
+
+
+            if (!appState.ActiveSessions.ContainsKey(userName)) appState.ActiveSessions.TryAdd(userName, userProfile);
+
+        }
+
+
+        NavigationManager.LocationChanged += OnLocationChanged;
+    }
+
+
+    private void OnLocationChanged(object? sender, LocationChangedEventArgs e)
+    {
+        // currentUrl = NavigationManager.ToBaseRelativePath(e.Location);
+        StateHasChanged();
+    }
+
+    private void Logout()
+    {
+        // Redirect to logout page or clear token/session
+        NavigationManager.NavigateTo("authentication/logout");
+    }
+
+
+    void DrawerToggle()
+    {
+        _drawerOpen = !_drawerOpen;
+    }
+
+    public void Dispose()
+    {
+        NavigationManager.LocationChanged -= OnLocationChanged;
+    }
+}
+
+

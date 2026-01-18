@@ -1,0 +1,96 @@
+﻿@page "/uploadfile"
+
+@using DocumentFormat.OpenXml.Packaging
+@using Microsoft.AspNetCore.Components.Forms
+@using OpenXmlPowerTools
+@using System.Text
+
+@inject IConfiguration config
+@inject HttpClient httpClient
+@inject IWebHostEnvironment Env
+
+<MudPaper Elevation="4" Class="p-6 max-w-md mx-auto mt-12">
+    <MudText Typo="Typo.h5">Upload Files</MudText>
+
+    <MudDivider Class="my-4" />
+
+    <InputFile OnChange="HandleFileSelected" />
+
+    <MudList T="string" Dense="true" Class="mt-4">
+        @foreach (var file in uploadedFiles)
+        {
+            <MudListItem>
+                <MudText>@file.Name (@(file.Size / 1024) KB)</MudText>
+            </MudListItem>
+        }
+    </MudList>
+
+    <MudButton OnClick="SaveFiles" Disabled="@(!uploadedFiles.Any())" Class="mt-4" Color="Color.Primary">
+        Save Files
+    </MudButton>
+</MudPaper>
+
+@code {
+
+    private const long MaxFileSize = 2L * 1024 * 1024 * 1024; // 2 GB
+
+    private List<IBrowserFile> uploadedFiles = new();
+
+    private void HandleFileSelected(InputFileChangeEventArgs e)
+    {
+        uploadedFiles.Clear();
+        uploadedFiles.AddRange(e.GetMultipleFiles());
+    }
+
+    private async Task SaveFiles()
+    {
+        try
+        {
+            foreach (var file in uploadedFiles)
+            {
+                var path = Path.Combine(Env.WebRootPath, "UploadedFiles", file.Name);
+                Directory.CreateDirectory(Path.Combine(Env.WebRootPath,"UploadedFiles"));
+
+
+                UploadRecord uploadRecord = new()
+                {
+                   FileName = file.Name,
+                   FileData = await ConvertToBase64Async(file),
+                };
+
+                string baseLineUrl = config.GetValue<string>("ApiBaseUrl") ?? "http://localhost:5000";
+                var response = await httpClient.PostAsJsonAsync($"{baseLineUrl}/api/v1/UploadWordDocumentBase64", uploadRecord);
+                
+                if (!response.IsSuccessStatusCode)
+                {
+                    // Handle the error (e.g., log it, show a message to the user)
+                    Console.WriteLine($"Failed to upload {file.Name}: {response.ReasonPhrase}");
+                }
+                else
+                {
+                    Console.WriteLine($"Successfully uploaded {file.Name}");
+                }   
+                
+            }
+        }
+        catch (Exception ex)
+        {
+            // Handle exceptions (e.g., show a message to the user)
+            Console.WriteLine($"Error saving files: {ex.Message}");
+        }   
+        
+
+        uploadedFiles.Clear();
+    }
+
+    public static async Task<string> ConvertToBase64Async(IBrowserFile file)
+    {
+        if (file == null) return null;
+
+        using var stream = file.OpenReadStream(MaxFileSize);
+        using var memoryStream = new MemoryStream();
+        await stream.CopyToAsync(memoryStream);
+        var fileBytes = memoryStream.ToArray();
+        return Convert.ToBase64String(fileBytes);
+    }
+}

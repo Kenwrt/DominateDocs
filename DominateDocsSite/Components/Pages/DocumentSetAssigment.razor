@@ -1,0 +1,201 @@
+﻿@page "/documentsetassignment"
+
+@attribute [Authorize(Policy = "RequiresAdmin")]
+
+@using System.Collections.ObjectModel
+@using Microsoft.AspNetCore.Authorization
+
+@inject DocumentSetAssignmentViewModel vm
+@inject IMongoDatabaseRepo dbApp
+
+<MudPaper Elevation="1" Class="pa-4">
+
+    <MudGrid>
+        @if (isDisplayAssignedDocuments)
+        {
+           @*  <MudItem xs="12" md="8">
+                <MudText Typo="Typo.h6">
+                    Document Set: @vm.SelectedDocumentSet.Name - Assigned Document List
+                </MudText>
+
+                <MudTable Items="AssignedDocumentList"
+                          Hover="true"
+                          Dense="true"
+                          @bind-SelectedItem="vm.SelectedDocument">
+
+                    <HeaderContent>
+                        <MudTh>Name</MudTh>
+                        <MudTh>Description</MudTh>
+                        <MudTh>Last Update</MudTh>
+                        <MudTh>Active</MudTh>
+                        <MudTh>
+                            <MudIconButton Color="Color.Info"
+                                           OnClick="OnAddDocumentAssignmentAsync">Add Assignment</MudIconButton>
+                        </MudTh>
+                    </HeaderContent>
+                    <RowTemplate>
+                        <MudTd>@context.Name</MudTd>
+                        <MudTd>@context.Description</MudTd> 
+                        <MudTd>@context.UpdatedAt</MudTd>
+                        <MudTd DataLabel="Active">
+                            <MudChip T="bool" Color="@((context.IsActive) ? Color.Success : Color.Error)">
+                                @(context.IsActive ? "Yes" : "No")
+                            </MudChip>
+                        </MudTd>
+                        <MudTd>
+                            <MudIconButton Icon="@Icons.Material.Filled.Remove"
+                                           Color="Color.Info"
+                                           OnClick="@(() => OnRemoveAssignmentAsync(context))" />
+                        </MudTd>
+                       
+                    </RowTemplate>
+                    <NoRecordsContent>
+                        <MudText Color="Color.Secondary" Class="pa-4">
+                            🚫 No Assigned Documents for this Document Set Found!
+                        </MudText>
+                    </NoRecordsContent>
+                </MudTable>
+            </MudItem> *@
+        }
+        else
+        {
+
+            <MudItem xs="12" md="8">
+               @*  <MudTable @ref="table" T="DominateDocsData.Models.Document" Items="availableDocuments" MultiSelection="true" SelectionChangeable="true" Hover="true"
+                          @bind-SelectedItems="vm.SelectedAssignedDocuments" OnRowClick="@OnRowClickAsync" SelectOnRowClick="true">
+
+                    <HeaderContent>
+                        <MudTh>Name</MudTh>
+                        <MudTh>Description</MudTh>
+                        <MudTh>Last Update</MudTh>
+                        <MudTh>Active</MudTh>
+                    </HeaderContent>
+                    <RowTemplate>
+                        <MudTd>@context.Name</MudTd>
+                        <MudTd>@context.Description</MudTd> 
+                        <MudTd>@context.UpdatedAt</MudTd>
+                        <MudTd DataLabel="Active">
+                            <MudChip T="bool" Color="@((context.IsActive) ? Color.Success : Color.Error)">
+                                @(context.IsActive ? "Yes" : "No")
+                            </MudChip>
+                        </MudTd>
+                    
+                    </RowTemplate>
+                    <PagerContent>
+                        <MudTablePager PageSizeOptions="new int[] { 10, 25, 50, 100 }" />
+                    </PagerContent>
+                </MudTable> *@
+            </MudItem>
+            <MudItem xs="12" md="12">
+                <MudStack Row="true" Spacing="2" Class="mt-4">
+                <MudButton OnClick="OnClickAssignmentCompleteAsync" Color="Color.Success" Variant="Variant.Filled">
+                        Assign Selected Documents
+                    </MudButton>
+                    <MudButton OnClick="OnClickAssignmentCanceledAsync" Color="Color.Error" Variant="Variant.Outlined">
+                        Cancel
+                    </MudButton>
+                </MudStack> 
+            </MudItem>
+        }
+    </MudGrid>
+</MudPaper>
+
+
+@code {
+
+    [Parameter] public EventCallback<HashSet<DominateDocsData.Models.Document>> DocAssignmentComplete { get; set; }
+    [Parameter] public EventCallback DocAssignmentCancel { get; set; }
+    [Parameter] public List<DominateDocsData.Models.Document> AssignedDocumentList { get; set; }
+
+    private bool isDisplayAssignedDocuments = true;
+    private ObservableCollection<DominateDocsData.Models.Document> availableDocuments = new();
+    private HashSet<DominateDocsData.Models.Document> selectedDocuments = new HashSet<DominateDocsData.Models.Document>();
+
+    private MudTable<DominateDocsData.Models.Document> table;
+
+
+    protected override async Task OnInitializedAsync()
+    {
+
+        // AssignedDocumentList : List<Document>
+        List<DominateDocsData.Models.Document> assignedList;
+        if (AssignedDocumentList is null)
+            assignedList = new List<DominateDocsData.Models.Document>();
+        else
+            assignedList = AssignedDocumentList;
+
+        // vm.Documents : ObservableCollection<Document>
+        ObservableCollection<DominateDocsData.Models.Document> docs;
+        if (vm.Documents is null)
+            docs = new ObservableCollection<DominateDocsData.Models.Document>();
+        else
+            docs = vm.Documents;
+
+        var assignedIds = assignedList.Select(d => d.Id).ToHashSet();
+
+        availableDocuments = new ObservableCollection<DominateDocsData.Models.Document>(
+            docs.Where(d => !assignedIds.Contains(d.Id)));
+
+
+    }
+
+    private async Task OnAddDocumentAssignmentAsync()
+    {
+        isDisplayAssignedDocuments = false;
+        vm.SelectedAssignedDocuments = new HashSet<DominateDocsData.Models.Document>(AssignedDocumentList);   
+
+    }
+
+    private async Task OnDeleteAssignmentAsync()
+    {
+
+    }
+
+    private async Task OnRemoveAssignmentAsync(DominateDocsData.Models.Document doc)
+    {
+        vm.SelectedAssignedDocuments.Remove(doc);
+
+        availableDocuments.Add(doc);
+
+        AssignedDocumentList.Remove(doc);
+    }
+
+    // private async Task OnClickRecordAsync(DocumentSet? ds)
+    // {
+
+    // }
+
+    private async Task OnClickAssignmentCompleteAsync()
+    {
+        isDisplayAssignedDocuments = true;
+
+        foreach (var doc in vm.SelectedAssignedDocuments)
+        {
+            var availableDoc = availableDocuments.FirstOrDefault(x => x.Id == doc.Id);
+
+            if (availableDoc is not null) availableDocuments.Remove(doc);
+
+        }
+
+        await DocAssignmentComplete.InvokeAsync(new HashSet<DominateDocsData.Models.Document>(vm.SelectedAssignedDocuments));
+    }
+
+    private async Task OnClickAssignmentCanceledAsync()
+    {
+        isDisplayAssignedDocuments = true;
+        await DocAssignmentCancel.InvokeAsync();
+    }
+
+    
+    // private async Task OnSelectDocumentAsync(DocumentSet? ds)
+    // {
+    //     isDisplayAssignedDocuments = true;
+    // }
+       
+    private async Task OnRowClickAsync(TableRowClickEventArgs<DominateDocsData.Models.Document> args)
+    {
+       //I think this happens for each row clicked but the what happens when the ALL is clicked?
+    }
+
+   
+}

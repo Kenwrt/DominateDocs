@@ -1,0 +1,104 @@
+﻿@page "/fileuploadpage"
+
+@using System;
+@using System.IO;
+@using System.Threading;
+@using System.Collections.Generic;
+
+@inject Microsoft.AspNetCore.Hosting.IWebHostEnvironment env;
+
+<h1>File Upload .Net 5 Blazor</h1>
+
+<InputFile OnChange="OnInputFileChange" multiple />
+
+<button class="btn btn-sm btn-sucess" type="button" @onclick="FileUpload">Upload</button>
+
+<br />
+<label>@labelText</label>
+
+<div class="image-list">
+    <table class="table table-bordered">
+        <tr>
+            @foreach (var imageDataUrl in imageDataUrls)
+            {
+                <td>
+                    <img src="@imageDataUrl" />
+                </td>
+            }
+        </tr>
+    </table>
+</div>
+
+@code {
+
+    private IList<string> imageDataUrls = new List<string>();
+
+    IReadOnlyList<IBrowserFile> selectedImage;
+
+    string labelText = "";
+
+    protected async override Task OnInitializedAsync()
+    {
+        try
+        {
+
+            await base.OnInitializedAsync();
+        }
+
+        catch (Exception ex)
+        {
+            // _logger.LogError(ex.Message);
+        }
+
+    }
+
+    async Task OnInputFileChange(InputFileChangeEventArgs e)
+    {
+        var imageFiles = e.GetMultipleFiles();
+
+        selectedImage = imageFiles;
+
+        var format = "image/png";
+
+        foreach (var imageFile in imageFiles)
+        {
+            var resizedImageFile = await imageFile.RequestImageFileAsync(format, 100, 100);
+            var buffer = new byte[resizedImageFile.Size];
+            await resizedImageFile.OpenReadStream().ReadAsync(buffer);
+
+            var imageDataUrl = $"data:{format}; base64, {Convert.ToBase64String(buffer)}";
+            imageDataUrls.Add(imageDataUrl);
+        }
+    }
+
+    public async Task FileUpload()
+    {
+        foreach (var file in selectedImage)
+        {
+            Stream stream = file.OpenReadStream();
+            var path = $"{env.WebRootPath}\\Images\\{file.Name}";
+            System.IO.FileStream fs = File.Create(path);
+            await stream.CopyToAsync(fs);
+            fs.Close();
+        }
+
+        labelText = "Upload Sucess";
+        this.StateHasChanged();
+    }
+
+    //void OnDisplayStateChanged(object sender, EventArgs e)
+    //{
+
+    //    InvokeAsync(() =>
+    //    {
+
+    //        StateHasChanged();
+    //    });
+    //}
+
+    //void IDisposable.Dispose()
+    //{
+    //    _indexState.StateChanged -= OnDisplayStateChanged;
+    //}
+
+}

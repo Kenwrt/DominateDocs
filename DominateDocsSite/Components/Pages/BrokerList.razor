@@ -1,0 +1,167 @@
+﻿@page "/brokerlist"
+
+@using System.Text
+@using DominateDocsData.Models
+@using DominateDocsData.Enums
+@using System.Globalization
+
+@rendermode InteractiveServer
+@inject BrokerViewModel viewModel
+@inject NavigationManager NavigationManager
+@inject ISnackbar Snackbar
+@inject UserSession Session
+
+<MudGrid Class="mb-10">
+
+    @if (!AddEdit)
+    {
+
+        <MudItem xs="12" md="12">
+            <MudTable Items="FilteredList"
+                      Hover="true"
+                      Bordered="true"
+                      Dense="true"
+                      @bind-SelectedItem="viewModel.SelectedRecord"
+                      RowClick="OnSelectedRecord">
+                <ToolBarContent>
+                    <MudTextField @bind-Value="searchString"
+                                  Placeholder="Search..."
+                                  Immediate="true" />
+                </ToolBarContent>
+                <HeaderContent>
+                    <MudTh>Entity Name</MudTh>
+                    <MudTh>Address</MudTh>
+                    <MudTh>Phone</MudTh>
+                    <MudTh>Email</MudTh>
+                    <MudTh>Code</MudTh>
+                    <MudTh>
+                        <MudButton Class="rounded-4"
+                                   Disabled="@AddButtonDisabled"
+                                   Variant="Variant.Text"
+                                   Size="Size.Small"
+                                   Color="Color.Primary"
+                                   StartIcon="@Icons.Material.Filled.Add"
+                                   OnClick="AddButton">
+                            Add Broker
+                        </MudButton>
+                        
+                    </MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd DataLabel="Enitity Name">@context.EntityName</MudTd>
+                    <MudTd DataLabel="Address">@context.FullAddress</MudTd>
+                    <MudTd DataLabel="Phone">@context.ContactPhoneNumber</MudTd>
+                    <MudTd DataLabel="Email">@context.ContactEmail</MudTd>
+                    <MudTd DataLabel="Code">@context.BrokerCode</MudTd>
+                    <MudTd>
+                        <MudButton Variant="Variant.Text"
+                                   Size="Size.Small"
+                                   Color="Color.Info"
+                                   StartIcon="@Icons.Material.Filled.Edit"
+                                   OnClick="@(() => OnSelectedRecord(context))">
+                            Edit
+                        </MudButton>
+
+                        <MudButton Variant="Variant.Text"
+                                   Size="Size.Small"
+                                   Color="Color.Error"
+                                   StartIcon="@Icons.Material.Filled.Delete"
+                                   OnClick="@(() => OnDeleteRecord(context))">
+                            Delete
+                        </MudButton>
+                    </MudTd>
+                </RowTemplate>
+                <NoRecordsContent>
+                    <MudText Color="Color.Secondary" Class="pa-4">
+                        🚫 No Active Brokers Found. Please add!
+                    </MudText>
+                </NoRecordsContent>
+            </MudTable>
+        </MudItem>
+
+    }
+    else
+    {
+        <MudItem xs="12" md="12">
+            <MudPaper Elevation="1" Class="mt-5" Style="background-color: #F2F2F2;">
+
+
+                <Broker OnBrokerComplete="OnBrokerComplete" OnBrokerCancel="OnBrokerCancel" AllowRecordEdit="true" SelectedBroker="@viewModel.SelectedRecord" />
+
+            </MudPaper>
+
+        </MudItem>
+    }
+</MudGrid>
+
+
+
+
+
+@code
+{
+    private bool AddEdit = false;
+
+    private bool AddButtonDisabled = false;
+
+    private string searchString = "";
+
+    // Filtered view of the brokers based on searchString
+    private IEnumerable<DominateDocsData.Models.Broker> FilteredList =>
+        string.IsNullOrWhiteSpace(searchString)
+            ? viewModel.RecordList
+            : viewModel.RecordList.Where(l =>
+                   (!string.IsNullOrEmpty(l.EntityName) &&
+                    l.EntityName.Contains(searchString, StringComparison.OrdinalIgnoreCase))
+                || (!string.IsNullOrEmpty(l.FullAddress) &&
+                    l.FullAddress.Contains(searchString, StringComparison.OrdinalIgnoreCase))
+                || (!string.IsNullOrEmpty(l.ContactPhoneNumber) &&
+                    l.ContactPhoneNumber.Contains(searchString, StringComparison.OrdinalIgnoreCase))
+                || (!string.IsNullOrEmpty(l.ContactEmail) &&
+                    l.ContactEmail.Contains(searchString, StringComparison.OrdinalIgnoreCase)));
+
+    protected override async Task OnInitializedAsync()
+    {
+        viewModel.InitializePageCommand.Execute(null);
+
+    }
+
+    private void AddButton()
+    {
+        viewModel.GetNewRecordCommand.Execute(null);
+               
+        AddEdit = true;
+        AddButtonDisabled = true;
+
+
+    }
+
+    private void OnSelectedRecord(DominateDocsData.Models.Broker r)
+    {
+        if (r is not null) viewModel.SelectRecordCommand.Execute(r);
+
+        AddEdit = true;
+    }
+
+    private void OnDeleteRecord(DominateDocsData.Models.Broker r)
+    {
+        if (r is not null) viewModel.DeleteRecordCommand.Execute(r);
+
+        AddEdit = false;
+    }
+
+    private void OnBrokerComplete()
+    {
+        AddEdit = false;
+
+        StateHasChanged();
+    }
+
+    private void OnBrokerCancel()
+    {
+
+        AddEdit = false;
+
+        StateHasChanged();
+    }
+}

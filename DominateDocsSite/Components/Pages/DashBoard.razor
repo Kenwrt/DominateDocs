@@ -1,0 +1,233 @@
+﻿@page "/dashboard"
+
+@using MudBlazor
+@using DominateDocsData.Models
+@using DominateDocsSite.Helpers
+@using System.Collections.Generic;
+@using System.Collections.ObjectModel;
+@using System.Globalization
+
+@inject NavigationManager Nav
+@inject DashboardViewModel lvm
+@inject UserSession Session
+@inject IMongoDatabaseRepo db
+
+
+
+<MudGrid>
+    <MudItem xs="12" md="10">
+        <MudText Typo="Typo.h3" Class="mt-4 gradient-text">Hard Money Lending Dashboard</MudText>
+        <MudText Typo="Typo.h5" Class="text-black">Manage your lending portfolio</MudText>
+    </MudItem>
+    <MudItem xs="12" md="2">
+        <MudButton Class="text-white rounded-4 mt-4 mt-md-8"
+                   Style="background: linear-gradient(90deg, #7E57C2, #512DA8);"
+                   FullWidth="true"
+                   Variant="Variant.Filled"
+                   OnClick="OnCreateQuickLoan">+ New Loan</MudButton>
+
+        <MudButton Class=""
+                    Variant="Variant.Text"
+                   OnClick="OnCreateQuickLoanOld">+ New Loan(old UI)</MudButton>
+    </MudItem>
+
+    <MudItem xs="12" sm="6" md="3">
+        <MudCard Class="rounded-5 shadow-lg stat-card"
+                 Style="background: linear-gradient(90deg, #1976D2, #0D47A1); color:white;">
+            <MudCardContent>
+                <div class="card-header">
+                    <MudText Typo="Typo.h6">Total Portfolio</MudText>
+                    <MudIcon Icon="@Icons.Material.Filled.AttachMoney" Class="text-white" />
+                </div>
+                <MudText Class="ml-3" Typo="Typo.h3">@lvm.TotalPortfolio</MudText>
+            </MudCardContent>
+        </MudCard>
+    </MudItem>
+
+    <MudItem xs="12" sm="6" md="3">
+        <MudCard Class="rounded-5 shadow-lg stat-card"
+                 Style="background: linear-gradient(90deg, #9C27B0, #6A1B9A); color:white;">
+            <MudCardContent>
+                <div class="card-header">
+                    <MudText Typo="Typo.h6">Avg. Interest Rate</MudText>
+                    <MudIcon Icon="@Icons.Material.Filled.Moving" Class="text-white" />
+                </div>
+                <MudText Class="ml-3" Typo="Typo.h3">
+                    @{
+                        var raw = (lvm.AverageInterestRate ?? "").Trim().Replace("%", "");
+                        var ok = decimal.TryParse(raw, NumberStyles.Any, CultureInfo.InvariantCulture, out var rate);
+                    }
+                    @(ok && rate > 0m ? $"{rate:0.##}%" : "")
+                </MudText >
+            </MudCardContent>
+        </MudCard>
+    </MudItem>
+
+    <MudItem xs="12" sm="6" md="3">
+        <MudCard Class="rounded-5 shadow-lg stat-card"
+                 Style="background: linear-gradient(90deg, #3F51B5, #1A237E); color:white;">
+            <MudCardContent>
+                <div class="card-header">
+                    <MudText Typo="Typo.h6">Active Loans</MudText>
+                    <MudIcon Icon="@Icons.Material.Filled.PeopleAlt" Class="text-white" />
+                </div>
+                <MudText Class="ml-3" Typo="Typo.h3">@lvm.ActiveLoanCount</MudText>
+            </MudCardContent>
+        </MudCard>
+    </MudItem>
+
+    <MudItem xs="12" sm="6" md="3">
+        <MudCard Class="rounded-5 shadow-lg stat-card"
+                 Style="background: linear-gradient(90deg, #7E57C2, #512DA8); color:white;">
+            <MudCardContent>
+                <div class="card-header">
+                    <MudText Typo="Typo.h6">Pending Review</MudText>
+                    <MudIcon Icon="@Icons.Material.Filled.AccessTime" Class="text-white" />
+                </div>
+                <MudText Class="ml-3" Typo="Typo.h3">@lvm.PendingLoanCount</MudText>
+            </MudCardContent>
+        </MudCard>
+    </MudItem>
+
+    <MudItem xs="12">
+        @if (!lvm.AgreementList.Any())
+        {
+            <MudAlert Severity="Severity.Info">No loan agreements found.</MudAlert>
+        }
+        else
+        {
+            <MudGrid>
+                @foreach (DominateDocsData.Models.LoanAgreement context in lvm.AgreementList)
+                {
+                    <MudItem xs="12" sm="6" lg="4" xl="3">
+                        <MudCard Class="rounded-4 border-left-blue loan-card"
+                                 Style="background-color: white;"
+                                 Elevation="0">
+                            <MudCardContent>
+                                <MudGrid>
+                                    
+                                   
+                                        <MudItem xs="8">
+                                            <MudText Class="fw-bold" Typo="Typo.h6">@context.ReferenceName</MudText>
+                                            <MudText Typo="Typo.body2">
+                                                <MudIcon Icon="@Icons.Material.Filled.AttachMoney"
+                                                         Color="Color.Success"
+                                                         Size="Size.Large"
+                                                         Class="pr-2" />
+                                                @DisplayHelper.FormatDollarsCompact(context.PrincipalAmount)
+                                            </MudText>
+                                            <MudText Typo="Typo.body2">Terms: @context.TermInMonths Months</MudText>
+                                        </MudItem>
+                                                                                                                       
+                                        <MudItem xs="4">
+                                           
+                                                <MudChip T="bool" Color="Color.Success" Variant="Variant.Filled">@context.Status</MudChip>
+                                                <MudText Typo="Typo.body2">
+                                                    <MudIcon Icon="@Icons.Material.Filled.Moving"
+                                                             Color="Color.Primary"
+                                                             Size="Size.Large"
+                                                             Class="pr-2" />
+                                                    @context.InterestRate.ToString("N2")%
+                                                </MudText>
+                                            
+                                        </MudItem>
+                                    <MudItem xs="12" Class="d-flex justify-end py-0 my-0">
+                                        <MudButton Variant="Variant.Text"
+                                                   Size="Size.Small"
+                                                   Color="Color.Error"
+                                                   StartIcon="@Icons.Material.Filled.Delete"
+                                                   OnClick="@(() => OnDeleteRecordAsync(context))">
+                                            Delete
+                                        </MudButton>
+                                    </MudItem>
+                                    <MudItem xs="12">
+                                        <MudButton OnClick="@(v => OnSelectedRecord(@context))"
+                                                   Class="text-white mt-3 rounded-4"
+                                                   Variant="Variant.Filled"
+                                                   FullWidth="true"
+                                                   Style="background: linear-gradient(90deg, #1976D2, #0D47A1);">
+                                            View Details
+                                        </MudButton>
+                                    </MudItem>
+                                   
+                                </MudGrid>
+                            </MudCardContent>
+                        </MudCard>
+                    </MudItem>
+                }
+            </MudGrid>
+        }
+    </MudItem>
+</MudGrid>       
+
+
+@code {
+
+    private string _search = "";
+
+    private int counter = 1;
+
+    private string TotalPortfolio = "";
+
+    private string ActiveLoanCount = "";
+
+    private string AverageInterestRate = "";
+
+    private string PendingLoanCount = "";
+
+
+
+    protected override async Task OnInitializedAsync()
+    {
+
+        await lvm.InitDashboardCommand.ExecuteAsync(null);
+
+    }
+
+    private void OnCreateQuickLoan()
+    {
+        lvm.SelectedAgreement = new();
+        lvm.SelectedAgreement.UserId = Session.UserId;
+        Nav.NavigateTo("/quickloanagreementnewlook");
+    }
+
+    private void OnCreateQuickLoanOld()
+    {
+        lvm.SelectedAgreement = new();
+        lvm.SelectedAgreement.UserId = Session.UserId;
+        Nav.NavigateTo("/quickloanagreement");
+    }
+
+
+    private void OnSelectedRecord(DominateDocsData.Models.LoanAgreement r)
+    {
+        if (r is not null)
+        {
+            lvm.SelectedAgreement = r;
+            lvm.EditingAgreement = r;
+
+            lvm.SelectAgreementCommand.Execute(null);
+
+            Nav.NavigateTo("/loansummary");
+
+        }
+
+    }
+
+    private void OnDeleteRecordAsync(DominateDocsData.Models.LoanAgreement r)
+    {
+        if (r is not null)
+        {   
+            lvm.DeleteAgreementCommand.Execute(r);
+        }
+
+    }
+
+    private string FormatStringAsMillions(decimal value, int decimals = 2, CultureInfo? culture = null, MidpointRounding mode = MidpointRounding.AwayFromZero)
+    {
+        culture ??= CultureInfo.CurrentCulture;
+        var scaled = Math.Round(value / 1_000_000m, decimals, mode);
+        return scaled.ToString($"N{decimals}", culture) + "M";
+    }
+
+}

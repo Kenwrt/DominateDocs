@@ -1,0 +1,64 @@
+﻿@page "/chatgpt"
+
+@rendermode InteractiveServer
+
+@using DominateDocsSite.OpenAI.Services
+@using MudBlazor
+@using System.ComponentModel.DataAnnotations
+@inject ISnackbar Snackbar
+@inject IChatGptService chatGptService
+
+<style>
+
+    .readonly-box .mud-input-input {
+        overflow-x: auto !important;
+        overflow-y: auto !important;
+        white-space: pre; /* keeps formatting & horizontal scrolling */
+    }
+</style>
+
+<MudPaper Elevation="3" Class="pa-6 mx-auto" MaxWidth="800px">
+
+    <MudTextField Variant="Variant.Outlined" @bind-Value="chatText" Label="Chat" Placeholder="Ask a Question" Lines="20" />
+
+    <MudTextField T="string"
+                  Label="Response"
+                  @bind-Value="response"
+                  ReadOnly="true"
+                  Lines="30"
+                  FullWidth="true"
+                  Class="readonly-box" />
+
+   
+
+    <MudButton Class="mr-15 mt-5" Variant="Variant.Filled" Color="Color.Primary" OnClick="ChatSubmit">Submit</MudButton>
+
+
+
+</MudPaper>
+
+@code {
+
+    private string errorMsg = "";
+
+    private string chatText = "";
+
+    private string response = "";
+
+
+    public async Task ChatSubmit ()
+    {
+        try
+        {
+            response = await chatGptService.AskChatGptAsync(chatText);
+        }
+        catch (Exception ex)
+        {
+            errorMsg = ex.Message;
+
+        }
+
+        StateHasChanged();
+    }
+}
+        

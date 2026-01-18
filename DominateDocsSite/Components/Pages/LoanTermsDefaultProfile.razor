@@ -1,0 +1,120 @@
+﻿@using DominateDocsData.Models.MergeDTOs
+@using DominateDocsSite.Helpers
+@using MudBlazor
+@using DominateDocsData.Models
+@using System.Collections.Generic;
+@using System.Collections.ObjectModel;
+@using System.Globalization
+
+@inject NavigationManager Nav
+@inject QuickLoanAgreementViewModel vm
+@inject QuickLoanAgreementValidator loanValidator
+@inject UserSession Session
+
+
+<MudGrid Spacing="3">
+
+    <MudItem xs="12" sm="6">
+        <div class="d-flex flex-column gap-2">
+
+
+            <MudNumericField Class="" Style="background-color: white;" HideSpinButtons="true" Adornment="Adornment.Start" AdornmentText="$" Culture="CultureInfo.InvariantCulture"
+                             Format="N2" @bind-Value="vm.EditingAgreement.PrincipalAmount" Label="Principal Amount" Variant="Variant.Outlined" Step=".2M" />
+
+            <MudSelect Variant="Variant.Outlined" T="Payment.RateTypes" @bind-Value="vm.EditingAgreement.RateType" Label="Interest Rate Type">
+                @foreach (var v in Enum.GetValues<Payment.RateTypes>())
+                {
+                    <MudSelectItem Value="v">@v</MudSelectItem>
+                }
+            </MudSelect>
+
+
+            <MudNumericField Immediate="false" Class="" Variant="Variant.Outlined" HideSpinButtons="true" T="decimal" @bind-Value="vm.EditingAgreement.InterestRate" Format="N2" Label="Interest Rate (%)" />
+
+            <MudSelect Class="" Variant="Variant.Outlined" T="Payment.AmortizationTypes" @bind-Value="vm.EditingAgreement.AmorizationType" Label="Payment Type">
+                @foreach (var v in Enum.GetValues<Payment.AmortizationTypes>())
+                {
+                    <MudSelectItem Value="v">@v</MudSelectItem>
+                }
+            </MudSelect>
+
+            <MudNumericField Immediate="false" Class="" Variant="Variant.Outlined" T="int" HideSpinButtons="true" @bind-Value="vm.EditingAgreement.TermInMonths" Label="Term (months)" />
+                                                          
+         </div>
+
+    </MudItem>
+
+    <MudItem xs="12" sm="6">
+
+        <div class="d-flex flex-column gap-2">
+            @if (vm.EditingAgreement.RateType == Payment.RateTypes.Variable)
+            {
+                <MudNumericField Immediate="false" Class="" Variant="Variant.Outlined" HideSpinButtons="true" T="decimal" @bind-Value="vm.EditingAgreement.InitialMargin" Format="N2" Label="Initial Margin (%)" />
+            }
+            <MudSelect Class="" Variant="Variant.Outlined" T="Payment.Schedules" @bind-Value="vm.EditingAgreement.RepaymentSchedule" Label="Repayment Schedule">
+                @foreach (var v in Enum.GetValues<Payment.Schedules>())
+                {
+                    <MudSelectItem Value="v">@v</MudSelectItem>
+                }
+            </MudSelect>
+
+            @if (vm.EditingAgreement.RateType == Payment.RateTypes.Variable)
+            {
+
+                <MudSelect Class="" Variant="Variant.Outlined" T="Payment.Schedules" @bind-Value="vm.EditingAgreement.VariableInterestProperties.AdjustmentInterval" Label="Adjustment Intervals">
+                    @foreach (var v in Enum.GetValues<Payment.Schedules>())
+                    {
+                        <MudSelectItem Value="v">@v</MudSelectItem>
+                    }
+                </MudSelect>
+
+
+
+                <MudSelect Class="" Variant="Variant.Outlined" T="Payment.IndexPaths" @bind-Value="vm.EditingAgreement.VariableInterestProperties.AssumedIndexPath" Label="Assumed Index Path">
+                    @foreach (var v in Enum.GetValues<Payment.IndexPaths>())
+                    {
+                        <MudSelectItem Value="v">@v</MudSelectItem>
+                    }
+                </MudSelect>
+            }
+
+
+        </div>
+
+    </MudItem>
+
+</MudGrid>
+
+
+@code {
+
+
+
+    public decimal RateFraction { get; set; } = 0.075m;
+
+    private readonly Converter<decimal> PercentConverter = new()
+    {
+        // model (0–1) -> UI text (0–100)
+        SetFunc = v => (v * 100m).ToString("0.##", CultureInfo.InvariantCulture),
+        // UI text (accepts "7.5" or "7.5%") -> model (0–1)
+        GetFunc = s =>
+        {
+            if (string.IsNullOrWhiteSpace(s)) return 0m;
+            s = s.Trim().TrimEnd('%');
+            return decimal.TryParse(s, NumberStyles.Number, CultureInfo.InvariantCulture, out var n)
+                ? n / 100m
+                : 0m;
+        }
+    };
+
+   
+    protected override async Task OnInitializedAsync()
+    {
+        vm.InitializePageCommand.Execute(null);
+
+
+    }
+
+    
+
+}

@@ -1,0 +1,822 @@
+﻿@page "/loansummary"
+
+
+@using MudBlazor
+@using DominateDocsData.Models
+@using System.Collections.Generic;
+@using System.Collections.ObjectModel;
+@using System.Globalization
+
+@inject NavigationManager Nav
+@inject LoanAgreementViewModel vm
+@inject BorrowerViewModel bvm
+@inject UserSession Session
+@inject ISnackbar Snackbar
+
+
+<style>
+    .table-header-grey th {
+        background-color: lightgrey !important;
+    }
+
+    .mud-table .mud-table-cell.top-cell {
+        vertical-align: top !important;
+        padding-top: 0.25rem; /* tweak as you like */
+    }
+
+        .mud-table .mud-table-cell.top-cell .mud-icon-button {
+            margin-top: 0 !important;
+        }
+</style>
+
+
+<PageTitle>Loan Summary</PageTitle>
+
+@* <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4"> *@
+<!-- Loan Header Information -->
+<MudPaper Elevation="3" Class="pa-6 mb-6" Style="background: linear-gradient(135deg, var(--mud-palette-primary) 0%, var(--mud-palette-primary-darken) 100%); color: white;">
+
+    <MudGrid>
+
+       <MudItem xs="12" sm="6" md="2">
+
+            <MudText Typo="Typo.h4" Class="mb-2" Style="color: white;">Loan Summary</MudText>
+            <MudText Typo="Typo.h3" Adornment="Adornment.Start" AdornmentText="$" Culture="CultureInfo.InvariantCulture" Class="mb-4" Style="color: white; font-weight: 300;">@vm.EditingAgreement.PrincipalAmount.ToString("#,0.##", CultureInfo.GetCultureInfo("en-US"))</MudText>
+
+        </MudItem>
+   
+        <MudItem xs="12" sm="6" md="2">
+
+            <MudText Typo="Typo.caption" Style="color: rgba(255,255,255,0.8);">Ref Name</MudText>
+            <MudText Typo="Typo.body1" Style="color: white; font-weight: 500;">@vm.EditingAgreement.ReferenceName</MudText>
+
+        </MudItem>
+
+        <MudItem xs="12" sm="6" md="2">
+
+            <MudText Typo="Typo.caption" Style="color: rgba(255,255,255,0.8);">Loan ID</MudText>
+            <MudText Typo="Typo.body1" Style="color: white; font-weight: 500;">@vm.EditingAgreement.LoanNumber</MudText>
+
+        </MudItem>
+        
+        <MudItem xs="12" sm="6" md="2">
+
+            <MudText Typo="Typo.caption" Style="color: rgba(255,255,255,0.8);">Interest Rate</MudText>
+            <MudText Typo="Typo.body1" Style="color: white; font-weight: 500;">@vm.EditingAgreement.InterestRate%</MudText>
+
+        </MudItem>
+
+        <MudItem xs="12" sm="6" md="2">
+
+            <MudText Typo="Typo.caption" Style="color: rgba(255,255,255,0.8);">Term</MudText>
+
+            <MudText Typo="Typo.body1" Style="color: white; font-weight: 500;">@vm.EditingAgreement.TermInMonths Months</MudText>
+
+        </MudItem>
+    
+        <MudItem xs="12" sm="6" md="2">
+        
+            <MudText Typo="Typo.caption" Style="color: rgba(255,255,255,0.8);">Status</MudText>
+
+            <MudText Typo="Typo.body1" Style="color: white; font-weight: 500;">@vm.EditingAgreement.Status</MudText>
+
+        </MudItem>
+
+        <MudItem xs="12" sm="6" md="2">
+
+            <MudText Typo="Typo.caption" Style="color: rgba(255,255,255,0.8);">Origination Date</MudText>
+
+            <MudText Typo="Typo.body1" Style="color: white; font-weight: 500;">@vm.EditingAgreement.OriginationDate</MudText>
+
+        </MudItem>
+
+    </MudGrid>
+
+</MudPaper>
+
+<MudGrid>
+    <!-- Borrowers Section -->
+    @if (AddBorrower || AddGuarantor || AddLender || AddBroker)
+    {
+        <MudItem xs="12" md="12">
+
+            @if (AddGuarantor)
+            {
+                <Guarantor OnGuarantorComplete="OnGuarantorCompleteAsync"
+                           OnGuarantorCancel="OnGuarantorCancel"
+                           AllowRecordEdit="true" 
+                           SelectedGuarantor="@vm.SelectedGuarantor"/>
+            }
+            @if (AddLender)
+            {
+                <Lender OnLenderComplete="OnLenderCompleteAsync"
+                        OnLenderCancel="OnLenderCancel"
+                        AllowRecordEdit="true"
+                        SelectedLender="@vm.SelectedLender"/>
+            }
+            @if (AddBroker)
+            {
+                <Broker OnBrokerComplete="OnBrokerCompleteAsync"
+                        OnBrokerCancel="OnBrokerCancel"
+                        AllowRecordEdit="true"
+                        SelectedBroker="@vm.SelectedBroker"/>
+            }
+            @if (AddBorrower)
+            {
+                <Borrower OnBorrowerComplete="OnBorrowerCompleteAsync"
+                          OnBorrowerCanceled="OnBorrowerCanceled"
+                          AllowRecordEdit="true"
+                          SelectedBorrower="@vm.SelectedBorrower"/>   
+            }
+
+        </MudItem>
+    }
+    else
+    {
+        <!-- Borrower Section -->
+        <MudItem xs="12" md="3">
+            
+            <MudPaper Elevation="2" Class="pa-4" Style="height: 100%;">
+
+                <MudGrid Class="mb-4">
+
+                    <MudItem xs="6" Class="d-flex align-center">
+
+                        <MudText Typo="Typo.h5" Class="m-0">Borrowers</MudText>
+
+                    </MudItem>
+
+                    <MudItem xs="6" Class="d-flex justify-end align-center">
+
+                       <MudButton Class="rounded-4"
+                                   Variant="Variant.Text"
+                                   Size="Size.Small"
+                                   Color="Color.Primary"
+                                   StartIcon="@Icons.Material.Filled.Add"
+                                   OnClick="AddBorrowerAsync">
+                            Add Borrower
+                        </MudButton>
+
+                    </MudItem>
+
+                </MudGrid>
+
+                <MudTable Items="@vm.EditingAgreement.Borrowers" Hover="true" Dense="true" Elevation="0">
+                    
+                    <HeaderContent>
+                    
+                        <MudTh Style="background-color: lightgrey;">Name</MudTh>
+                        <MudTh Style="background-color: lightgrey;">Remove</MudTh>
+                        
+                    </HeaderContent>
+                    
+                    <RowTemplate>
+                    
+                        <MudTd DataLabel="Name">
+                        
+                            <div>
+                                <MudText Typo="Typo.body1" Style="font-weight: 500;">@context.EntityName</MudText>
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">@context.ContactEmail</MudText>
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">@context.ContactPhoneNumber</MudText>
+                            
+                            </div>
+
+                        </MudTd>
+                        <MudTd DataLabel="Remove">
+
+                            <MudButton Variant="Variant.Text"
+                                       Size="Size.Small"
+                                       Color="Color.Info"
+                                       StartIcon="@Icons.Material.Filled.Edit"
+                                       OnClick="@(() => OnSelectedBorrowerAsync(context))">
+                                Edit
+                            </MudButton>
+
+                            <MudButton Variant="Variant.Text"
+                                       Size="Size.Small"
+                                       Color="Color.Error"
+                                       StartIcon="@Icons.Material.Filled.Delete"
+                                       OnClick="@(() => OnDeleteBorrowerAsync(context))">
+                                Delete
+                            </MudButton>
+                           
+                        </MudTd>
+                       
+                    </RowTemplate>
+
+                    <NoRecordsContent>
+
+                        <MudText Color="Color.Secondary" Class="pa-4">
+                            🚫 No Borrowers Assinged to this Loan!
+                        </MudText>
+
+                    </NoRecordsContent>
+
+                </MudTable>
+
+            </MudPaper>
+
+        </MudItem>
+
+        <!-- Guarantors Section -->
+        <MudItem xs="12" md="3">
+
+            <MudPaper Elevation="2" Class="pa-4" Style="height: 100%;">
+
+                <MudGrid Class="mb-4">
+
+                    <MudItem xs="6" Class="d-flex align-center">
+
+                        <MudText Typo="Typo.h5" Class="m-0">Guarantors</MudText>
+
+                    </MudItem>
+                    <MudItem xs="6" Class="d-flex justify-end align-center">
+
+                        <MudButton Class="rounded-4"
+                                   Variant="Variant.Text"
+                                   Size="Size.Small"
+                                   Color="Color.Primary"
+                                   StartIcon="@Icons.Material.Filled.Add"
+                                   OnClick="AddGuarantorAsync">
+                            Add Guarantor
+                        </MudButton>
+
+                    </MudItem>
+
+                </MudGrid>
+
+                <MudTable Items="@vm.EditingAgreement.Guarantors" Hover="true" Dense="true" Elevation="0">
+
+                    <HeaderContent>
+
+                        <MudTh Style="background-color: lightgrey;">Name</MudTh>
+                        <MudTh Style="background-color: lightgrey;">Remove</MudTh>
+
+                    </HeaderContent>
+
+                    <RowTemplate>
+
+                        <MudTd DataLabel="Name">
+
+                            <div>
+                                <MudText Typo="Typo.body1" Style="font-weight: 500;">@context.EntityName</MudText>
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">@context.ContactEmail</MudText>
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">@context.ContactPhoneNumber</MudText>
+
+                            </div>
+
+                        </MudTd>
+                        <MudTd DataLabel="Remove">
+                            
+                            <MudButton Variant="Variant.Text"
+                                       Size="Size.Small"
+                                       Color="Color.Info"
+                                       StartIcon="@Icons.Material.Filled.Edit"
+                                       OnClick="@(() => OnSelectedGuarantorAsync(context))">
+                                Edit
+                            </MudButton>
+
+                            <MudButton Variant="Variant.Text"
+                                       Size="Size.Small"
+                                       Color="Color.Error"
+                                       StartIcon="@Icons.Material.Filled.Delete"
+                                       OnClick="@(() => OnDeleteGuarantorAsync(context))">
+                                Delete
+                            </MudButton>
+
+                        </MudTd>
+
+                    </RowTemplate>
+
+                    <NoRecordsContent>
+
+                        <MudText Color="Color.Secondary" Class="pa-4">
+                            🚫 No Guarantors Assinged to this Loan!
+                        </MudText>
+
+                    </NoRecordsContent>
+
+                </MudTable>
+
+            </MudPaper>
+
+        </MudItem>
+
+        <!-- Lenders Section -->
+        <MudItem xs="12" md="3">
+
+            <MudPaper Elevation="2" Class="pa-4" Style="height: 100%;">
+
+                <MudGrid Class="mb-4">
+
+                    <MudItem xs="6" Class="d-flex align-center">
+
+                        <MudText Typo="Typo.h5" Class="m-0">Lenders</MudText>
+
+                    </MudItem>
+
+                    <MudItem xs="6" Class="d-flex justify-end align-center">
+
+                        <MudButton Class="rounded-4"
+                                   Variant="Variant.Text"
+                                   Size="Size.Small"
+                                   Color="Color.Primary"
+                                   StartIcon="@Icons.Material.Filled.Add"
+                                   OnClick="AddLenderAsync">
+                            Add Lender
+                        </MudButton>
+
+                    </MudItem>
+
+                </MudGrid>
+
+                <MudTable Items="@vm.EditingAgreement.Lenders" Hover="true" Dense="true" Elevation="0">
+
+                    <HeaderContent>
+
+                        <MudTh Style="background-color: lightgrey;">Name</MudTh>
+                        <MudTh Style="background-color: lightgrey;">Remove</MudTh>
+
+                    </HeaderContent>
+
+                    <RowTemplate>
+
+                        <MudTd DataLabel="Name">
+
+                            <div>
+                                <MudText Typo="Typo.body1" Style="font-weight: 500;">@context.EntityName</MudText>
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">@context.ContactEmail</MudText>
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">@context.ContactPhoneNumber</MudText>
+
+                            </div>
+
+                        </MudTd>
+                        <MudTd DataLabel="Remove">
+                            <MudButton Variant="Variant.Text"
+                                       Size="Size.Small"
+                                       Color="Color.Info"
+                                       StartIcon="@Icons.Material.Filled.Edit"
+                                       OnClick="@(() => OnSelectedLenderAsync(context))">
+                                Edit
+                            </MudButton>
+
+                            <MudButton Variant="Variant.Text"
+                                       Size="Size.Small"
+                                       Color="Color.Error"
+                                       StartIcon="@Icons.Material.Filled.Delete"
+                                       OnClick="@(() => OnDeleteLenderAsync(context))">
+                                Delete
+                            </MudButton>
+
+                        </MudTd>
+
+                    </RowTemplate>
+
+                    <NoRecordsContent>
+
+                        <MudText Color="Color.Secondary" Class="pa-4">
+                            🚫 No Lenders Assinged to this Loan!
+                        </MudText>
+
+                    </NoRecordsContent>
+
+                </MudTable>
+
+            </MudPaper>
+
+        </MudItem>
+
+        <!-- Broker Section -->
+        <MudItem xs="12" md="3">
+
+            <MudPaper Elevation="2" Class="pa-4" Style="height: 100%;">
+                                
+                <MudGrid Class="mb-4">
+
+                    <MudItem xs="6" Class="d-flex align-center">
+                        
+                        <MudText Typo="Typo.h5" Class="m-0">Brokers</MudText>
+
+                    </MudItem>
+
+                    <MudItem xs="6" Class="d-flex justify-end align-center">
+                    
+                        <MudButton Class="rounded-4"
+                                   Variant="Variant.Text"
+                                   Size="Size.Small"
+                                   Color="Color.Primary"
+                                   StartIcon="@Icons.Material.Filled.Add"
+                                   OnClick="AddBrokerAsync">
+                            Add Broker
+                        </MudButton>
+
+                    </MudItem>
+
+                </MudGrid>
+
+                <MudTable Items="@vm.EditingAgreement.Brokers" Hover="true" Dense="true" Elevation="0">
+
+                    <HeaderContent>
+
+                        <MudTh Style="background-color: lightgrey;">Name</MudTh>
+                        <MudTh Style="background-color: lightgrey;">Remove</MudTh>
+
+                    </HeaderContent>
+
+                    <RowTemplate>
+
+                        <MudTd DataLabel="Name">
+
+                            <div>
+                                <MudText Typo="Typo.body1" Style="font-weight: 500;">@context.EntityName</MudText>
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">@context.ContactEmail</MudText>
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">@context.ContactPhoneNumber</MudText>
+
+                            </div>
+
+                        </MudTd>
+                        <MudTd DataLabel="Remove">
+                            
+                            <MudButton Variant="Variant.Text"
+                                       Size="Size.Small"
+                                       Color="Color.Info"
+                                       StartIcon="@Icons.Material.Filled.Edit"
+                                       OnClick="@(() => OnSelectedBrokerAsync(context))">
+                                Edit
+                            </MudButton>
+
+                            <MudButton Variant="Variant.Text"
+                                       Size="Size.Small"
+                                       Color="Color.Error"
+                                       StartIcon="@Icons.Material.Filled.Delete"
+                                       OnClick="@(() => OnDeleteBrokerAsync(context))">
+                                Delete
+                            </MudButton>
+
+                        </MudTd>
+
+                    </RowTemplate>
+
+                    <NoRecordsContent>
+
+                        <MudText Color="Color.Secondary" Class="pa-4">
+                            🚫 No Brokers Assinged to this Loan!
+                        </MudText>
+
+                    </NoRecordsContent>
+
+                </MudTable>
+
+            </MudPaper>
+
+        </MudItem>
+    }
+
+</MudGrid>
+
+<MudPaper Elevation="2" Class="pa-6 mt-6">
+
+    <MudGrid>
+   
+        @if (!EditLoanDetail)
+        {
+            <MudItem xs="12" md="8">
+                <MudText Typo="Typo.h6" Class="mb-4">Loan Details</MudText>
+            </MudItem>
+            <MudItem xs="12" md="2">
+                <MudButton Variant="Variant.Text" Color="Color.Primary" OnClick="EditLoanDetailsAsync">Edit Details</MudButton>
+            </MudItem>
+            <MudItem xs="12" md="2">
+                <MudButton Variant="Variant.Text" Color="Color.Primary" OnClick="ProcessLoanDocsAsync">Process Loan Docs</MudButton>
+            </MudItem>
+            <MudItem xs="12" md="4">
+                <MudText Typo="Typo.body1" Style="font-weight: 500;" Class="mb-1">Property Address</MudText> 
+                <MudText Typo="Typo.body2" Color="Color.Secondary">123 Main Street, Anytown, ST 12345</MudText>
+            </MudItem>
+            <MudItem xs="12" md="4">
+                <MudText Typo="Typo.body1" Style="font-weight: 500;" Class="mb-1">Loan Purpose</MudText>
+                <MudText Typo="Typo.body2" Color="Color.Secondary">Home Purchase</MudText>
+            </MudItem>
+            <MudItem xs="12" md="4">
+                <MudText Typo="Typo.body1" Style="font-weight: 500;" Class="mb-1">Next Payment Due</MudText>
+                <MudText Typo="Typo.body2" Color="Color.Secondary">April 1, 2024</MudText>
+            </MudItem>
+        }
+        else
+        {
+            <LoanDetail OnLoanAgreementComplete="OnAgreementComplete"
+                       OnLoanAgreementCancel="OnAgreementCancel" />
+        }
+
+    </MudGrid>
+</MudPaper>
+
+
+@code {
+
+    private List<DominateDocsData.Models.Broker> brokers = new();
+    private bool AddBorrower = false;
+    private bool AddGuarantor = false;
+    private bool AddLender = false;
+    private bool AddBroker = false;
+    private bool AddProperty = false;
+    private bool EditLoanDetail = false;
+
+
+    protected override async Task OnInitializedAsync()
+    {
+
+        vm.InitializePageCommand.Execute(null); 
+
+    }
+
+    public async Task AddBrokerAsync()
+    {
+        if (vm.EditingAgreement.Brokers is null) vm.EditingAgreement.Brokers = new();
+
+        AddBroker = true;
+
+        StateHasChanged();
+
+
+    }
+
+    public async Task AddLenderAsync()
+    {
+        if (vm.EditingAgreement.Lenders is null) vm.EditingAgreement.Lenders = new();
+
+        AddLender = true;
+
+        StateHasChanged();
+    }
+
+    public async Task AddGuarantorAsync()
+    {
+        if (vm.EditingAgreement.Guarantors is null) vm.EditingAgreement.Guarantors = new();
+
+        AddGuarantor = true;
+
+        StateHasChanged();
+    }
+
+    public async Task ProcessLoanDocsAsync()
+    {
+        //vm.ProcessAgreementCommand.ExecuteAsync(null);
+    }
+
+    public async Task AddBorrowerAsync()
+    {
+        if (vm.EditingAgreement.Borrowers is null) vm.EditingAgreement.Borrowers = new();
+
+        AddBorrower = true;
+
+        StateHasChanged();
+
+    }
+
+    public async Task AddPropertyAsync()
+    {
+        if (vm.EditingAgreement.Properties is null) vm.EditingAgreement.Properties = new();
+
+        AddProperty = true;
+
+        StateHasChanged();
+    }
+
+    private async Task OnRemoveBrokerAsync(DominateDocsData.Models.Broker record)
+    {
+        if (vm.EditingAgreement.Brokers.Any(x => x.Id == record.Id))
+        {
+            vm.EditingAgreement.Brokers.Remove(record);
+        }
+
+        await vm.EditAgreementCommand.ExecuteAsync(null);
+    }
+
+    private async Task OnRemoveLenderAsync(DominateDocsData.Models.Lender record)
+    {
+        if (vm.EditingAgreement.Lenders.Any(x => x.Id == record.Id))
+        {
+            vm.EditingAgreement.Lenders.Remove(record);
+        }
+
+        await vm.EditAgreementCommand.ExecuteAsync(null);
+    }
+
+    private async Task OnRemoveGuarantorAsync(DominateDocsData.Models.Guarantor record)
+    {
+        if (vm.EditingAgreement.Guarantors.Any(x => x.Id == record.Id))
+        {
+            vm.EditingAgreement.Guarantors.Remove(record);
+        }
+
+        await vm.EditAgreementCommand.ExecuteAsync(null);
+    }
+
+    private async Task OnRemoveBorrowerAsync(DominateDocsData.Models.Borrower record)
+    {
+        if (vm.EditingAgreement.Borrowers.Any(x => x.Id == record.Id))
+        {
+            vm.EditingAgreement.Borrowers.Remove(record);
+        }
+
+        await vm.EditAgreementCommand.ExecuteAsync(null);
+    }
+
+    private async Task OnSelectedBorrowerAsync(DominateDocsData.Models.Borrower record)
+    {
+        vm.SelectedBorrower = record;
+        AddBorrower = true;
+
+        StateHasChanged();
+
+    }
+
+    private async Task OnSelectedGuarantorAsync(DominateDocsData.Models.Guarantor record)
+    {
+        vm.SelectedGuarantor = record;
+        AddGuarantor = true;
+
+        StateHasChanged();
+
+    }
+
+    private async Task OnSelectedBrokerAsync(DominateDocsData.Models.Broker record)
+    {
+        vm.SelectedBroker = record;
+        AddBroker = true;
+
+        StateHasChanged();
+
+    }
+
+    private async Task OnSelectedPropertyAsync(DominateDocsData.Models.PropertyRecord record)
+    {
+        vm.SelectedProperty = record;
+        AddLender = true;
+
+        StateHasChanged();
+
+    }
+
+    private async Task OnSelectedLenderAsync(DominateDocsData.Models.Lender record)
+    {
+        vm.SelectedLender = record;
+        AddLender = true;
+
+        StateHasChanged();
+
+    }
+
+    private async Task OnDeleteLenderAsync(DominateDocsData.Models.Lender r)
+    {
+        if (r is not null) vm.DeleteLenderCommand.Execute(r);
+
+        //AddEdit = false;
+    }
+
+    private async Task OnDeleteBorrowerAsync(DominateDocsData.Models.Borrower r)
+    {
+        if (r is not null) vm.DeleteBorrowerCommand.Execute(r);
+
+        //AddEdit = false;
+    }
+
+    private async Task OnDeleteGuarantorAsync(DominateDocsData.Models.Guarantor r)
+    {
+        if (r is not null) vm.DeleteGuarantorCommand.Execute(r);
+
+        //AddEdit = false;
+    }
+
+    private async Task OnDeleteBrokerAsync(DominateDocsData.Models.Broker r)
+    {
+        if (r is not null) vm.DeleteBrokerCommand.Execute(r);
+
+        //AddEdit = false;
+    }
+
+    private async Task OnDeletePropertyAsync(DominateDocsData.Models.PropertyRecord r)
+    {
+        if (r is not null) vm.DeletePropertyCommand.Execute(r);
+
+        //AddEdit = false;
+    }
+
+    public async Task EditLoanDetailsAsync()
+    {
+
+        EditLoanDetail = true;
+
+        StateHasChanged();
+
+    }
+
+    private void OnBorrowerCancel()
+    {
+
+        // Handle cancellation
+    }
+
+    private void OnAgreementCancel()
+    {
+
+        // Handle cancellation
+    }
+
+    private void OnLenderCancel()
+    {
+        // Handle cancellation
+    }
+
+    private void OnAgreementComplete()
+    {
+        //vm.UpsertAgreementCommand.Execute(vm.EditingAgreement);
+
+        EditLoanDetail = false;
+
+        StateHasChanged();
+    }
+
+    private void OnGuarantorCancel()
+    {
+
+        // Handle cancellation
+    }
+
+    private void OnBorrowerCanceled()
+    {
+
+        // Handle cancellation
+    }
+
+    private async Task OnBrokerCompleteAsync(DominateDocsData.Models.Broker broker)
+    {
+        vm.UpsertBrokerCommand.Execute(broker);
+
+        AddBroker = false;
+
+        StateHasChanged();
+
+
+    }
+
+    private async Task OnLenderCompleteAsync(DominateDocsData.Models.Lender Lender)
+    {
+
+        vm.UpsertLenderCommand.Execute(Lender);
+
+        AddLender = false;
+
+        StateHasChanged();
+
+
+    }
+
+    private async Task OnGuarantorCompleteAsync(DominateDocsData.Models.Guarantor guarantor)
+    {
+        vm.UpsertGuarantorCommand.Execute(guarantor);
+
+        AddGuarantor = false;
+
+        StateHasChanged();
+
+    }
+
+    private async Task OnBorrowerCompleteAsync(DominateDocsData.Models.Borrower borrower)
+    {
+        vm.UpsertBorrowerCommand.Execute(borrower);
+        
+        AddBorrower = false;
+
+        StateHasChanged();
+
+    }
+        
+    private void OnBrokerCancel()
+    {
+
+        // Handle cancellation
+    }
+
+    private async Task OnPropertyCompleteAsync(DominateDocsData.Models.PropertyRecord property)
+    {
+               
+        vm.UpsertPropertyCommand.Execute(property);
+
+        AddProperty = false;
+
+        StateHasChanged();
+
+    }
+
+    private void OnPropertyCancel()
+    {
+        // Handle cancellation
+    }
+
+
+
+
+   
+}

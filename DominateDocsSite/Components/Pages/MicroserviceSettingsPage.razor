@@ -1,0 +1,150 @@
+﻿@* @page "/MicroServiceSettingsPage"
+@attribute [Authorize]
+
+@using DominateDocsEngine.State.ServiceControlState;
+@using DominateDocsEngine.State.ServiceControlState.Actions;
+
+
+@namespace Pages
+
+
+@inject IStringLocalizer<App> Localizer
+@inherits FluxorComponent
+@inject IDispatcher dispatcher
+@inject IState<DominateDocsEngine.State.ServiceControlState.ServiceControlState> serviceState
+
+@inject NavigationManager Nav
+
+
+
+<div class="body-margins">
+
+    <MudText Typo="Typo.h5">@Localizer["Micro Service Settings"]</MudText>
+
+    <MudPaper Class="pa-4">
+
+        <MudStack>
+            <MudSwitch T="bool" Label="Forwarder" Checked="@isForwarderActive" Color="Color.Primary" CheckedChanged="OnCheckChangedForwarderStartStopEvent(isForwarderActive)" />
+            <MudSwitch T="bool" Label="Forwarder Housekeeper" Checked="@isForwarderHousekeeperActive" Color="Color.Primary" CheckedChanged="OnCheckChangedForwarderHousekeeperStartStopEvent(isForwarderHousekeeperActive)" />
+            <MudSwitch T="bool" Label="Downloader" Checked="@isDownloaderActive" Color="Color.Primary" CheckedChanged="OnCheckChangedDownloaderStartStopEvent(isDownloaderActive)" />
+            <MudSwitch T="bool" Label="Downloader Housekeeper" Checked="@isDownloaderHousekeeperActive" Color="Color.Primary" CheckedChanged="OnCheckChangedDownloaderHousekeeperStartStopEvent(isDownloaderHousekeeperActive)" />
+            <MudSwitch T="bool" Label="Dicom Sender" Checked="@isDicomSenderActive" Color="Color.Primary" CheckedChanged="OnCheckChangedDicomSenderStartStopEvent(isDicomSenderActive)" />
+            <MudSwitch T="bool" Label="Dicom Housekeeper" Checked="@isDicomHousekeeperActive" Color="Color.Primary" CheckedChanged="OnCheckChangedDicomHousekeeperStartStopEvent(isDicomHousekeeperActive)" />
+        </MudStack>
+
+
+    </MudPaper>
+
+
+
+
+</div> *@
+
+
+
+@code {
+
+
+    // public bool isForwarderActive => serviceState.Value.ForwarderStartStop;
+    // public bool isForwarderHousekeeperActive => serviceState.Value.ForwarderHousekeeperStartStop;
+
+    // public bool isDownloaderActive => serviceState.Value.DownloaderStartStop;
+    // public bool isDownloaderHousekeeperActive => serviceState.Value.DownloaderHousekeeperStartStop;
+
+    // public bool isDicomSenderActive => serviceState.Value.DicomSenderStartStop;
+    // public bool isDicomHousekeeperActive => serviceState.Value.DicomHousekeeperStartStop;
+
+    // public bool isForwarderActiveDTO { get; set; }
+    // public bool isForwarderHousekeeperActiveDTO { get; set; }
+    // public bool isDownloaderActiveDTO { get; set; }
+    // public bool isDownloaderHousekeeperActiveDTO { get; set; }
+    // public bool isDicomSenderActiveDTO { get; set; }
+    // public bool isDicomHousekeeperActiveDTO { get; set; }
+
+    // private MudForm form;
+
+
+    // protected async override Task OnInitializedAsync()
+    // {
+    //     await base.OnInitializedAsync();
+
+    //     dispatcher.Dispatch(new ServiceControlStateInitializationAction());
+
+    //     isForwarderActiveDTO = isForwarderActive;
+
+    //     isForwarderHousekeeperActiveDTO = isForwarderHousekeeperActive;
+
+    //     isDownloaderActiveDTO = isDownloaderActive;
+    //     isDownloaderHousekeeperActiveDTO = isDownloaderHousekeeperActive;
+
+    //     isDicomSenderActiveDTO = isDicomSenderActive;
+    //     isDicomHousekeeperActiveDTO = isDicomHousekeeperActive;
+
+    //     dispatcher.Dispatch(new ServiceControlStateInitializationAction());
+
+
+    // }
+
+
+
+    // public void OnCheckChangedForwarderStartStopEvent(bool isChecked)
+    // {
+
+    //     isForwarderActiveDTO = isChecked;
+
+    //     dispatcher.Dispatch(new ServiceControlStateForwarderStartStopAction(isForwarderActiveDTO));
+
+    // }
+
+
+
+    // private void OnCheckChangedForwarderHousekeeperStartStopEvent(bool isChecked)
+    // {
+
+    //     isForwarderHousekeeperActiveDTO = isChecked;
+
+    //     dispatcher.Dispatch(new ServiceControlStateForwarderHousekeeperStartStopAction(isForwarderHousekeeperActiveDTO));
+
+    // }
+
+    // private void OnCheckChangedDownloaderStartStopEvent(bool isChecked)
+    // {
+
+    //     isDownloaderActiveDTO = isChecked;
+
+    //     dispatcher.Dispatch(new ServiceControlStateDownloaderStartStopAction(isDownloaderActiveDTO));
+
+    // }
+
+
+
+    // private void OnCheckChangedDownloaderHousekeeperStartStopEvent(bool isChecked)
+    // {
+
+    //     isDownloaderHousekeeperActiveDTO = isChecked;
+
+    //     dispatcher.Dispatch(new ServiceControlStateDownloaderHousekeeperStartStopAction(isDownloaderHousekeeperActiveDTO));
+
+    // }
+
+    // private void OnCheckChangedDicomSenderStartStopEvent(bool isChecked)
+    // {
+    //     isDicomSenderActiveDTO = isChecked;
+
+    //     dispatcher.Dispatch(new ServiceControlStateDicomSenderStartStopAction(isDicomSenderActiveDTO));
+
+    // }
+
+    // private void OnCheckChangedDicomHousekeeperStartStopEvent(bool isChecked)
+    // {
+
+    //     isDicomHousekeeperActiveDTO = isChecked;
+
+    //     dispatcher.Dispatch(new ServiceControlStateDicomHousekeeperStartStopAction(isDicomHousekeeperActiveDTO));
+
+    // }
+
+
+
+
+}

@@ -1,0 +1,69 @@
+﻿@* @page "/sendnotifypage"
+@attribute [Authorize]
+
+
+@using DominateDocsEngine.Services;
+@using DominateDocsEngine.Models.Notification;
+
+@namespace Pages
+
+@inject ISendNotifierService notifyClient; 
+@inject IAppConfig appConfig;
+
+
+<MudText Typo="Typo.h3">Send Emails</MudText>
+
+<MudText Typo="Typo.subtitle1">This is a Test Page</MudText>
+
+
+ <MudGrid>
+
+    <MudItem xs="12" sm="7">
+        <EditForm Model="notifyMsg" OnValidSubmit="ValidSubmitAsync">
+            <MudCard>
+                <MudCardContent>
+                    <MudTextField T="string" Label="Message" Variant="Variant.Outlined" @bind-Value="@notifyMsg.MessageBody" Lines="5" />
+                      <MudCheckBox @bind-Checked="@email" Color="Color.Primary">Email</MudCheckBox>
+                    <MudCheckBox @bind-Checked="@text" Color="Color.Primary">Text</MudCheckBox>
+                </MudCardContent>
+                <MudCardActions>
+                    <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary" Class="ml-auto">Send</MudButton>
+
+                </MudCardActions>
+            </MudCard>
+        </EditForm>
+    </MudItem>
+
+</MudGrid>*@
+
+
+@code {
+
+
+
+    // private NotifyMsg notifyMsg = new();
+
+    // private bool email = true;
+
+    // private bool text = false;
+
+    // private string msgText = string.Empty;
+
+    // protected async override Task OnInitializedAsync()
+    // {
+    //     await base.OnInitializedAsync();
+
+
+    // }
+
+    // private async Task ValidSubmitAsync()
+    // {
+
+    //     notifyMsg.MsgType = AppMsgEnums.MsgTypes.SupportMsg;
+        
+    //     await notifyClient.SendNotificationAsync(notifyMsg);
+
+
+    // }
+
+}

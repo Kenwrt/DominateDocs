@@ -1,0 +1,173 @@
+﻿@page "/AddressAutocomplete2"
+
+@using System.Text.Json.Serialization
+@using Newtonsoft.Json.Converters
+@using MongoDB.Bson
+@using MongoDB.Bson.Serialization.Attributes
+@using Microsoft.JSInterop
+@using System.ComponentModel.DataAnnotations
+@inject IJSRuntime JS
+
+@* <MudStack Spacing="2">
+    <MudTextField  T="string?" @ref="_inputRef"
+                  Label="Search address"
+                  Variant="Variant.Outlined"
+                  Placeholder="Start typing an address..."
+                  Value="@_display"
+                  ValueChanged="OnManualTextChanged"
+                  Immediate="true"
+                  Adornment="Adornment.Start"
+                  AdornmentIcon="@Icons.Material.Outlined.Place"
+                  Class="w-100" />
+
+    <div id="@_mapDivId" style="width:100%; height:320px; border-radius:12px; box-shadow: var(--mud-elevation-3);"></div>
+
+    <!-- Optional: show parsed parts for debugging -->
+    @if (Debug)
+    {
+        <MudPaper Class="pa-3">
+            <MudText Typo="Typo.subtitle2">Parsed:</MudText>
+            <MudText>Street: @Value?.StreetAddress</MudText>
+            <MudText>City: @Value?.City</MudText>
+            <MudText>County: @Value?.County</MudText>
+            <MudText>State: @Value?.State</MudText>
+            <MudText>Zip: @Value?.ZipCode</MudText>
+            <MudText>Country: @Value?.Country</MudText>
+            <MudText>Full: @Value?.FullAddress</MudText>
+        </MudPaper>
+    }
+</MudStack> *@
+
+@code {
+    // [Parameter] public AddressLocation? Value { get; set; }
+    // [Parameter] public EventCallback<AddressLocation?> ValueChanged { get; set; }
+    // [Parameter] public bool Debug { get; set; } = false;
+
+    // private ElementReference _inputRef;
+    // private string _mapDivId = $"map-{Guid.NewGuid():N}";
+    // private string? _display;
+
+    // private IJSObjectReference? _module;
+    // private DotNetObjectReference<AddressAutocomplete>? _dotNetRef;
+
+    // protected override async Task OnAfterRenderAsync(bool firstRender)
+    // {
+    //     if (!firstRender) return;
+
+    //     _module = await JS.InvokeAsync<IJSObjectReference>("import", "/js/googleMapsInterop.js");
+    //     _dotNetRef = DotNetObjectReference.Create(new AddressAutocomplete(this));
+
+    //     // Seed display if Value already set
+    //     _display ??= Value?.FullAddress;
+
+    //     await _module.InvokeVoidAsync("maps.initAutocompleteAndMap", new
+    //     {
+    //         input = _inputRef,
+    //         mapDivId = _mapDivId,
+    //         dotNetRef = _dotNetRef,
+    //         country = "us" // bias to US; change if you insist on global chaos
+    //     });
+
+    //     // If we have an initial value, geocode it to show on the map
+    //     if (!string.IsNullOrWhiteSpace(_display))
+    //     {
+    //         await _module.InvokeVoidAsync("maps.setFromFreeText", _display);
+    //     }
+    // }
+
+    // private async Task OnManualTextChanged(string text)
+    // {
+    //     _display = text;
+    //     // Don’t instantly geocode each keypress; debounce is handled in JS side.
+    //     await _module?.InvokeVoidAsync("maps.queueFreeTextGeocode", text);
+    // }
+
+    // // Receives parsed result from JS
+    // [JSInvokable]
+    // public async Task OnPlaceSelected(AddressParts parts)
+    // {
+    //     var next = new AddressLocation
+    //     {
+    //         StreetAddress = BuildStreet(parts),
+    //         City = parts.Locality ?? parts.Sublocality ?? parts.Neighborhood,
+    //         County = parts.County,
+    //         State = TryParseState(parts.StateShort),
+    //         ZipCode = parts.PostalCode,
+    //         Country = parts.Country
+    //     };
+
+    //     _display = next.FullAddress;
+    //     await ValueChanged.InvokeAsync(next);
+    //     StateHasChanged();
+    // }
+
+    // private static UsStates.UsState TryParseState(string? abbr)
+    // {
+    //     if (string.IsNullOrWhiteSpace(abbr)) return UsStates.UsState.None;
+    //     return Enum.TryParse<UsStates.UsState>(abbr, ignoreCase: true, out var s)
+    //         ? s
+    //         : UsStates.UsState.None;
+    // }
+
+    // private static string? BuildStreet(AddressParts p)
+    // {
+    //     // Prefer route + street_number combination if available
+    //     if (!string.IsNullOrWhiteSpace(p.Route))
+    //     {
+    //         var num = string.IsNullOrWhiteSpace(p.StreetNumber) ? "" : $"{p.StreetNumber} ";
+    //         var apt = string.IsNullOrWhiteSpace(p.Subpremise) ? "" : $" #{p.Subpremise}";
+    //         return $"{num}{p.Route}{apt}".Trim();
+    //     }
+    //     // Fallback: full formatted if route missing
+    //     return p.Formatted;
+    // }
+
+    // // JS callback holder
+    // private sealed class AddressAutocomplete
+    // {
+    //     private readonly AddressAutocompleteBase _parent;
+    //     public AddressAutocomplete(AddressAutocompleteBase parent) { _parent = parent; }
+    //     [JSInvokable] public Task OnPlaceSelected(AddressParts parts) => _parent.OnPlaceSelected(parts);
+    // }
+
+    // // Split this base so nested class can reference
+    // private abstract class AddressAutocompleteBase
+    // {
+    //     public abstract Task OnPlaceSelected(AddressParts parts);
+    // }
+
+    // // AddressParts are shaped by JS parser
+    // public sealed class AddressParts
+    // {
+    //     public string? Formatted { get; set; }
+    //     public string? StreetNumber { get; set; }
+    //     public string? Route { get; set; }
+    //     public string? Subpremise { get; set; } // Apt/Suite
+    //     public string? Locality { get; set; } // City
+    //     public string? Sublocality { get; set; } // Neighborhood/Borough
+    //     public string? Neighborhood { get; set; }
+    //     public string? County { get; set; } // admin_area_level_2
+    //     public string? StateShort { get; set; } // e.g., TN
+    //     public string? PostalCode { get; set; }
+    //     public string? Country { get; set; }
+    //     public double? Lat { get; set; }
+    //     public double? Lng { get; set; }
+    // }
+
+    // public class AddressLocation
+    // {
+    //     public string StreetAddress { get; set; }
+    //     public string City { get; set; }
+
+    //     [JsonConverter(typeof(StringEnumConverter))]
+    //     [BsonRepresentation(BsonType.String)]
+    //     [DataType(DataType.Text)]
+    //     public UsStates.UsState State { get; set; }
+
+    //     public string ZipCode { get; set; }
+    //     public string County { get; set; }
+    //     public string Country { get; set; }
+
+    //     public string FullAddress => $"{StreetAddress} {City} {State} {ZipCode}".Trim();
+    // }
+}

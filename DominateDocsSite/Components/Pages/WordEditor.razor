@@ -1,0 +1,47 @@
+﻿@page "/wordeditor"
+@inject IWebHostEnvironment Env
+@using Microsoft.AspNetCore.Components.Forms
+
+<h3>Edit Word Template</h3>
+
+<div class="mb-3">
+    <a class="btn btn-primary" href="templates/SampleTemplate.docx" download>Download Word Template</a>
+</div>
+
+<EditForm Model="@this" OnValidSubmit="HandleUpload">
+    <InputFile OnChange="OnFileSelected" accept=".docx" />
+    <br />
+    <button class="btn btn-success mt-2" type="submit" disabled="@(!FileReady)">Upload Edited Document</button>
+</EditForm>
+
+@if (!string.IsNullOrEmpty(UploadResult))
+{
+    <p class="mt-2">@UploadResult</p>
+}
+
+@code {
+    IBrowserFile uploadedFile;
+    bool FileReady = false;
+    string UploadResult;
+
+    void OnFileSelected(InputFileChangeEventArgs e)
+    {
+        uploadedFile = e.File;
+        FileReady = uploadedFile != null;
+    }
+
+    async Task HandleUpload()
+    {
+        if (uploadedFile == null) return;
+
+        var uploadPath = Path.Combine(Env.WebRootPath, "uploads", uploadedFile.Name);
+        Directory.CreateDirectory(Path.GetDirectoryName(uploadPath));
+
+        await using var stream = uploadedFile.OpenReadStream(10 * 1024 * 1024); // 10MB limit
+        await using var fs = File.Create(uploadPath);
+        await stream.CopyToAsync(fs);
+
+        UploadResult = $"Uploaded to: {uploadPath}";
+        FileReady = false;
+    }
+}

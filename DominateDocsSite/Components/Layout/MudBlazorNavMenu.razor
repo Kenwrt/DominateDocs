@@ -1,0 +1,122 @@
+﻿@implements IDisposable
+
+@inject NavigationManager NavigationManager
+
+@inherits LayoutComponentBase
+
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+
+
+
+<MudNavMenu>
+    
+    
+    <AuthorizeView Policy="RequiresUser">
+        <Authorized>
+            <MudNavMenu Color="Color.Primary">
+            <MudNavLink Class="mt-10" Icon="@Icons.Material.Filled.Dashboard" Color="Color.Primary" Href="/dashboard" Match="NavLinkMatch.All">Dashboard</MudNavLink>
+            <MudNavLink Href="Account/Manage" Icon="@Icons.Material.Filled.People" Match="NavLinkMatch.Prefix">My Account Profile</MudNavLink>
+
+            <div class="nav-item px-3">
+                <form action="Account/Logout" method="post">
+                    <AntiforgeryToken />
+                    <input type="hidden" name="ReturnUrl" value="@currentUrl" />
+                    <button type="submit" class="nav-link">
+                            <MudIcon Icon="@Icons.Material.Filled.Logout" Class="me-2" />
+                            Logout
+                    </button>
+                </form>
+            </div>
+            </MudNavMenu>
+        </Authorized>
+    </AuthorizeView>
+
+    <MudDivider Class="my-3" />
+    <AuthorizeView Policy="RequiresAdmin">
+        <Authorized>
+            <MudNavGroup Title="Settings" Icon="@Icons.Material.Filled.Settings" Expanded="true">
+                <MudNavLink Href="/lenderlist" Icon="@Icons.Material.Filled.Checklist" Match="NavLinkMatch.Prefix">Lender List</MudNavLink>
+                <MudNavLink Href="/brokerlist" Icon="@Icons.Material.Filled.Checklist" Match="NavLinkMatch.Prefix">Broker List</MudNavLink>
+                <MudNavLink Href="/guarantorlist" Icon="@Icons.Material.Filled.Checklist" Match="NavLinkMatch.Prefix">Guarantor List</MudNavLink>
+                <MudNavLink Href="/borrowerlist" Icon="@Icons.Material.Filled.Checklist" Match="NavLinkMatch.Prefix">Borrower List</MudNavLink>
+                <MudNavLink Href="/Userlist" Icon="@Icons.Material.Filled.Checklist" Match="NavLinkMatch.Prefix">User List</MudNavLink>
+                <MudNavLink Href="/propertyownerlist" Icon="@Icons.Material.Filled.Checklist" Match="NavLinkMatch.Prefix">Property Owner List</MudNavLink>
+                <MudNavLink Href="/propertylist" Icon="@Icons.Material.Filled.Checklist" Match="NavLinkMatch.Prefix">Property List</MudNavLink>
+                <MudNavLink Href="/akaalias" Icon="@Icons.Material.Filled.Checklist" Match="NavLinkMatch.Prefix">AKA Alias List</MudNavLink>
+                <MudNavLink Href="/documentlibrary" Icon="@Icons.Material.Filled.Settings" Match="NavLinkMatch.Prefix">Document Library</MudNavLink>
+                <MudNavLink Href="/documentsets" Icon="@Icons.Material.Filled.Settings"  Match="NavLinkMatch.Prefix">Document Sets</MudNavLink>
+                <MudNavLink Href="/testmergebydocument" Icon="@Icons.Material.Filled.Checklist" Match="NavLinkMatch.Prefix">Test Document Merge</MudNavLink>
+                               
+            </MudNavGroup>
+        </Authorized>
+    
+    </AuthorizeView>
+
+    <MudDivider Class="my-3" />
+    <!-- only DevAdmin -->
+    <AuthorizeView Policy="RequiresDevAdmin">
+        <Authorized>
+            <MudNavGroup Title="DevSettings" Icon="@Icons.Material.Filled.Settings" Expanded="true">
+
+                <!-- new register user item -->
+                <MudNavLink Href="/Register"
+                            Icon="@Icons.Material.Filled.PersonAdd"
+                            Match="NavLinkMatch.All">
+                    Register User
+                </MudNavLink>
+
+                <MudNavLink Href="/UserDefaultProfile" Icon="@Icons.Material.Filled.Checklist" Match="NavLinkMatch.Prefix">Loan ProjectBasics</MudNavLink>
+                <MudNavLink Href="/LoanTypeList" Icon="@Icons.Material.Filled.Checklist" Match="NavLinkMatch.Prefix">Loan Type List</MudNavLink>
+                <MudNavLink Href="/users" Icon="@Icons.Material.Filled.Checklist" Match="NavLinkMatch.Prefix">Users Managment</MudNavLink>
+                <MudNavLink Href="/signingauthority" Icon="@Icons.Material.Filled.Checklist" Match="NavLinkMatch.Prefix">Siging Authority</MudNavLink>
+                <MudNavLink Href="/loansummary" Icon="@Icons.Material.Filled.Checklist" Match="NavLinkMatch.Prefix">Loan Syummary</MudNavLink>
+                <MudNavLink Href="/addnewloan" Icon="@Icons.Material.Filled.Checklist" Match="NavLinkMatch.Prefix">Add New Loan</MudNavLink>
+                <MudNavLink Href="/Trusteelist" Icon="@Icons.Material.Filled.Checklist" Match="NavLinkMatch.Prefix">Trustee</MudNavLink>
+                <MudNavLink Href="/loanagreementssecurity" Icon="@Icons.Material.Filled.Checklist" Match="NavLinkMatch.Prefix">Loan Application List</MudNavLink>
+                <MudNavLink Href="/lienlist" Icon="@Icons.Material.Filled.Checklist" Match="NavLinkMatch.Prefix">Lien List</MudNavLink>
+                <MudNavLink Href="/loanagreementlist" Icon="@Icons.Material.Filled.Checklist" Match="NavLinkMatch.Prefix">Loan Agreements</MudNavLink>
+                <MudNavLink Href="/sendemailpage" Icon="@Icons.Material.Filled.Checklist" Match="NavLinkMatch.Prefix">Send Mail Test</MudNavLink>
+                <MudNavLink Href="/chatgpt" Icon="@Icons.Material.Filled.Checklist" Match="NavLinkMatch.Prefix">ChatGpt</MudNavLink>
+                <MudNavLink Href="/uploadfile" Icon="@Icons.Material.Filled.Checklist" Match="NavLinkMatch.Prefix">Upload Edited Template</MudNavLink>
+                <MudNavLink Href="/convertwordtopdf" Icon="@Icons.Material.Filled.Checklist" Match="NavLinkMatch.Prefix">Convert Word To PDF</MudNavLink>
+                <MudNavLink Href="/encryptdecrypt" Icon="@Icons.Material.Filled.Checklist" Match="NavLinkMatch.Prefix">Encrypt Decrypt Content</MudNavLink>
+               
+
+               
+
+            </MudNavGroup>
+        </Authorized>
+    </AuthorizeView>
+    
+</MudNavMenu>
+
+@code {
+
+   
+    private string? currentUrl;
+ 
+
+    protected override async Task OnInitializedAsync()
+    {
+        // var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        // var user = authState.User;
+
+        currentUrl = NavigationManager.ToBaseRelativePath(NavigationManager.Uri);
+        NavigationManager.LocationChanged += OnLocationChanged;
+    }
+
+    private void OnLocationChanged(object? sender, LocationChangedEventArgs e)
+    { 
+        currentUrl = NavigationManager.ToBaseRelativePath(e.Location);
+        StateHasChanged();
+    }
+
+   
+
+    public void Dispose()
+    {
+        NavigationManager.LocationChanged -= OnLocationChanged;
+    }
+
+}

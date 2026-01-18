@@ -1,0 +1,209 @@
+﻿﻿
+
+@using System.Text;
+@using DominateDocsData.Models;
+@using System.Globalization;
+@using System.Collections.ObjectModel;
+@using DominateDocsData.Models.MergeDTOs;
+
+@rendermode InteractiveServer
+@inject LienViewModel vm
+@inject NavigationManager NavigationManager
+@inject ISnackbar Snackbar
+@inject LienValidator LienValidator
+@inject UserSession Session
+
+
+@if (displayList)
+{
+        <MudGrid Class="">
+
+            <MudItem xs="12" md="12">
+
+                <MudText Class="pl-4 ml-4 mt-5" Typo="Typo.subtitle1">Liens: @vm.MyRecordList.Count </MudText>
+                <MudTable Class="ml-4 mr-5" Style="background-color: #FCFCFC;" Items="vm.MyRecordList" Context="context" Hover="true" Bordered="true" Dense="true" @bind-SelectedItem="vm.SelectedRecord" RowClick="OnSelectedRecord">
+                    <HeaderContent>
+                        <MudTh>Description</MudTh>
+                        <MudTh>Postion</MudTh>
+                        <MudTh>Status</MudTh>
+                        <MudTh HeaderCellClass="text-right">
+                            <MudButton Class="pl-4 rounded-4" Disabled=@AddButtonDisabled Variant="Variant.Filled" Size="Size.Small" Color="Color.Primary" OnClick="AddButton">Add Lien</MudButton>
+                         
+                        </MudTh>
+
+                    </HeaderContent>
+                    <RowTemplate>
+                        <MudTd DataLabel="Name">@context.Description</MudTd>
+                        <MudTd DataLabel="Alias">@context</MudTd>
+
+                        <MudTd>
+                            <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                                           Color="Color.Info"
+                                           OnClick="@(() => OnSelectedRecord(context))" />
+                            <MudIconButton Icon="@Icons.Material.Filled.Remove" Color="Color.Info" OnClick="@(() => DeleteRecordAsync(context))" />
+                        </MudTd>
+                    </RowTemplate>
+                    <NoRecordsContent>
+                        <MudText Color="Color.Secondary" Class="pa-4">
+                            🚫 No Active Entity Owners Found. Please add!
+                        </MudText>
+                    </NoRecordsContent>
+
+                </MudTable>
+
+            </MudItem>
+
+        </MudGrid>
+
+}
+else
+{
+        <MudGrid>
+
+            <MudItem xs="12" md="12">
+
+                <MudText Class="pl-4 mt-0" Typo="Typo.subtitle1">Lien</MudText>
+
+                <MudForm Context="contextA" Model="@vm.EditingRecord" @ref="@form" Validation="@LienValidator" ValidationDelay="0">
+                    <MudGrid>
+                        <MudItem md="6">
+                            <div class="d-flex flex-column gap-2">
+                                <MudTextField Class="pl-4" Variant="Variant.Outlined" Style="background-color: white;" @bind-Value="vm.EditingRecord.Description" Label="Description" Required="true" />
+                                                                
+                                <MudSelect Class="ml-4" T="DominateDocsData.Enums.Liens.Positions" Style="background-color: white;" Variant="Variant.Outlined" Label="Select Lien Position" @bind-Value="vm.EditingRecord.LienPosition" Dense="true">
+
+                                    @foreach (var gt in Enum.GetValues<DominateDocsData.Enums.Liens.Positions>())
+                                    {
+                                        <MudSelectItem Style="background-color: white;" T="DominateDocsData.Enums.Liens.Positions" Value="gt">@gt.GetDescription()</MudSelectItem>
+                                    }
+
+                                </MudSelect>
+
+                                <MudStack Row="true" Spacing="10" Class="mt-4 mb-10">
+
+                                    <MudButton Class="ml-10" Type="Submit" OnClick="HandleSubmit" Color="Color.Success" Variant="Variant.Filled">@(vm.SelectedRecord == null ? "Add" : "Save")</MudButton>
+                                   
+                                    <MudButton OnClick="ClearSelection" Color="Color.Secondary" Variant="Variant.Filled">Clear</MudButton>
+
+                                </MudStack>
+                            </div>
+
+                        </MudItem>
+
+                    </MudGrid>
+
+                </MudForm>
+
+            </MudItem>
+
+        </MudGrid>
+
+}
+
+
+
+@code {
+
+    [Parameter] public EventCallback<List<DominateDocsData.Models.Lien>> OnLienComplete { get; set; }
+    [Parameter] public EventCallback OnLienCanceled { get; set; }
+    [Parameter] public List<DominateDocsData.Models.Lien> LienList { get; set; }
+
+
+  
+    private MudForm form;
+
+    private bool displayList = false;
+    private bool AddButtonDisabled = false;
+
+    private int editingIndex = -1;
+
+    protected override async Task OnInitializedAsync()
+    {
+        vm.InitializeLoadPageCommand.Execute(LienList);
+
+        displayList = true;
+    }
+
+   
+
+    private async Task HandleSubmit()
+    {
+        await form.Validate();
+
+        if (!form.IsValid)
+        {
+            Snackbar.Add("Please correct the errors in the form.", Severity.Error);
+            return;
+        }
+        else
+        {
+
+            if (vm.MyRecordList.Any(x => x.Description == vm.EditingRecord.Description))
+            {
+                Snackbar.Add("A duplicate lien exists.", Severity.Error);
+
+                return;
+            }
+
+            vm.UpsertRecordCommand.Execute(null);
+
+            await OnLienComplete.InvokeAsync(vm.MyRecordList.ToList());
+
+
+            displayList = true;
+
+            StateHasChanged();
+
+            AddButtonDisabled = false;
+        }
+    }
+
+    private async Task DeleteRecordAsync(DominateDocsData.Models.Lien r)
+    {
+        vm.DeleteRecordCommand.Execute(r);
+
+        vm.ClearSelectionCommand.Execute(null);
+
+        displayList = true;
+
+        await OnLienComplete.InvokeAsync(vm.MyRecordList.ToList());
+
+        StateHasChanged();
+    }
+
+    private void ClearSelection()
+    {
+        vm.ClearSelectionCommand.Execute(null);
+        StateHasChanged();
+    }
+
+    private void AddButton()
+    {
+        vm.GetNewRecordCommand.Execute(null);
+
+        AddButtonDisabled = false;
+
+        displayList = false;
+    }
+
+    private void OnSelectedRecord(DominateDocsData.Models.Lien r)
+    {
+
+        if (r is not null) vm.SelectRecordCommand.Execute(r);
+
+        displayList = false;
+
+    }
+
+    private void CancelEdit()
+    {
+        editingIndex = -1;
+
+        StateHasChanged();
+    }
+
+    
+
+
+
+}

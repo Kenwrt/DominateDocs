@@ -1,0 +1,283 @@
+﻿
+@using System.Text;
+@using DominateDocsData.Models;
+@using System.Globalization
+
+@rendermode InteractiveServer
+@inject PropertyOwnerViewModel vm
+@inject NavigationManager NavigationManager
+@inject ISnackbar Snackbar
+@inject UserSession Session
+@inject PropertyOwnerValidator PropertyOwnerValidator
+@inject SigningAuthorityValidator SigningAuthorityValidator
+@inject AliasValidator AliasValidator
+
+
+@if (displayList)
+{
+    <MudGrid>
+        <MudItem xs="12" md="12">
+            <MudText Class="pl-4 mt-6" Typo="Typo.subtitle1">Property Owner(s): @vm.MyOwnerList.Count </MudText>
+            <MudTable Class="ml-4 mr-5" Style="background-color: #FCFCFC;" Items="vm.MyOwnerList" Context="contextOwner" Hover="true" Bordered="true" Dense="true" @bind-SelectedItem="vm.SelectedRecord" RowClick="OnSelectedRecord">
+                <HeaderContent>
+                    <MudTh>Name</MudTh>
+                    <MudTh>Address</MudTh>
+                    <MudTh>Ownership</MudTh>
+                    <MudTh></MudTh>
+                    <MudTh></MudTh>
+                    <MudTh>
+                        <MudButton Class="pl-4 rounded-4" Disabled=@AddButtonDisabled Variant="Variant.Filled" Size="Size.Small" Color="Color.Primary" OnClick="AddButton">Add Owner</MudButton>
+                        
+                    </MudTh>
+
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd DataLabel="Name">@contextOwner.EntityName</MudTd>
+                    <MudTd DataLabel="Address">@contextOwner.FullAddress</MudTd>
+                    <MudTd DataLabel="Ownership">@contextOwner.PercentageOfOwnership</MudTd>
+                    <MudTd>
+                        <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                                       Color="Color.Info"
+                                       OnClick="@(() => OnSelectedRecord(contextOwner))" />
+
+                        <MudIconButton Icon="@Icons.Material.Filled.Remove" Color="Color.Info" OnClick="@(() => DeleteRecordAsync(contextOwner))" />
+                    </MudTd>
+                </RowTemplate>
+                <NoRecordsContent>
+                    <MudText Color="Color.Secondary" Class="pa-4">
+                        🚫 No Active Property Owners Found. Please add!
+                    </MudText>
+                </NoRecordsContent>
+            </MudTable>
+
+            
+        </MudItem>
+    </MudGrid>
+}
+else
+{
+
+     <MudGrid>
+
+            <MudItem xs="12" md="12">
+
+            <MudForm Context="contextOwn" Model="@vm.EditingRecord" @ref="@formEditRecord" Validation="@PropertyOwnerValidator" ValidationDelay="0">
+
+
+                    <MudGrid Class="mt-2">
+                        <MudItem md="6">
+                            <div class="d-flex flex-column gap-2">
+                            <MudTextField Class="pl-4" Variant="Variant.Outlined" Style="background-color: white;" @bind-Value="vm.EditingRecord.EntityName" Label="EntityName" Required="true" />
+                            <MudTextField Class="pl-4" Variant="Variant.Outlined" Style="background-color: white;" @bind-Value="vm.EditingRecord.StreetAddress" Label="Street Address" Required="true" />
+                            <MudTextField Label="Contact Phone" Class="pl-4" Style="background-color: white;" Variant="Variant.Outlined" For="@(() => vm.EditingRecord.ContactPhoneNumber)"
+                                          @bind-Value="vm.EditingRecord.ContactPhoneNumber"
+                                              Mask="@phoneMask"
+                                              Placeholder="(___) ___-____"
+                                              Required="true"
+                                              Immediate="true" />
+
+                                <MudNumericField Class="pl-4" HideSpinButtons="true" Style="background-color: white;" Adornment="Adornment.End" AdornmentText="%" Culture="CultureInfo.InvariantCulture"
+                                             Format="N2" @bind-Value="vm.EditingRecord.PercentageOfOwnership" Label="Minumum Release Price" Variant="Variant.Outlined" />
+
+                                <MudStack Row="true" Spacing="10" Class="mt-4 mb-10">
+                                    <MudButton Class="ml-10" Type="Submit" OnClick="HandleSubmit" Color="Color.Success" Variant="Variant.Filled">@(vm.SelectedRecord == null ? "Add" : "Save")</MudButton>
+                                    <MudButton OnClick="ClearSelection" Color="Color.Secondary" Variant="Variant.Filled">Clear</MudButton>
+                                </MudStack>
+                            </div>
+                        </MudItem>
+
+                    </MudGrid>
+                </MudForm>
+
+        </MudItem>
+
+    </MudGrid>
+
+
+   
+ }
+
+
+
+@code
+{
+    [Parameter] public EventCallback<List<DominateDocsData.Models.PropertyOwner>> OnPropertyOwnerComplete { get; set; }
+    [Parameter] public EventCallback OnPropertyOwnerCancel { get; set; }
+    [Parameter] public bool AllowRecordEdit { get; set; } = false;
+    [Parameter] public List<DominateDocsData.Models.PropertyOwner> PropertyOwnerList { get; set; }
+
+    private bool AddEdit = false;
+
+    private bool editRecord = false;
+
+    private MudForm formEditRecord;
+
+    private bool displayList = false;
+
+    private List<AddressDTO> addresDTOList = new();
+
+    private readonly PatternMask phoneMask = new("(000)000-0000");
+    private readonly PatternMask socialMask = new("000-00-0000");
+
+    private string emailPattern = @"^[\w\-\.]+@([\w\-]+\.)+[\w\-]{2,4}$";
+
+    private bool AddButtonDisabled = false;
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        vm.InitializePageCommand.Execute(PropertyOwnerList);
+
+        if (!String.IsNullOrEmpty(vm.EditingRecord.FullAddress))
+        {
+            AddressDTO dto = new()
+            {
+                FullAddress = vm.EditingRecord.FullAddress,
+                StreetAddress = vm.EditingRecord.StreetAddress,
+                City = vm.EditingRecord.City,
+                ZipCode = vm.EditingRecord.ZipCode,
+                County = vm.EditingRecord.County,
+                State = vm.EditingRecord.State,
+                Country = vm.EditingRecord.Country,
+                Lat = vm.EditingRecord.Lat,
+                Lng = vm.EditingRecord.Lng
+            };
+            addresDTOList.Add(dto);
+        }
+
+    }
+
+    private async Task HandleSubmit()
+    {
+        await formEditRecord.Validate();
+
+        if (!formEditRecord.IsValid)
+        {
+            Snackbar.Add("Please correct the errors in the form.", Severity.Error);
+            return;
+        }
+        else
+        {
+            if (!editRecord)
+            {
+                if (vm.RecordList.Any(x => (x.SSN == vm.EditingRecord.SSN && vm.EditingRecord.SSN != null) || (x.EIN == vm.EditingRecord.EIN && vm.EditingRecord.EIN != null)))
+                {
+
+                    Snackbar.Add("A Property with that address already exists.", Severity.Error);
+                    return;
+                }
+            }
+
+            vm.UpsertRecordCommand.Execute(null);
+
+            await OnPropertyOwnerComplete.InvokeAsync(vm.MyOwnerList.ToList());
+
+            editRecord = false;
+
+            AddButtonDisabled = false;
+
+            StateHasChanged();
+        }
+    }
+
+    private async Task DeleteRecordAsync(DominateDocsData.Models.PropertyOwner r)
+    {
+        vm.DeleteRecordCommand.Execute(r);
+
+        editRecord = false;
+
+        AddEdit = false;
+
+        await OnPropertyOwnerComplete.InvokeAsync(vm.MyOwnerList.ToList());
+    }
+
+    private void ClearSelection()
+    {
+        vm.ClearSelectionCommand.Execute(null);
+    }
+
+    private void AddButton()
+    {
+        vm.GetNewRecordCommand.Execute(null);
+
+        AddEdit = true;
+        
+        AddButtonDisabled = true;
+
+
+
+    }
+
+    private void OnSelectedRecord(DominateDocsData.Models.PropertyOwner trustee)
+    {
+        vm.SelectRecordCommand.Execute(trustee);
+
+        editRecord = true;
+
+        AddEdit = true;
+    }
+
+
+    private void OnAddressComplete(List<AddressDTO> addressList)
+    {
+        if (addressList == null || addressList.Count == 0)
+        {
+            vm.EditingRecord.FullAddress = string.Empty;
+            vm.EditingRecord.StreetAddress = string.Empty;
+            vm.EditingRecord.City = string.Empty;
+            vm.EditingRecord.ZipCode = string.Empty;
+            vm.EditingRecord.County = string.Empty;
+            vm.EditingRecord.Country = string.Empty;
+        }
+        else
+        {
+            var addressDTO = addressList.FirstOrDefault();
+
+            vm.EditingRecord.FullAddress = addressDTO.FullAddress;
+            vm.EditingRecord.StreetAddress = addressDTO.StreetAddress;
+            vm.EditingRecord.City = addressDTO.City;
+            vm.EditingRecord.State = addressDTO.State;
+            vm.EditingRecord.ZipCode = addressDTO.ZipCode;
+            vm.EditingRecord.County = addressDTO.County;
+            vm.EditingRecord.Country = addressDTO.Country;
+            vm.EditingRecord.Lat = addressDTO.Lat;  
+            vm.EditingRecord.Lng = addressDTO.Lng;  
+        }
+
+
+
+        //vm.EditRecordCommand.Execute(null);
+    }
+
+    private async Task OnEntityOwnerComplete(List<DominateDocsData.Models.EntityOwner> entityOwners)
+    {
+        vm.EditingRecord.EntityOwners = entityOwners;
+    }
+
+    private async Task OnEntityOwnerCanceled()
+    {
+        StateHasChanged();
+    }
+
+    private async Task OnSigningAuthorityComplete(List<DominateDocsData.Models.SigningAuthority> signers)
+    {
+        vm.EditingRecord.SigningAuthorities = signers;
+    }
+
+    private async Task OnSigningAuthorityCanceled()
+    {
+        StateHasChanged();
+    }
+
+    private async Task OnAliasComplete(List<DominateDocsData.Models.AkaName> alias)
+    {
+        vm.EditingRecord.AliasNames = alias;
+    }
+
+    private async Task OnAliasCanceled()
+    {
+        StateHasChanged();
+    }
+
+
+}

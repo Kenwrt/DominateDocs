@@ -1,0 +1,137 @@
+﻿@inherits LayoutComponentBase
+
+@inject NavigationManager NavigationManager
+
+<MudThemeProvider />
+<MudPopoverProvider />
+<MudDialogProvider />
+<MudSnackbarProvider />
+<MudLayout>
+    <MudAppBar Elevation="1">
+        @if (!isAuthenticated)
+            {
+                @* <MudToolbar>
+                    <!-- Horizontal Menu -->
+                    <MudTabs @bind-ActivePanelIndex="_activeIndex"
+                             Rounded="false"
+                             Border="false"
+                             TextColor="Color.Default"
+                             Centered="false"
+                             Style="flex-grow: 1;">
+                        @foreach (var item in _menuItems)
+                        {
+                            <MudTabPanel Text="@item.Label" Style="min-width: 100px;"
+                                         OnClick="@(() => Navigate(item.Url))" />
+                        }
+                    </MudTabs>
+
+                    <!-- Login Link -->
+                    <MudText Typo="Typo.subtitle2" Class="me-4" Style="cursor:pointer;" OnClick="@(() => Navigate("/login"))">
+                        Login
+                    </MudText>
+                </MudToolbar> *@
+
+
+                <NudToolbar>
+                    <NudToolbarRow>
+                        <NudToolbarSection>
+                            <!-- AppBar Menu -->
+                            <NudMenu Text="Menu">
+                            <NudMenuItem class="menu-item-spaced">
+                                @if (!isAuthenticated)
+                                {
+                                    <img src="images/liquiddocslogoImageOnly.png" height="60" width="77">
+                                }
+                            </NudMenuItem>
+                            <NudMenuItem class="menu-item-spaced">Home</NudMenuItem>
+                            <NudMenuItem class="menu-item-spaced">Whats the difference</NudMenuItem>
+                            <NudMenuItem class="menu-item-spaced">FAQs</NudMenuItem>
+                            <NudMenuItem class="menu-item-spaced">About</NudMenuItem>
+                            <NudMenuItem class="menu-item-spaced">Contact</NudMenuItem>
+                        </NudMenu>
+                        </NudToolbarSection>
+                        <NudToolbarSection Align="End">
+                            
+                        </NudToolbarSection>
+                    </NudToolbarRow>
+                </NudToolbar>
+
+                <MudSpacer />
+                @* <MudNavLink Href="Account/Register" Match="NavLinkMatch.Prefix">Signup</MudNavLink> *@
+                <MudButton Variant=Variant.Text Class="text-white" OnClick="Registration">Signup</MudButton>
+                <MudButton Variant=Variant.Text Class="text-white" OnClick="Login">Login</MudButton>
+            }
+            else
+            {
+                <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" OnClick="@DrawerToggle" />
+                
+                
+    
+                <MudSpacer />
+                <MudMenu OffsetY="true">
+                    <ActivatorContent>
+
+                        <MudAvatar Color="Color.Secondary">@userName.Substring(0,1)</MudAvatar>
+                       
+                    </ActivatorContent>
+                    <ChildContent>
+                        <MudMenuItem Href="Account/Manage">Profile</MudMenuItem>
+                        <div class="nav-item px-3">
+                            <form action="Account/Logout" method="post">
+                                <AntiforgeryToken />
+                                <input type="hidden" name="ReturnUrl" value="@currentUrl" />
+                                <button type="submit" class="nav-link">
+                                    <span Style="background-color: white;" class="bi bi-arrow-bar-left-nav-menu" aria-hidden="true"></span> Logout
+                                </button>
+                            </form>
+                        </div>
+                    </ChildContent>
+                </MudMenu>
+                
+            }
+       
+    </MudAppBar>
+    <MudDrawer id="nav-drawer" @bind-Open="_drawerOpen" ClipMode="DrawerClipMode.Always" Elevation="2">
+        <NavMenu />
+    </MudDrawer>
+    <MudMainContent Class="pt-16 pa-4">
+        @Body
+    </MudMainContent>
+</MudLayout>
+
+
+<div id="blazor-error-ui" data-nosnippet>
+    An unhandled error has occurred.
+    <a href="." class="reload">Reload</a>
+    <span class="dismiss">🗙</span>
+</div>
+
+@code {
+    private bool _drawerOpen = true;
+
+    private bool isAuthenticated = false;
+    private string userName = "Guest";
+    private string currentUrl = string.Empty;
+
+
+    private void Login()
+    {
+        // Redirect to login page or show your login dialog
+        NavigationManager.NavigateTo("/Account/Login", forceLoad: true);
+
+    }
+
+    private void Registration()
+    {
+        // Redirect to login page or show your login dialog
+        NavigationManager.NavigateTo("/Account/Register", forceLoad: true);
+
+    }
+
+    void DrawerToggle()
+    {
+        _drawerOpen = !_drawerOpen;
+    }
+}
+
+
