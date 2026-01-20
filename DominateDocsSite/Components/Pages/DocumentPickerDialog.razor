@@ -1,20 +1,9 @@
 ﻿@using MudBlazor
-@using DominateDocsData.Models
+@using System.Reflection
 
 <MudDialog>
     <DialogContent>
-
         <MudText Typo="Typo.h6" Class="mb-2">@Title</MudText>
-
-        <!-- Select/Deselect All -->
-        <MudCheckBox T="bool"
-                     Label="Select all documents"
-                     Value="@IsAllSelected"
-                     ValueChanged="@( (bool v) => OnSelectAllChanged(v) )"
-                     Indeterminate="@IsIndeterminate"
-                     Class="mb-2" />
-
-
 
         <MudTextField @bind-Value="_search"
                       Placeholder="Search..."
@@ -28,16 +17,17 @@
         <MudPaper Outlined="true" Class="pa-2" Style="max-height:420px; overflow:auto;">
             @foreach (var doc in FilteredDocs)
             {
-                <div @key="doc.Id">
-                    <MudCheckBox T="bool"
-                                 Dense="true"
-                                 Label="@doc.Name"
-                                 Value="@_selectedIds.Contains(doc.Id)"
-                                 ValueChanged="@( (bool v) => Toggle(doc.Id, v) )" />
-                </div>
+                var id = GetDocumentId(doc);
+                if (id == Guid.Empty)
+                    continue;
+
+                <MudCheckBox T="bool"
+                             Dense="true"
+                             Label="@doc.Name"
+                             Checked="@SelectedIds.Contains(id)"
+                             CheckedChanged="@((bool checkedVal) => Toggle(id, checkedVal))" />
             }
         </MudPaper>
-
     </DialogContent>
 
     <DialogActions>
@@ -47,65 +37,90 @@
 </MudDialog>
 
 @code {
-    [CascadingParameter] public IMudDialogInstance MudDialog { get; set; } = default!;
-
     [Parameter] public string Title { get; set; } = "Select Documents";
-    [Parameter] public List<DominateDocsData.Models.DTOs.DocumentListDTO> AllDocuments { get; set; } = new();
+
+    // ✅ Force the correct Document type (data model)
+    [Parameter] public IReadOnlyList<DominateDocsData.Models.Document> AllDocuments { get; set; } = Array.Empty<DominateDocsData.Models.Document>();
+
     [Parameter] public HashSet<Guid> SelectedIds { get; set; } = new();
 
-    private HashSet<Guid> _selectedIds = new();
-    private string _search = "";
+    // ✅ NEW: caller-provided callbacks that actually close the dialog using the IDialogReference
+    [Parameter] public Action<HashSet<Guid>>? OnApply { get; set; }
+    [Parameter] public Action? OnCancel { get; set; }
 
-    protected override void OnParametersSet()
+    private string _search = string.Empty;
+
+    private IEnumerable<DominateDocsData.Models.Document> FilteredDocs
     {
-        AllDocuments ??= new();
-        SelectedIds ??= new();
-
-        _selectedIds = new HashSet<Guid>(SelectedIds);
-
-        // prune ids that don’t exist anymore
-        var valid = AllDocuments.Select(d => d.Id).ToHashSet();
-        _selectedIds.RemoveWhere(id => !valid.Contains(id));
-    }
-
-    private IEnumerable<DominateDocsData.Models.DTOs.DocumentListDTO> FilteredDocs =>
-        string.IsNullOrWhiteSpace(_search)
-            ? AllDocuments
-            : AllDocuments.Where(d => (d.Name ?? "")
-                .Contains(_search, StringComparison.OrdinalIgnoreCase));
-
-    
-
-    private bool IsAllSelected => AllDocuments is { Count: > 0 } && AllDocuments.All(d => _selectedIds.Contains(d.Id));
-
-    private bool IsIndeterminate => _selectedIds.Count > 0 && !IsAllSelected;
-
-    private Task OnSelectAllChanged(bool value)
-    {
-        if (value)
+        get
         {
-            _selectedIds.Clear();
-            foreach (var d in AllDocuments)
-                _selectedIds.Add(d.Id);
-        }
-        else
-        {
-            _selectedIds.Clear();
-        }
+            if (AllDocuments is null || AllDocuments.Count == 0)
+                return Enumerable.Empty<DominateDocsData.Models.Document>();
 
-        StateHasChanged();
-        return Task.CompletedTask;
+            if (string.IsNullOrWhiteSpace(_search))
+                return AllDocuments;
+
+            var term = _search.Trim();
+
+            AllDocuments = AllDocuments.Where(x => !SelectedIds.Contains(x.Id)).ToList();
+
+            return AllDocuments.Where(d =>
+            {
+                var name = GetDocumentDisplayName(d);
+                return !string.IsNullOrWhiteSpace(name) && name.Contains(term, StringComparison.OrdinalIgnoreCase);
+            });
+        }
     }
 
-    private void Toggle(System.Guid id, bool isChecked)
+    private void Toggle(Guid id, bool isChecked)
     {
-        if (isChecked) _selectedIds.Add(id);
-        else _selectedIds.Remove(id);
-
-        StateHasChanged();
+        if (isChecked) SelectedIds.Add(id);
+        else SelectedIds.Remove(id);
     }
 
-    private void Cancel() => MudDialog.Cancel();
+    private void Cancel()
+    {
+        // Caller closes the dialog. We just signal intent.
+        OnCancel?.Invoke();
+    }
 
-    private void Apply() => MudDialog.Close(DialogResult.Ok(_selectedIds));
+    private void Apply()
+    {
+        // Caller closes the dialog and returns data.
+        OnApply?.Invoke(new HashSet<Guid>(SelectedIds));
+    }
+
+    // --------- Document model drift helpers ---------
+
+    private static Guid GetDocumentId(DominateDocsData.Models.Document doc)
+    {
+        foreach (var name in new[] { "Id", "DocumentId", "_id" })
+        {
+            var prop = doc.GetType().GetProperty(name, BindingFlags.Public | BindingFlags.Instance);
+            if (prop is null) continue;
+
+            var val = prop.GetValue(doc);
+            if (val is Guid g && g != Guid.Empty) return g;
+
+            if (val is string s && Guid.TryParse(s, out var parsed) && parsed != Guid.Empty)
+                return parsed;
+        }
+
+        return Guid.Empty;
+    }
+
+    // private static string GetDocumentDisplayName(DominateDocsData.Models.Document doc)
+    // {
+    //     foreach (var name in new[] { "Name", "Title", "DisplayName", "DocumentName", "FileName" })
+    //     {
+    //         var prop = doc.GetType().GetProperty(name, BindingFlags.Public | BindingFlags.Instance);
+    //         if (prop is null) continue;
+
+    //         if (prop.GetValue(doc) is string s && !string.IsNullOrWhiteSpace(s))
+    //             return s;
+    //     }
+
+    //     var id = GetDocumentId(doc);
+    //     return id == Guid.Empty ? "(Unnamed Document)" : id.ToString();
+    // }
 }

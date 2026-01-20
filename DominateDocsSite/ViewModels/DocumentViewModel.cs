@@ -50,15 +50,22 @@ public partial class DocumentViewModel : ObservableObject
         this.appState = appState;
         this.webEnv = webEnv;
 
-       
-        dbApp.GetRecords<DominateDocsData.Models.Document>().Where(doc => doc.DocLibId == SelectedLibrary.Id).ToList().ForEach(doc => RecordList.Add(doc));
-       
-
         userId = userSession.UserId;
 
         this.dbApp = dbApp;
 
         this.wordServices = wordServices;
+    }
+
+    [RelayCommand]
+    private async Task InitializePage()
+    {
+        if (EditingRecord is null) GetNewRecordAsync();
+
+        RecordList.Clear();
+
+        dbApp.GetRecords<DominateDocsData.Models.Document>().Where(doc => doc.DocLibId == userSession.DocLibId).ToList().ForEach(doc => RecordList.Add(doc));
+                
     }
 
     [RelayCommand]
@@ -228,7 +235,7 @@ public partial class DocumentViewModel : ObservableObject
         EditingRecord = new DominateDocsData.Models.Document()
         {
            
-            DocLibId = SelectedLibrary.Id,
+            DocLibId = userSession.DocLibId,
            
         };
 

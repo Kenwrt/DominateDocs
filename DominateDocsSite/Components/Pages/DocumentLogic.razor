@@ -164,32 +164,15 @@
 
     }
 
-    // private async Task OnClickDocumentSetsAsync(DocumentSet? ds)
-    // {
-    //     if (ds != null)
-    //     {
-    //         await vm.SelectDocumentSetCommand.ExecuteAsync(ds);
-
-    //         isDocumentSetListDisplayed = false;
-
-    //     }
-    // }
-
     private async Task ClearDocumentSetSelectionAsync()
     {
        // await vm.ClearDocumentSetSelectionCommand.ExecuteAsync(null);
     }
 
-    // private async Task OnSelectDocumentSetAsync(DocumentSet? ds)
-    // {
-    //     if (ds != null) await vm.SelectDocumentSetCommand.ExecuteAsync(ds);
-    // }
-
+   
     private async Task OnDocumentAssignmentCompleteAsync(HashSet<DominateDocsData.Models.Document> selectedItems)
     {
        
-       // vm.EditingDocumentSet.Documents = selectedItems.ToList();
-
         await vm.EditDocumentSetCommand.ExecuteAsync(null);
 
         //convert Has Table to Observable Collection 

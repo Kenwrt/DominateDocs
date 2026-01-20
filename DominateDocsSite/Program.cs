@@ -114,7 +114,7 @@ builder.Services.AddAuthorization(options =>
         policy.RequireRole("DevAdmin"));
 });
 
-var connectionString = builder.Configuration.GetConnectionString("ApplicationSqlConnection") ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
+var connectionString = builder.Configuration.GetConnectionString("AzureSqlConnection") ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
 
 connectionString = encrypt.Decrypt(connectionString);
 
@@ -337,7 +337,7 @@ var aes = new EncryptAes();
 builder.Services.AddDocumentManagerServices(options =>
 {
     options.DbName = builder.Configuration.GetValue<string>("DocumentManager:DbName", "DefaultDBNotNamed")?.Trim();
-    options.DbConnectionString = aes.Decrypt(builder.Configuration.GetValue<string>("ConnectionStrings:ApplicationMongoConnection")?.Trim());
+    options.DbConnectionString = aes.Decrypt(builder.Configuration.GetValue<string>("ConnectionStrings:AtlasMongoConnection")?.Trim());
     options.StorageName = builder.Configuration.GetValue<string>("DocumentManager:StorageName")?.Trim();
     options.EndPoint = builder.Configuration.GetValue<string>("DocumentManager:EndPoint")?.Trim();
     options.AccessKey = builder.Configuration.GetValue<string>("DocumentManager:AccessKey")?.Trim();
@@ -364,8 +364,8 @@ builder.Services.AddDocumentManagerServices(options =>
 builder.Services.AddApiEndpointsServices(builder.Configuration, options =>
 {
     options.ApplicationName = builder.Configuration.GetValue<string>("ApplicationName").Trim();
-    options.SqlConString = builder.Configuration.GetValue<string>("ConnectionStrings:ApplicationSqlConnection", "").Trim();
-    options.MongoConString = builder.Configuration.GetValue<string>("ConnectionStrings:ApplicationMongoConnection", "").Trim();
+    options.SqlConString = builder.Configuration.GetValue<string>("ConnectionStrings:AzureSqlConnection", "").Trim();
+    options.MongoConString = builder.Configuration.GetValue<string>("ConnectionStrings:AtlasMongoConnection", "").Trim();
     options.WebPath = builder.Environment.WebRootPath.Trim();
     options.ApiKey = "123456";
 });

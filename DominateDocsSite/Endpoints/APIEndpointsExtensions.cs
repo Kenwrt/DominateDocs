@@ -192,8 +192,9 @@ public static class ApiEndpointsExtensions
 
             DocumentTag documentTag = JsonConvert.DeserializeObject<DocumentTag>(await wordServices.RetrieveHiddenTagsAsync(fs, "DominateDocsTag"));
 
-            if (documentTag is null)
-                return Results.NotFound($"Document with ID {documentTag.DocumentId} not found.");
+            if (documentTag is null) documentTag = JsonConvert.DeserializeObject<DocumentTag>(await wordServices.RetrieveHiddenTagsAsync(fs, "LiquidDocsTag"));
+
+            if (documentTag is null) return Results.NotFound($"Document with ID {documentTag.DocumentId} not found.");
 
             Document docTemp = dbApp.GetRecordById<Document>(documentTag.DocumentId);
 

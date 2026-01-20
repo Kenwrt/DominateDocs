@@ -42,10 +42,10 @@ public partial class LoanTypeListViewModel : ObservableObject
         {
             var uid = UserGuid;
 
-            var items = dbApp.GetRecords<LoanType>().Select(x => new LoanTypeListDTO(x.Id, x.Name, x.Description, x.IconKey)).ToList();
+            var items = dbApp.GetRecords<LoanType>().Where(x => x.DocLibId == userSession.DocLibId).Select(x => new LoanTypeListDTO(x.Id, x.Name, x.Description, x.IconKey)).ToList();
 
             RecordList = new ObservableCollection<LoanTypeListDTO>(items);
-
+                       
             // keep selection if still exists
             if (SelectedRecord is not null && RecordList.Any(x => x.Id == SelectedRecord.Id) == false)
                 SelectedRecord = null;

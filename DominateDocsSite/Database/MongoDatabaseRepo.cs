@@ -22,23 +22,24 @@ public class MongoDatabaseRepo : IMongoDatabaseRepo
         this.client = client;
 
         mongoConn = client.GetDatabase("DominateDocsSite");
+        GetConnection();
     }
 
     private void GetConnection()
     {
         try
         {
-            var atlas = aes.Decrypt(config.GetConnectionString("ApplicationMongoConnection"));
-            var app = aes.Decrypt(config.GetConnectionString("ApplicationMongoConnection"));
+            var atlas = aes.Decrypt(config.GetConnectionString("AtlasMongoConnection"));
+            var app = aes.Decrypt(config.GetConnectionString("AtlasMongoConnection"));
 
             var connString = !string.IsNullOrWhiteSpace(atlas) ? atlas : app;
 
             if (string.IsNullOrWhiteSpace(connString))
-                throw new InvalidOperationException("No Mongo connection string found. Set AtlasMongoConnection or ApplicationMongoConnection.");
+                throw new InvalidOperationException("No Mongo connection string found. Set AtlasMongoConnection or AtlasMongoConnection.");
 
             const string databaseName = "DominateDocsSite";
 
-            BsonSerializer.RegisterSerializer(new GuidSerializer(GuidRepresentation.Standard));
+            //BsonSerializer.RegisterSerializer(new GuidSerializer(GuidRepresentation.Standard));
 
             var client = new MongoClient(connString);
             mongoConn = client.GetDatabase(databaseName);
