@@ -15,17 +15,17 @@
                       AdornmentIcon="@Icons.Material.Filled.Search" />
 
         <MudPaper Outlined="true" Class="pa-2" Style="max-height:420px; overflow:auto;">
-            @foreach (var doc in FilteredDocs)
+            @foreach (var doc in AllDocuments.Where(x => !SelectedIds.Contains(x.Id)).ToList())
             {
-                var id = GetDocumentId(doc);
-                if (id == Guid.Empty)
+                
+                if (doc.Id == Guid.Empty)
                     continue;
 
                 <MudCheckBox T="bool"
-                             Dense="true"
                              Label="@doc.Name"
-                             Checked="@SelectedIds.Contains(id)"
-                             CheckedChanged="@((bool checkedVal) => Toggle(id, checkedVal))" />
+                             Value="@SelectedIds.Contains(doc.Id)"
+                             ValueChanged="@((bool isChecked) => OnCheckedChanged(doc.Id, isChecked))" />
+                
             }
         </MudPaper>
     </DialogContent>
@@ -40,7 +40,7 @@
     [Parameter] public string Title { get; set; } = "Select Documents";
 
     // ✅ Force the correct Document type (data model)
-    [Parameter] public IReadOnlyList<DominateDocsData.Models.Document> AllDocuments { get; set; } = Array.Empty<DominateDocsData.Models.Document>();
+    [Parameter] public IReadOnlyList<DominateDocsData.Models.DTOs.DocumentListDTO> AllDocuments { get; set; } = Array.Empty<DominateDocsData.Models.DTOs.DocumentListDTO>();
 
     [Parameter] public HashSet<Guid> SelectedIds { get; set; } = new();
 
@@ -50,27 +50,30 @@
 
     private string _search = string.Empty;
 
-    private IEnumerable<DominateDocsData.Models.Document> FilteredDocs
-    {
-        get
-        {
-            if (AllDocuments is null || AllDocuments.Count == 0)
-                return Enumerable.Empty<DominateDocsData.Models.Document>();
+    private bool docIsChecked; // <-- DON'T do this in a foreach (see note below)
 
-            if (string.IsNullOrWhiteSpace(_search))
-                return AllDocuments;
+    // private IEnumerable<DominateDocsData.Models.DTOs.DocumentListDTO> FilteredDocs
+    // {
+    //     get
+    //     {
+    //         if (AllDocuments is null || AllDocuments.Count == 0)
+    //             return Enumerable.Empty<DominateDocsData.Models.DTOs.DocumentListDTO>();
 
-            var term = _search.Trim();
+    //         if (string.IsNullOrWhiteSpace(_search))
+    //             return AllDocuments;
 
-            AllDocuments = AllDocuments.Where(x => !SelectedIds.Contains(x.Id)).ToList();
+    //         var term = _search.Trim();
 
-            return AllDocuments.Where(d =>
-            {
-                var name = GetDocumentDisplayName(d);
-                return !string.IsNullOrWhiteSpace(name) && name.Contains(term, StringComparison.OrdinalIgnoreCase);
-            });
-        }
-    }
+    //         AllDocuments = AllDocuments.Where(x => !SelectedIds.Contains(x.Id)).ToList();
+
+    //         return AllDocuments.Where(d =>
+    //         {
+    //              var name = d.Name;
+    //             //var name = GetDocumentDisplayName(d);
+    //             return !string.IsNullOrWhiteSpace(name) && name.Contains(term, StringComparison.OrdinalIgnoreCase);
+    //         });
+    //     }
+    // }
 
     private void Toggle(Guid id, bool isChecked)
     {
@@ -78,11 +81,21 @@
         else SelectedIds.Remove(id);
     }
 
+    private void OnCheckedChanged(Guid id, bool isChecked)
+    {
+
+        if (isChecked) SelectedIds.Add(id);
+        else SelectedIds.Remove(id);
+
+    }
+
     private void Cancel()
     {
         // Caller closes the dialog. We just signal intent.
         OnCancel?.Invoke();
     }
+
+    private EventCallback<bool> CreateCheckedChanged(Guid id) => EventCallback.Factory.Create<bool>(this, isChecked => Toggle(id, isChecked));
 
     private void Apply()
     {
