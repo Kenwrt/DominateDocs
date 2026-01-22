@@ -323,6 +323,10 @@
 
     private string? SelectedLoanType { get; set; }
 
+
+    // Applied once after the VM loads (existing agreement / defaults)
+    private bool loanTypeDefaultApplied;
+
     private bool defaultProfileApplied = false;
 
     private DominateDocsData.Enums.QuickLoanSettings.FormSections? SelectedDefaultFormTypeUi { get; set; } = null;
@@ -375,6 +379,53 @@
 
        
     }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        // Run after render so we don't have to change how InitializePageCommand executes.
+        // This ensures vm.LoanTypes + vm.EditingAgreement are populated before we attempt defaults.
+        if (loanTypeDefaultApplied)
+            return;
+
+        if (vm?.EditingAgreement is null || vm.LoanTypes is null || vm.LoanTypes.Count == 0)
+            return;
+
+        // Only default Step 1 when we already have a stored loan type on the agreement
+        if (vm.EditingAgreement.LoanTypeId == System.Guid.Empty && string.IsNullOrWhiteSpace(vm.EditingAgreement.LoanTypeName))
+            return;
+
+        ApplyLoanTypeDefaultsFromAgreement();
+        loanTypeDefaultApplied = true;
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private void ApplyLoanTypeDefaultsFromAgreement()
+    {
+        if (vm?.EditingAgreement is null || vm.LoanTypes is null || vm.LoanTypes.Count == 0)
+            return;
+
+        var id = vm.EditingAgreement.LoanTypeId;
+        var name = vm.EditingAgreement.LoanTypeName;
+
+        // Prefer ID match (most reliable)
+        var match = vm.LoanTypes.FirstOrDefault(x => x.Id == id);
+
+        // Fallback to Name match
+        if (match is null && !string.IsNullOrWhiteSpace(name))
+            match = vm.LoanTypes.FirstOrDefault(x => string.Equals(x.Name, name, System.StringComparison.OrdinalIgnoreCase));
+
+        if (match is null)
+            return;
+
+        // Drives Step 1 tile highlight + Next button enable
+        SelectedLoanType = match.Name;
+
+        // Keep agreement values consistent
+        vm.EditingAgreement.LoanTypeId = match.Id;
+        vm.EditingAgreement.LoanTypeName = match.Name;
+    }
+
 
     private void SelectRole(DominateDocsData.Enums.UserEnums.UserTypes role)
     {
