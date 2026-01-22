@@ -31,11 +31,11 @@
 
                         </MudSelect>
 
-                <MudSwitch Class="pl-4 mb-4 mt-4" T="bool" @bind-Value="vm.EditingRecord.IsOwnerOccupied" Color="Color.Primary" Label="Is Owner Occupied" />
-                <MudTextField Class="pl-4" Style="background-color: white;" Variant="Variant.Outlined" @bind-Value="vm.EditingRecord.LegalDescription" Label="Description" Required="true" />
+                        <MudSwitch Class="pl-4 mb-4 mt-4" T="bool" @bind-Value="vm.EditingRecord.IsOwnerOccupied" Color="Color.Primary" Label="Is Owner Occupied" />
+                        <MudTextField Class="pl-4" Style="background-color: white;" Variant="Variant.Outlined" @bind-Value="vm.EditingRecord.LegalDescription" Label="Description" Required="true" />
 
 
-                <AddressCompleteMap OnAddressChange="OnAddressComplete" Row="false" MultipleAddress="false" AddressList="@addresDTOList" />
+                        <AddressCompleteMap OnAddressChange="OnAddressComplete" Row="false" MultipleAddress="false" AddressList="@addresDTOList" DisplayMap="true" />
                 
                 
                     
@@ -43,7 +43,8 @@
                 </MudItem>
                 <MudItem md="4">
                     <div class="d-flex flex-column gap-2">
-                <MudTextField Class="pl-4 mt-10 mr-5" Style="background-color: white;" Variant="Variant.Outlined" @bind-Value="vm.EditingRecord.ParcelNumber" Label="Parcel Number" Required="false" />
+
+                        <MudTextField Class="pl-4 mt-10 mr-5" Style="background-color: white;" Variant="Variant.Outlined" @bind-Value="vm.EditingRecord.ParcelNumber" Label="Parcel Number" Required="false" />
 
                         <MudNumericField Class="pl-4 mr-5" Style="background-color: white;" HideSpinButtons="true" Adornment="Adornment.Start" AdornmentText="$" Culture="CultureInfo.InvariantCulture"
                                  Format="N2" @bind-Value="vm.EditingRecord.EstimatedValue" Label="Estimated Value" Variant="Variant.Outlined" Step=".2M" />
@@ -62,7 +63,7 @@
                  <MudItem md="4">
                     <div class="d-flex flex-column gap-2">
 
-                <PropertyOwner OnPropertyOwnerComplete="OnPropertyOwnerComplete" OnPropertyOwnerCancel="OnPropertyOwnerCancel" AllowRecordEdit=true PropertyOwnerList="vm.EditingRecord.PropertyOwners" />
+                            <PropertyOwner OnPropertyOwnerComplete="OnPropertyOwnerComplete" OnPropertyOwnerCancel="OnPropertyOwnerCancel" AllowRecordEdit=true PropertyOwnerList="vm.EditingRecord.PropertyOwners" />
 
                             
                             <MudStack Row="true" Spacing="5" Class="mt-4">

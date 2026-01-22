@@ -123,7 +123,7 @@ public partial class BrokerViewModel : ObservableObject
         EditingRecord = new DominateDocsData.Models.Broker()
         {
             UserId = userId,
-            BrokerCode = GenerateLenderCode()
+            BrokerCode = $"B-{DisplayHelper.GenerateIdCode()}"
         };
     }
 }

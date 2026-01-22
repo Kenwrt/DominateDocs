@@ -18,60 +18,36 @@
 
 @if (!String.IsNullOrEmpty(searchString))
 {
-     <MudGrid>
-
+    <MudGrid>
         <MudItem md="12">
 
-    <MudText class="pl-4 mt-5" Typo="Typo.h6">Existing Brokers</MudText>
-            <MudTable Items="FilteredList" Context="BrokerContext" Hover="true" Bordered="true" Dense="true" @bind-SelectedItem="vm.SelectedRecord" @ref="searchTable" RowClick="OnSelectedBroker" T="DominateDocsData.Models.Broker">
-        <ToolBarContent>
-                    <MudTextField @bind-Value="searchString"
-                                  Placeholder="Search..."
-                                  Immediate="true" />
-        </ToolBarContent>
-        <HeaderContent>
-            <MudTh>Entity Name</MudTh>
-            <MudTh>Address</MudTh>
-            <MudTh>Phone</MudTh>
-            <MudTh>Email</MudTh>
-            <MudTh>Add</MudTh>
-            <MudTh>
-                <MudButton Class="rounded-4"
-                            Variant="Variant.Text"
-                            Size="Size.Small"
-                            Color="Color.Primary"
-                            StartIcon="@Icons.Material.Filled.ArrowBack"
-                            OnClick="SearchBackAsync">
-                    Back
-                </MudButton>
-                        
-            </MudTh>
-
-        </HeaderContent>
-        <RowTemplate>
-            <MudTd DataLabel="Enitity Name">@BrokerContext.EntityName</MudTd>
-            <MudTd DataLabel="Address">@BrokerContext.FullAddress</MudTd>
-            <MudTd DataLabel="Phone">@BrokerContext.ContactPhoneNumber</MudTd>
-            <MudTd DataLabel="Email">@BrokerContext.ContactEmail</MudTd>
-            <MudTd>
-                <MudButton Variant="Variant.Text"
-                            Size="Size.Small"
-                            Color="Color.Info"
-                            StartIcon="@Icons.Material.Filled.Add"
-                            OnClick="@(() => OnSelectedRecord(BrokerContext))">
-                    Add Broker
-                </MudButton>
-            </MudTd>
-        </RowTemplate>
-        <NoRecordsContent>
-            <MudText Color="Color.Secondary" Class="pa-4">
-                🚫 No Active Brokers Found!
-            </MudText>
-        </NoRecordsContent>
-    </MudTable>
+            <MudStack Spacing="2" Class="mb-4 mt-5">
+                @foreach (var item in vm.RecordList)
+                {
+                    <MudPaper Elevation="0" Class="pa-3" Style="background: #fafafa; border: 1px solid #e0e0e0; border-radius: 6px;">
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3">
+                                <MudChip T="string" Size="Size.Small" Color="Color.Primary" Variant="Variant.Filled">@item.EntityName</MudChip>
+                                <MudChip T="string" Size="Size.Small" Color="Color.Secondary" Variant="Variant.Filled">@item.FullAddress</MudChip>
+                                <MudChip T="string" Size="Size.Small" Color="Color.Success" Variant="Variant.Filled">@item.ContactPhoneNumber</MudChip>
+                            </MudStack>
+                            <MudStack Row="true" Spacing="4">
+                                <MudButton Variant="Variant.Text"
+                                           Size="Size.Small"
+                                           Color="Color.Info"
+                                           StartIcon="@Icons.Material.Filled.Add"
+                                           OnClick="@(() => AddExistingButton(item))">
+                                    Add This Broker
+                                </MudButton>
+                                @* <MudLink Href="#" Typo="Typo.body2" Color="Color.Primary">edit</MudLink>
+                                <MudLink Href="#" Typo="Typo.body2" Color="Color.Error">remove</MudLink> *@
+                            </MudStack>
+                        </MudStack>
+                    </MudPaper>
+                }
+            </MudStack>
 
         </MudItem>
-
     </MudGrid>
 }
 else
@@ -82,64 +58,54 @@ else
 
             <MudItem md="12">
 
-                <div class="d-flex justify-space-between align-center">
+                <MudStack Spacing="2" Class="mb-4">
 
-                    <MudTable Items="vm.MyBrokerList" Context="BrokerContext" Hover="true" Bordered="false" Dense="true" @bind-SelectedItem="vm.SelectedRecord" @ref="listTable" RowClick="OnSelectedRecord" T="DominateDocsData.Models.Broker">
+                    @foreach (var item in vm.MyList)
+                    {
+                        <MudPaper Elevation="0" Class="pa-3" Style="background: #fafafa; border: 1px solid #e0e0e0; border-radius: 6px;">
+                            <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3">
+                                    <MudChip T="string" Size="Size.Small" Color="Color.Primary" Variant="Variant.Filled">@item.EntityName</MudChip>
+                                    <MudChip T="string" Size="Size.Small" Color="Color.Secondary" Variant="Variant.Filled">@item.FullAddress</MudChip>
+                                    <MudChip T="string" Size="Size.Small" Color="Color.Success" Variant="Variant.Filled">@item.ContactPhoneNumber</MudChip>
+                                </MudStack>
+                                <MudStack Row="true" Spacing="4">
+                                    <MudButton Variant="Variant.Text"
+                                               Size="Size.Small"
+                                               Color="Color.Info"
+                                               StartIcon="@Icons.Material.Filled.Edit"
+                                               OnClick="@(() => OnSelectedRecord(item))">
+                                        Edit
+                                    </MudButton>
 
-                        <HeaderContent>
-                            <MudTh>Name</MudTh>
-                            <MudTh>Address</MudTh>
-                            <MudTh></MudTh>
-                        </HeaderContent>
-                        <RowTemplate>
-                            <MudTd DataLabel="Enitity Name">@BrokerContext.EntityName</MudTd>
-                            <MudTd DataLabel="Address">@BrokerContext.FullAddress</MudTd>
-                            <MudTd>
-                                <MudButton Variant="Variant.Text"
-                                           Size="Size.Small"
-                                           Color="Color.Info"
-                                           StartIcon="@Icons.Material.Filled.Edit"
-                                           OnClick="@(() => OnSelectedRecord(BrokerContext))">
-                                    Edit
-                                </MudButton>
+                                    <MudButton Variant="Variant.Text"
+                                               Size="Size.Small"
+                                               Color="Color.Error"
+                                               StartIcon="@Icons.Material.Filled.Delete"
+                                               OnClick="@(() => DeleteRecordAsync(item))">
+                                        Remove
+                                    </MudButton>
+                                    @* <MudLink Href="#" Typo="Typo.body2" Color="Color.Primary">edit</MudLink>
+                                    <MudLink Href="#" Typo="Typo.body2" Color="Color.Error">remove</MudLink> *@
+                                </MudStack>
+                            </MudStack>
+                        </MudPaper>
+                    }
 
-                                <MudButton Variant="Variant.Text"
-                                           Size="Size.Small"
-                                           Color="Color.Error"
-                                           StartIcon="@Icons.Material.Filled.Delete"
-                                           OnClick="@(() => DeleteRecordAsync(BrokerContext))">
-                                    Delete
-                                </MudButton>
-                            </MudTd>
-                        </RowTemplate>
-                        <NoRecordsContent>
-                            <MudText Color="Color.Secondary" Class="pa-4">
-                                🚫 No Active Guarantors Found!
-                            </MudText>
-                        </NoRecordsContent>
-                    </MudTable>
+                </MudStack>
 
-                </div>
-                `
-            </MudItem>
-            <MudItem md="12">
 
-                <div class="d-flex justify-start mb-4 ml-20">
-                    <div class="add-display-button-container">
-                        <MudButton Variant="Variant.Text"
-                                   Size="Size.Small"
-                                   Color="Color.Error"
-                                   StartIcon="@Icons.Material.Filled.Delete"
-                                   OnClick="AddAdditionalButton">
-                            Additional Brokers?
-                        </MudButton>
-                    </div>
-                </div>
+                <MudButton Variant="Variant.Text"
+                           Size="Size.Small"
+                           Color="Color.Error"
+                           StartIcon="@Icons.Material.Filled.Add"
+                           OnClick="AddButton">
+                    Add Broker?
+                </MudButton>
 
             </MudItem>
 
         </MudGrid>
-
     }
     else
     {
@@ -276,7 +242,7 @@ else
                             }
 
 
-                            <AddressCompleteMap OnAddressChange="OnAddressComplete" Row="false" MultipleAddress="false" AddressList="@addresDTOList" />
+                                <AddressCompleteMap OnAddressChange="OnAddressComplete" Row="false" MultipleAddress="false" AddressList="@addresDTOList" DisplayMap="false" />
 
 
 
@@ -313,6 +279,7 @@ else
 {
     [Parameter] public EventCallback<List<DominateDocsData.Models.Broker>> OnBrokerComplete { get; set; }
     [Parameter] public EventCallback OnBrokerCanceled { get; set; }
+    [Parameter] public List<DominateDocsData.Models.Broker> SelectedBrokers { get; set; } = new();
 
     public MudTable<DominateDocsData.Models.Broker> listTable = null;
     private MudTable<DominateDocsData.Models.Broker> searchTable = new();
@@ -359,7 +326,7 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        vm.InitializePageCommand.Execute(null);
+        vm.InitializePageCommand.Execute(SelectedBrokers);
 
         if (!String.IsNullOrEmpty(vm.EditingRecord.FullAddress))
         {
@@ -406,7 +373,7 @@ else
 
             vm.UpsertRecordCommand.Execute(null);
 
-            await OnBrokerComplete.InvokeAsync(vm.MyBrokerList.ToList());
+            await OnBrokerComplete.InvokeAsync(vm.MyList.ToList());
 
             displayList = true;
 
@@ -459,11 +426,13 @@ else
 
         vm.DeleteRecordCommand.Execute(r);
 
+        await OnBrokerComplete.InvokeAsync(vm.MyList.ToList());
+
         displayList = true;
 
         StateHasChanged();
 
-        await OnBrokerComplete.InvokeAsync(vm.MyBrokerList.ToList());
+       
 
 
     }
@@ -507,20 +476,33 @@ else
     {
         vm.GetNewRecordCommand.Execute(null);
 
-        AddButtonDisabled = true;
-        displayList = true;
-    }
-
-    private void AddAdditionalButton()
-    {
-
-        vm.GetNewRecordCommand.Execute(null);
-
         addresDTOList.Clear();
 
+        AddButtonDisabled = true;
+
+        editRecord = false;
+
+        displayList = false;
+    }
+
+    private void AddExistingButton(DominateDocsData.Models.Broker r)
+    {
+
+        vm.SelectRecordCommand.Execute(r);
+
+        int index = vm.MyList.FindIndex(x => x.Id == r.Id);
+
+        if (index == -1) vm.MyList.Add(r);
 
         AddButtonDisabled = true;
+
+        searchString = "";
+
+        editRecord = true;
+
         displayList = false;
+
+        StateHasChanged();
     }
 
 

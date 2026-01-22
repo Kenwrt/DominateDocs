@@ -1,225 +1,152 @@
-﻿
-@using System.Text
+﻿@using System.Text
 @using DominateDocsData.Models
 @using DominateDocsData.Enums
 @using System.Globalization
 
-
 @rendermode InteractiveServer
-
 @inject QuickPropertyViewModel vm
 @inject NavigationManager NavigationManager
 @inject ISnackbar Snackbar
 @inject UserSession Session
-@inject QuickPropertyValidator PropertyValidator
-@inject PropertyOwnerValidator PropertyOwnerValidator
-@inject LienValidator LienValidator
 
 
+@if (AddEdit)
+{
+    <MudGrid>
 
-<MudForm Context="contextProperty" Model="@vm.EditingRecord" @ref="@formEditRecord" Validation="@PropertyValidator" ValidationDelay="0">
-    <MudGrid GutterSize="3">
+        <MudItem md="12">
 
-        <MudItem md="4">
-            <div class="d-flex flex-column gap-2">
-                <MudSelect Class="ml-4 mt-10" Style="background-color: white;" T="DominateDocsData.Enums.Property.Types" Variant="Variant.Outlined" Label="Select Property Type" @bind-Value="vm.EditingRecord.PropertyType" Dense="true">
+            <MudStack Spacing="2" Class="mb-4">
 
-                    @foreach (var tr in Enum.GetValues<DominateDocsData.Enums.Property.Types>())
-                    {
-                        <MudSelectItem Style="background-color: white;" T="DominateDocsData.Enums.Property.Types" Value="tr">@tr.GetDescription()</MudSelectItem>
-                    }
+                @foreach (var item in vm.MyList)
+                {
+                    <MudPaper Elevation="0" Class="pa-3" Style="background: #fafafa; border: 1px solid #e0e0e0; border-radius: 6px;">
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3">
+                                <MudChip T="string" Size="Size.Small" Color="Color.Secondary" Variant="Variant.Filled">@item.FullAddress</MudChip>
+                               
+                            </MudStack>
+                            <MudStack Row="true" Spacing="4">
+                                <MudLink Href="#" Typo="Typo.body2" Color="Color.Primary">edit</MudLink>
+                                <MudLink Href="#" Typo="Typo.body2" Color="Color.Error">remove</MudLink>
+                            </MudStack>
+                        </MudStack>
+                    </MudPaper>
+                }
 
-                </MudSelect>
-
-                <MudSwitch Class="pl-4 mb-4 mt-4" T="bool" @bind-Value="vm.EditingRecord.IsOwnerOccupied" Color="Color.Primary" Label="Is Owner Occupied" />
-                <MudTextField Class="pl-4" Style="background-color: white;" Variant="Variant.Outlined" @bind-Value="vm.EditingRecord.LegalDescription" Label="Description" Required="true" />
+            </MudStack>
 
 
-                <AddressCompleteMap OnAddressChange="OnAddressComplete" Row="false" MultipleAddress="false" AddressList="@addresDTOList" />
+            <MudButton Variant="Variant.Text"
+                        Size="Size.Small"
+                        Color="Color.Error"
+                        StartIcon="@Icons.Material.Filled.Add"
+                        OnClick="AddButton">
+                Add Peoperty?
+            </MudButton>
 
-
-
-            </div>
         </MudItem>
-        <MudItem md="4">
-            <div class="d-flex flex-column gap-2">
-                <MudTextField Class="pl-4 mt-10 mr-5" Style="background-color: white;" Variant="Variant.Outlined" @bind-Value="vm.EditingRecord.ParcelNumber" Label="Parcel Number" Required="false" />
-
-                <MudNumericField Class="pl-4 mr-5" Style="background-color: white;" HideSpinButtons="true" Adornment="Adornment.Start" AdornmentText="$" Culture="CultureInfo.InvariantCulture"
-                                 Format="N2" @bind-Value="vm.EditingRecord.EstimatedValue" Label="Estimated Value" Variant="Variant.Outlined" Step=".2M" />
-
-                <MudDatePicker Class="pl-4 mr-5" Style="background-color: white;" Label="Maturity Date" Editable="true" @bind-Date="vm.EditingRecord.LastAppraisalDate" Mask="@(new DateMask("00-00-0000"))" DateFormat="MM-dd-yyyy" Placeholder="mm-dd-yyyy" Variant="Variant.Outlined" />
-
-                <MudNumericField Class="pl-4 mr-5" Style="background-color: white;" HideSpinButtons="true" Adornment="Adornment.Start" AdornmentText="$" Culture="CultureInfo.InvariantCulture"
-                                 Format="N2" @bind-Value="vm.EditingRecord.MinimumReleasePrice" Label="Minumum Release Price" Variant="Variant.Outlined" Step=".2M" />
-
-
-                <MudNumericField Class="pl-4 mr-5" Style="background-color: white;" HideSpinButtons="true" Culture="CultureInfo.InvariantCulture"
-                                 Format="N0" @bind-Value="vm.EditingRecord.SquareFootage" Label="Square Footage" Variant="Variant.Outlined" />
-
-            </div>
-        </MudItem>
-       @*  <MudItem md="4">
-            <div class="d-flex flex-column gap-2">
-                
-                <PropertyOwner OnPropertyOwnerComplete="OnPropertyOwnerComplete" OnPropertyOwnerCancel="OnPropertyOwnerCanceled" AllowRecordEdit=true PropertyOwnerList="vm.EditingRecord.PropertyOwners" />
-
-                <Lien OnLienComplete="OnLienComplete" OnLienCancel="OnLienCanceled" AllowRecordEdit=true LienList="vm.EditingRecord.Liens" />
-                
-                <MudStack Row="true" Spacing="5" Class="mt-4">
-                    <MudSwitch Class="pl-4" T="bool" @bind-Value="vm.EditingRecord.IsActive" Color="Color.Primary" Label="Active" />
-                </MudStack>
-
-                <MudStack Row="true" Spacing="2" Class="ml-20 mb-15">
-                    <MudButton Class="pl-4 mr-15" Type="Submit" OnClick="HandleSubmit" Color="Color.Success" Variant="Variant.Filled"> @(vm.SelectedRecord == null ? "Add" : "Save")</MudButton>
-                    @if (vm.SelectedRecord != null)
-                    {
-                        <MudButton Class="pl-4 mr-15" OnClick="DeleteRecord" Color="Color.Error" Variant="Variant.Filled">Delete</MudButton>
-                    }
-                    <MudButton Class="pl-4" OnClick="ClearSelection" Color="Color.Secondary" Variant="Variant.Filled">Clear</MudButton>
-                </MudStack>
-            </div>
-        </MudItem> *@
 
     </MudGrid>
-</MudForm>
+}
+else
+{
+    <MudItem xs="12" md="12">
+        <MudPaper Elevation="1" Class="mt-5" Style="background-color: #F2F2F2;">
+
+            <br />
+
+            <MudText Class="pl-4 mt-5" Typo="Typo.h5">Property</MudText>
+
+            <Property OnPropertyComplete="OnPropertyComplete" OnPropertyCancel="OnPropertyCancel" />
+
+        </MudPaper>
+
+    </MudItem>
+}
 
 
 @code
 {
+
     [Parameter] public EventCallback<List<DominateDocsData.Models.PropertyRecord>> OnPropertyComplete { get; set; }
-    [Parameter] public EventCallback OnPropertyCancel { get; set; }
+    [Parameter] public EventCallback OnPropertyCanceled { get; set; }
+    [Parameter] public List<DominateDocsData.Models.PropertyRecord> SelectedProperties { get; set; } = new();
 
     private bool AddEdit = false;
-    private MudForm formEditRecord;
-    private bool editRecord = false;
 
-    private readonly PatternMask phoneMask = new("(000)000-0000");
 
-    private readonly PatternMask einMask = new("00-0000000");
-
-    private readonly PatternMask socialMask = new("000-00-0000");
-
-    private List<AddressDTO> addresDTOList = new();
 
     private bool AddButtonDisabled = false;
 
-    private string _search = "";
+    private string searchString = "";
+
+    // Filtered view of the Property based on searchString
+    private IEnumerable<DominateDocsData.Models.PropertyRecord> FilteredList =>
+        string.IsNullOrWhiteSpace(searchString) ? vm.RecordList : vm.RecordList.Where(l => string.IsNullOrEmpty(l.FullAddress) && l.FullAddress.Contains(searchString, StringComparison.OrdinalIgnoreCase)
+    );
+
 
     protected override async Task OnInitializedAsync()
     {
-        await vm.InitializePageCommand.ExecuteAsync(null);
-
-        if (!String.IsNullOrEmpty(vm.EditingRecord.FullAddress))
-        {
-            AddressDTO dto = new()
-            {
-                FullAddress = vm.EditingRecord.FullAddress,
-                StreetAddress = vm.EditingRecord.StreetAddress,
-                City = vm.EditingRecord.City,
-                State = vm.EditingRecord.State,
-                ZipCode = vm.EditingRecord.ZipCode,
-                County = vm.EditingRecord.County,
-                Country = vm.EditingRecord.Country,
-                Lat = vm.EditingRecord.Lat,    
-                Lng = vm.EditingRecord.Lng    
-
-            };
-            addresDTOList.Add(dto);
-        }
-
-
-
+        vm.InitializePageCommand.Execute(SelectedProperties);
     }
 
-    private async Task HandleSubmit()
+    
+
+    private void OnSelectedRecord(DominateDocsData.Models.PropertyRecord r)
     {
-        await formEditRecord.Validate();
+        if (r is not null) vm.SelectRecordCommand.Execute(r);
 
-        if (!formEditRecord.IsValid)
-        {
-            Snackbar.Add("Please correct the errors in the form.", Severity.Error);
-            return;
-        }
-        else
-        {
-            if (!editRecord)
-            {
-                if (vm.RecordList.Any(x => x.FullAddress == vm.EditingRecord.FullAddress))
-                {
-
-                    Snackbar.Add("A Property with that address already exists.", Severity.Error);
-                    return;
-                }
-            }
-            vm.UpsertRecordCommand.Execute(null);
-
-            await OnPropertyComplete.InvokeAsync(vm.MyPropertyList.ToList());
-
-            editRecord = false;
-            AddEdit = false;
-            AddButtonDisabled = false;
-
-        }
-    }
-
-    private void DeleteRecord()
-    {
-        vm.DeleteRecordCommand.Execute(null);
-        AddEdit = false;
-    }
-
-    private void ClearSelection()
-    {
-        vm.ClearSelectionCommand.Execute(null);
+        AddEdit = true;
     }
 
     private void AddButton()
     {
-        vm.EditingRecord = new DominateDocsData.Models.PropertyRecord();
-        vm.EditingRecord.Id = Guid.NewGuid();
-        vm.EditingRecord.UserId = Session.UserId;
+        vm.GetNewRecordCommand.Execute(null);
 
-        AddEdit = true;
+        //addresDTOList.Clear();
+
         AddButtonDisabled = true;
+
+        //editRecord = false;
+
+        //displayList = false;
     }
 
-    private void OnSelectedRecord(DominateDocsData.Models.PropertyRecord property)
+    private void AddExistingButton(DominateDocsData.Models.PropertyRecord r)
     {
-        if (property is not null) vm.SelectRecordCommand.Execute(property);
-        AddEdit = true;
+
+        vm.SelectRecordCommand.Execute(r);
+
+        int index = vm.MyList.FindIndex(x => x.Id == r.Id);
+
+        if (index == -1) vm.MyList.Add(r);
+
+        AddButtonDisabled = true;
+
+        searchString = "";
+
+       // editRecord = true;
+
+//displayList = false;
+
+        StateHasChanged();
+    }
+
+    private void OnDeleteRecord(DominateDocsData.Models.PropertyRecord r)
+    {
+        if (r is not null) vm.DeleteRecordCommand.Execute(r);
+
+        AddEdit = false;
     }
 
    
-
-    private void OnAddressComplete(List<AddressDTO> addressList)
+    private void OnPropertyCancel()
     {
-        if (addressList == null || addressList.Count == 0)
-        {
-            vm.EditingRecord.FullAddress = string.Empty;
-            vm.EditingRecord.StreetAddress = string.Empty;
-            vm.EditingRecord.City = string.Empty;
-            vm.EditingRecord.ZipCode = string.Empty;
-            vm.EditingRecord.County = string.Empty;
-            vm.EditingRecord.Country = string.Empty;
-        }
-        else
-        {
-            var addressDTO = addressList.FirstOrDefault();
 
-            vm.EditingRecord.FullAddress = addressDTO.FullAddress;
-            vm.EditingRecord.StreetAddress = addressDTO.StreetAddress;
-            vm.EditingRecord.State = addressDTO.State;
-            vm.EditingRecord.City = addressDTO.City;
-            vm.EditingRecord.ZipCode = addressDTO.ZipCode;
-            vm.EditingRecord.County = addressDTO.County;
-            vm.EditingRecord.Country = addressDTO.Country;
-            vm.EditingRecord.Lat = addressDTO.Lat;
-            vm.EditingRecord.Lng = addressDTO.Lng;   
-        }
+        AddEdit = false;
 
-       
+        StateHasChanged();
     }
-
-   
 }

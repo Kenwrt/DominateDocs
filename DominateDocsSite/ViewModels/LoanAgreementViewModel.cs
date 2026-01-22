@@ -73,6 +73,8 @@ public partial class LoanAgreementViewModel : ObservableObject
 
     private Guid userId;
 
+    
+
     private UserSession session;
 
     private readonly IMongoDatabaseRepo dbApp;
@@ -146,6 +148,7 @@ public partial class LoanAgreementViewModel : ObservableObject
         }
 
         GetLoanMaturityDate(EditingAgreement.TermInMonths);
+               
     }
 
     [RelayCommand]

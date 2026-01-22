@@ -1,5 +1,6 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using DominateDocsData.Models;
 using DominateDocsData.Models.DTOs;
 using DominateDocsSite.Database;
 using DominateDocsSite.Helpers;
@@ -112,6 +113,77 @@ public partial class QuickLoanAgreementViewModel : ObservableObject
         try
         {
             GetNewRecord();
+
+            //Assign User's Profiles
+            UserProfile userProfile = dbApp.GetRecords<UserProfile>().FirstOrDefault(x => x.UserId == userId);
+
+            if (userProfile is not null)
+            {
+                EditingAgreement.InterestRate = userProfile.LoanDefaults.InterestRate;
+                EditingAgreement.TermInMonths = userProfile.LoanDefaults.TermInMonths;
+                EditingAgreement.AmorizationType = userProfile.LoanDefaults.AmorizationType;
+                EditingAgreement.PrincipalAmount = userProfile.LoanDefaults.PrincipalAmount;
+                EditingAgreement.RateType = userProfile.LoanDefaults.RateType;
+                EditingAgreement.RepaymentSchedule = userProfile.LoanDefaults.RepaymentSchedule;
+
+                //  r = Record
+
+                if (userProfile.LoanDefaults.LenderId != Guid.Empty)
+                {
+                    Lender r = dbApp.GetRecords<Lender>().FirstOrDefault(x => x.Id == userProfile.LoanDefaults.LenderId);
+                    if (r != null)
+                    {
+                        int index = EditingAgreement.Lenders.FindIndex(x => x.Id == r.Id);
+                        
+                        if (index == -1) EditingAgreement.Lenders.Add(r);
+                    }
+                }
+
+                if (userProfile.LoanDefaults.BrokerId != Guid.Empty)
+                {
+                    Broker r = dbApp.GetRecords<Broker>().FirstOrDefault(x => x.Id == userProfile.LoanDefaults.BrokerId);
+
+                    if (r != null)
+                    {
+                        int index = EditingAgreement.Brokers.FindIndex(x => x.Id == r.Id);
+
+                        if (index == -1) EditingAgreement.Brokers.Add(r);
+                    }
+                }
+
+                if (userProfile.LoanDefaults.ServicerId != Guid.Empty)
+                {
+                    Servicer r = dbApp.GetRecords<Servicer>().FirstOrDefault(x => x.Id == userProfile.LoanDefaults.ServicerId);
+                    
+                    if (r != null)
+                    {
+                        int index = EditingAgreement.Servicers.FindIndex(x => x.Id == r.Id);
+
+                        if (index == -1) EditingAgreement.Servicers.Add(r);
+                    }
+                }
+
+                if (userProfile.LoanDefaults.OtherId != Guid.Empty)
+                {
+                    //Lender Lender = dbApp.GetRecords<Lender>().FirstOrDefault(x => x.Id == userProfile.LoanDefaults.LenderId);
+                    //if (Lender != null)
+                    //{
+                    //    int index = EditingAgreement.Lenders.FindIndex(x => x.Id == Lender.Id);
+
+                    //    if (index == -1) EditingAgreement.Lenders.Add(Lender);
+                    //}
+                }
+
+                if (userProfile.LoanDefaults.UserType is not null) EditingAgreement.UserType = userProfile.LoanDefaults.UserType;
+
+                if (userProfile.LoanDefaults.LoanTypeId != Guid.Empty)
+                {
+                    EditingAgreement.LoanTypeId = userProfile.LoanDefaults.LoanTypeId;
+                    EditingAgreement.LoanTypeName = userProfile.LoanDefaults.LoanTypeName;
+                   
+                }
+
+            }
 
             AgreementList.Clear();
 

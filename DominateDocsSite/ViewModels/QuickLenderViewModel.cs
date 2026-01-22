@@ -14,7 +14,7 @@ public partial class QuickLenderViewModel : ObservableObject
     private ObservableCollection<DominateDocsData.Models.Lender> recordList = new();
 
     [ObservableProperty]
-    private ObservableCollection<DominateDocsData.Models.Lender> myLenderList = new();
+    private ObservableCollection<DominateDocsData.Models.Lender> myList = new();
 
     [ObservableProperty]
     private DominateDocsData.Models.Lender editingRecord = null;
@@ -39,8 +39,10 @@ public partial class QuickLenderViewModel : ObservableObject
     }
 
     [RelayCommand]
-    private async Task InitializePage()
+    private async Task InitializePage(List<DominateDocsData.Models.Lender> list)
     {
+        if (list != null) MyList = list.ToObservableCollection();
+
         if (EditingRecord is null) GetNewRecord();
 
         RecordList.Clear();
@@ -58,26 +60,26 @@ public partial class QuickLenderViewModel : ObservableObject
 
         //Update All Collections
 
-        int recordListIndex = RecordList.FindIndex(x => x.Id == EditingRecord.Id);
+        int index = RecordList.FindIndex(x => x.Id == EditingRecord.Id);
 
-        if (recordListIndex > -1)
+        if (index > -1)
         {
-            RecordList[recordListIndex] = EditingRecord;
+            RecordList[index] = EditingRecord;
         }
         else
         {
             RecordList.Add(EditingRecord);
         }
 
-        int myLenderIndex = MyLenderList.FindIndex(x => x.Id == EditingRecord.Id);
+        index = MyList.FindIndex(x => x.Id == EditingRecord.Id);
 
-        if (myLenderIndex > -1)
+        if (index > -1)
         {
-            MyLenderList[myLenderIndex] = EditingRecord;
+            MyList[index] = EditingRecord;
         }
         else
         {
-            MyLenderList.Add(EditingRecord);
+            MyList.Add(EditingRecord);
         }
 
         await dbApp.UpSertRecordAsync<DominateDocsData.Models.Lender>(EditingRecord);
@@ -86,13 +88,17 @@ public partial class QuickLenderViewModel : ObservableObject
     [RelayCommand]
     private async Task DeleteRecord(DominateDocsData.Models.Lender r)
     {
-        int myLenderIndex = MyLenderList.FindIndex(x => x.Id == r.Id);
+        int index = MyList.FindIndex(x => x.Id == r.Id);
 
-        if (myLenderIndex > -1)
+        if (index > -1)
         {
-            MyLenderList.RemoveAt(myLenderIndex);
+            MyList.RemoveAt(index);
         }
+
+       
     }
+
+   
 
     [RelayCommand]
     private void SelectRecord(DominateDocsData.Models.Lender r)
@@ -121,13 +127,15 @@ public partial class QuickLenderViewModel : ObservableObject
             GetNewRecord();
         }
     }
-
+        
     [RelayCommand]
     private void GetNewRecord()
     {
         EditingRecord = new DominateDocsData.Models.Lender()
         {
-            UserId = userId
+            UserId = userId,
+            LenderCode = $"L-{DisplayHelper.GenerateIdCode()}"
+
         };
     }
 }

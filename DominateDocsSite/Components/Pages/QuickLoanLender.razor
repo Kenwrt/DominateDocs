@@ -16,59 +16,34 @@
 @if (!String.IsNullOrEmpty(searchString))
 {
      <MudGrid>
-
         <MudItem md="12">
-
-            <MudText class="pl-4 mt-5" Typo="Typo.h6">Existing Lenders</MudText>
-            <MudTable Items="FilteredList" Context="LenderContext" Hover="true" Bordered="true" Dense="true" @bind-SelectedItem="vm.SelectedRecord" @ref="searchTable" RowClick="OnSelectedLender" T="DominateDocsData.Models.Lender">
-                <ToolBarContent>
-                    <MudTextField @bind-Value="searchString"
-                                  Placeholder="Search..."
-                                  Immediate="true" />
-                </ToolBarContent>
-                <HeaderContent>
-                    <MudTh>Entity Name</MudTh>
-                    <MudTh>Address</MudTh>
-                    <MudTh>Phone</MudTh>
-                    <MudTh>Email</MudTh>
-                    <MudTh>Add</MudTh>
-                    <MudTh>
-                        <MudButton Class="rounded-4"
-                                   Variant="Variant.Text"
-                                   Size="Size.Small"
-                                   Color="Color.Primary"
-                                   StartIcon="@Icons.Material.Filled.ArrowBack"
-                                   OnClick="SearchBackAsync">
-                            Back
-                        </MudButton>
-                    </MudTh>
-
-                </HeaderContent>
-                <RowTemplate>
-                    <MudTd DataLabel="Enitity Name">@LenderContext.EntityName</MudTd>
-                    <MudTd DataLabel="Address">@LenderContext.FullAddress</MudTd>
-                    <MudTd DataLabel="Phone">@LenderContext.ContactPhoneNumber</MudTd>
-                    <MudTd DataLabel="Email">@LenderContext.ContactEmail</MudTd>
-                    <MudTd>
-                        <MudButton Class="rounded-4"
-                                   Variant="Variant.Text"
-                                   Size="Size.Small"
-                                   Color="Color.Primary"
-                                   StartIcon="@Icons.Material.Filled.Add"
-                                   OnClick="@(() => AddFromSearchForEditAsync(LenderContext))">
-                            Add Guarantor
-                        </MudButton>
-                    </MudTd>
-                </RowTemplate>
-                <NoRecordsContent>
-                    <MudText Color="Color.Secondary" Class="pa-4">
-                        🚫 No Active Lenders Found!
-                    </MudText>
-                </NoRecordsContent>
-            </MudTable>
-
-       </MudItem>   
-       </MudGrid>   
+                <MudStack Spacing="2" Class="mb-4 mt-5">
+                    @foreach (var item in vm.RecordList)
+                    {
+                        <MudPaper Elevation="0" Class="pa-3" Style="background: #fafafa; border: 1px solid #e0e0e0; border-radius: 6px;">
+                            <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3">
+                                <MudChip T="string" Size="Size.Small" Color="Color.Primary" Variant="Variant.Filled">@item.EntityName</MudChip>
+                                <MudChip T="string" Size="Size.Small" Color="Color.Secondary" Variant="Variant.Filled">@item.FullAddress</MudChip>
+                                <MudChip T="string" Size="Size.Small" Color="Color.Success" Variant="Variant.Filled">@item.ContactPhoneNumber</MudChip>
+                                </MudStack>
+                                <MudStack Row="true" Spacing="4">
+                                <MudButton Variant="Variant.Text"
+                                           Size="Size.Small"
+                                           Color="Color.Info"
+                                           StartIcon="@Icons.Material.Filled.Add"
+                                           OnClick="@(() => AddExistingButton(item))">
+                                    Add This Lender
+                                </MudButton>
+                                   @*  <MudLink Href="#" Typo="Typo.body2" Color="Color.Primary">edit</MudLink>
+                                    <MudLink Href="#" Typo="Typo.body2" Color="Color.Error">remove</MudLink> *@
+                                </MudStack>
+                            </MudStack>
+                        </MudPaper>
+                    }
+                </MudStack>              
+        </MudItem>   
+     </MudGrid>   
 }
 else
 {
@@ -78,61 +53,55 @@ else
 
             <MudItem md="12">
 
-                <div class="d-flex justify-space-between align-center">
+                    <MudStack Spacing="2" Class="mb-4">
+                        
+                        @foreach (var item in vm.MyList)
+                        {
+                            <MudPaper Elevation="0" Class="pa-3" Style="background: #fafafa; border: 1px solid #e0e0e0; border-radius: 6px;">
+                                <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3">
+                                    <MudChip T="string" Size="Size.Small" Color="Color.Primary" Variant="Variant.Filled">@item.EntityName</MudChip>
+                                    <MudChip T="string" Size="Size.Small" Color="Color.Secondary" Variant="Variant.Filled">@item.FullAddress</MudChip>
+                                    <MudChip T="string" Size="Size.Small" Color="Color.Success" Variant="Variant.Filled">@item.ContactPhoneNumber</MudChip>
+                                    </MudStack>
+                                    <MudStack Row="true" Spacing="4">
+                                    <MudButton Variant="Variant.Text"
+                                               Size="Size.Small"
+                                               Color="Color.Info"
+                                               StartIcon="@Icons.Material.Filled.Edit"
+                                               OnClick="@(() => OnSelectedRecord(item))">
+                                        Edit
+                                    </MudButton>
 
-                    <MudTable Items="vm.MyLenderList" Context="LenderContext" Hover="true" Bordered="false" Dense="true" @bind-SelectedItem="vm.SelectedRecord" @ref="listTable" RowClick="OnSelectedBorrowerFromList" T="DominateDocsData.Models.Lender">
+                                    <MudButton Variant="Variant.Text"
+                                               Size="Size.Small"
+                                               Color="Color.Error"
+                                               StartIcon="@Icons.Material.Filled.Delete"
+                                               OnClick="@(() => DeleteRecordAsync(item))">
+                                        Remove
+                                    </MudButton>
 
-                        <HeaderContent>
-                            <MudTh>Name</MudTh>
-                            <MudTh>Address</MudTh>
-                            <MudTh></MudTh>
-                        </HeaderContent>
-                        <RowTemplate>
-                            <MudTd DataLabel="Enitity Name">@LenderContext.EntityName</MudTd>
-                            <MudTd DataLabel="Address">@LenderContext.FullAddress</MudTd>
-                            <MudTd>
-                                <MudButton Variant="Variant.Text"
-                                           Size="Size.Small"
-                                           Color="Color.Info"
-                                           StartIcon="@Icons.Material.Filled.Edit"
-                                           OnClick="@(() => OnSelectedRecord(LenderContext))">
-                                    Edit
-                                </MudButton>
+                                   
+                                       @*  <MudLink Href="#" Typo="Typo.body2" Color="Color.Primary">edit</MudLink>
+                                        <MudLink Href="#" Typo="Typo.body2" Color="Color.Error">remove</MudLink> *@
+                                    </MudStack>
+                                </MudStack>
+                            </MudPaper>
+                        }
+                                              
+                    </MudStack>
 
-                                <MudButton Variant="Variant.Text"
-                                           Size="Size.Small"
-                                           Color="Color.Error"
-                                           StartIcon="@Icons.Material.Filled.Delete"
-                                           OnClick="@(() => DeleteRecordAsync(LenderContext))">
-                                    Delete
-                                </MudButton>
-                            </MudTd>
-                        </RowTemplate>
-                        <NoRecordsContent>
-                            <MudText Color="Color.Secondary" Class="pa-4">
-                                🚫 No Active Lender Found!
-                            </MudText>
-                        </NoRecordsContent>
-                    </MudTable>
 
-                </div>
-                `
+                    <MudButton Variant="Variant.Text"
+                               Size="Size.Small"
+                               Color="Color.Error"
+                               StartIcon="@Icons.Material.Filled.Add"
+                               OnClick="AddButton">
+                        Add Lender?
+                    </MudButton>
+            
             </MudItem>
-            <MudItem md="12">
-
-                <div class="d-flex justify-start mb-4 ml-20">
-                    <div class="add-display-button-container">
-                        <MudButton Variant="Variant.Text"
-                                   Size="Size.Small"
-                                   Color="Color.Error"
-                                   StartIcon="@Icons.Material.Filled.Delete"
-                                   OnClick="AddAdditionalButton">
-                            Additional Lenders?
-                        </MudButton>
-                    </div>
-                </div>
-            </MudItem>
-
+         
         </MudGrid>
     }
     else
@@ -262,7 +231,7 @@ else
                                 }
 
 
-                                <AddressCompleteMap OnAddressChange="OnAddressComplete" Row="false" MultipleAddress="false" AddressList="@addresDTOList" />
+                                <AddressCompleteMap OnAddressChange="OnAddressComplete" Row="false" MultipleAddress="false" AddressList="@addresDTOList" DisplayMap="false" />
 
 
 
@@ -297,18 +266,24 @@ else
 {
     [Parameter] public EventCallback<List<DominateDocsData.Models.Lender>> OnLenderComplete { get; set; }
     [Parameter] public EventCallback OnLenderCanceled { get; set; }
+    [Parameter] public List<DominateDocsData.Models.Lender> SelectedLenders { get; set; } = new();
 
     public MudTable<DominateDocsData.Models.Lender> listTable = null;
+
     private MudTable<DominateDocsData.Models.Lender> searchTable = new();
+
+    private int index = 0;
 
     private MudForm formEditRecord;
 
     private bool editRecord = false;
 
     private bool displayList = false;
+
     private bool AddButtonDisabled = false;
 
     private List<DominateDocsData.Models.Lender> searchList = new();
+
     private List<AddressDTO> addresDTOList = new();
 
     private readonly PatternMask phoneMask = new("(000)000-0000");
@@ -317,8 +292,8 @@ else
 
     private readonly PatternMask socialMask = new("000-00-0000");
 
-
     private string emailPattern = @"^[\w\-\.]+@([\w\-]+\.)+[\w\-]{2,4}$";
+
     private string ssnMask = "000-00-0000";
 
     private int editingIndex = -1;
@@ -341,7 +316,7 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        vm.InitializePageCommand.Execute(null);
+        vm.InitializePageCommand.Execute(SelectedLenders);
 
         if (!String.IsNullOrEmpty(vm.EditingRecord.FullAddress))
         {
@@ -388,7 +363,7 @@ else
 
             vm.UpsertRecordCommand.Execute(null);
 
-            await OnLenderComplete.InvokeAsync(vm.MyLenderList.ToList());
+            await OnLenderComplete.InvokeAsync(vm.MyList.ToList());
 
             editRecord = false;
 
@@ -440,13 +415,13 @@ else
 
         vm.DeleteRecordCommand.Execute(r);
 
+        await OnLenderComplete.InvokeAsync(vm.MyList.ToList());
+
         displayList = true;
 
         StateHasChanged();
 
-        await OnLenderComplete.InvokeAsync(vm.MyLenderList.ToList());
-
-
+       
 
     }
 
@@ -483,18 +458,35 @@ else
 
     private void AddButton()
     {
-        AddButtonDisabled = true;
-        displayList = true;
-    }
-
-    private void AddAdditionalButton()
-    {
         vm.GetNewRecordCommand.Execute(null);
 
         addresDTOList.Clear();
 
         AddButtonDisabled = true;
+
+        editRecord = false;
+
         displayList = false;
+    }
+
+    private void AddExistingButton(DominateDocsData.Models.Lender r)
+    {
+
+        vm.SelectRecordCommand.Execute(r);
+
+        int index = vm.MyList.FindIndex(x => x.Id == r.Id);
+
+        if (index == -1) vm.MyList.Add(r);
+
+        AddButtonDisabled = true;
+
+        searchString = "";
+
+        editRecord = true;
+
+        displayList = false;
+
+        StateHasChanged();
     }
 
     private void OnSelectedRecord(DominateDocsData.Models.Lender lender)

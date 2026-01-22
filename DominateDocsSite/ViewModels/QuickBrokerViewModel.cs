@@ -14,7 +14,7 @@ public partial class QuickBrokerViewModel : ObservableObject
     private ObservableCollection<DominateDocsData.Models.Broker> recordList = new();
 
     [ObservableProperty]
-    private ObservableCollection<DominateDocsData.Models.Broker> myBrokerList = new();
+    private ObservableCollection<DominateDocsData.Models.Broker> myList = new();
 
     [ObservableProperty]
     private DominateDocsData.Models.Broker editingRecord = null;
@@ -66,26 +66,26 @@ public partial class QuickBrokerViewModel : ObservableObject
 
         //Update All Collections
 
-        int recordListIndex = RecordList.FindIndex(x => x.Id == EditingRecord.Id);
+        int index = RecordList.FindIndex(x => x.Id == EditingRecord.Id);
 
-        if (recordListIndex > -1)
+        if (index > -1)
         {
-            RecordList[recordListIndex] = EditingRecord;
+            RecordList[index] = EditingRecord;
         }
         else
         {
             RecordList.Add(EditingRecord);
         }
 
-        int myBrokerIndex = MyBrokerList.FindIndex(x => x.Id == EditingRecord.Id);
+        index = MyList.FindIndex(x => x.Id == EditingRecord.Id);
 
-        if (myBrokerIndex > -1)
+        if (index > -1)
         {
-            MyBrokerList[myBrokerIndex] = EditingRecord;
+            MyList[index] = EditingRecord;
         }
         else
         {
-            MyBrokerList.Add(EditingRecord);
+            MyList.Add(EditingRecord);
         }
 
         await dbApp.UpSertRecordAsync<DominateDocsData.Models.Broker>(EditingRecord);
@@ -94,13 +94,16 @@ public partial class QuickBrokerViewModel : ObservableObject
     [RelayCommand]
     private async Task DeleteRecord(DominateDocsData.Models.Broker r)
     {
-        int myBrokerIndex = MyBrokerList.FindIndex(x => x.Id == r.Id);
+        int index = MyList.FindIndex(x => x.Id == r.Id);
 
-        if (myBrokerIndex > -1)
+        if (index > -1)
         {
-            MyBrokerList.RemoveAt(myBrokerIndex);
+            MyList.RemoveAt(index);
         }
+                
     }
+
+    
 
     [RelayCommand]
     private void SelectRecord(DominateDocsData.Models.Broker r)
@@ -127,7 +130,8 @@ public partial class QuickBrokerViewModel : ObservableObject
     {
         EditingRecord = new DominateDocsData.Models.Broker()
         {
-            UserId = userId
+            UserId = userId,
+            BrokerCode = $"B-{DisplayHelper.GenerateIdCode()}"
         };
     }
 }

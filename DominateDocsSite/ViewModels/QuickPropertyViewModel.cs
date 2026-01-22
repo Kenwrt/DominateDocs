@@ -13,7 +13,7 @@ public partial class QuickPropertyViewModel : ObservableObject
     private ObservableCollection<DominateDocsData.Models.PropertyRecord> recordList = new();
 
     [ObservableProperty]
-    private ObservableCollection<DominateDocsData.Models.PropertyRecord> myPropertyList = new();
+    private ObservableCollection<DominateDocsData.Models.PropertyRecord> myList = new();
 
     [ObservableProperty]
     private DominateDocsData.Models.PropertyRecord editingRecord = null;
@@ -25,9 +25,9 @@ public partial class QuickPropertyViewModel : ObservableObject
     private readonly UserSession userSession;
     private readonly IMongoDatabaseRepo dbApp;
     private IApplicationStateManager appState;
-    private readonly ILogger<PropertyViewModel> logger;
+    private readonly ILogger<QuickPropertyViewModel> logger;
 
-    public QuickPropertyViewModel(IMongoDatabaseRepo dbApp, ILogger<PropertyViewModel> logger, UserSession userSession, IApplicationStateManager appState)
+    public QuickPropertyViewModel(IMongoDatabaseRepo dbApp, ILogger<QuickPropertyViewModel> logger, UserSession userSession, IApplicationStateManager appState)
     {
         this.dbApp = dbApp;
         this.logger = logger;
@@ -38,8 +38,10 @@ public partial class QuickPropertyViewModel : ObservableObject
     }
 
     [RelayCommand]
-    private async Task InitializePage()
+    private async Task InitializePage(List<DominateDocsData.Models.PropertyRecord> list )
     {
+        if (list is not null) MyList = list.ToObservableCollection();   
+
         if (EditingRecord is null) GetNewRecord();
 
         SelectedRecord = null;
@@ -54,26 +56,26 @@ public partial class QuickPropertyViewModel : ObservableObject
     {
         //Update All Collections
 
-        int recordListIndex = RecordList.FindIndex(x => x.Id == EditingRecord.Id);
+        int index = RecordList.FindIndex(x => x.Id == EditingRecord.Id);
 
-        if (recordListIndex > -1)
+        if (index > -1)
         {
-            RecordList[recordListIndex] = EditingRecord;
+            RecordList[index] = EditingRecord;
         }
         else
         {
             RecordList.Add(EditingRecord);
         }
 
-        int myPropertyIndex = MyPropertyList.FindIndex(x => x.Id == EditingRecord.Id);
+        index = MyList.FindIndex(x => x.Id == EditingRecord.Id);
 
-        if (myPropertyIndex > -1)
+        if (index > -1)
         {
-            MyPropertyList[myPropertyIndex] = EditingRecord;
+            MyList[index] = EditingRecord;
         }
         else
         {
-            MyPropertyList.Add(EditingRecord);
+            MyList.Add(EditingRecord);
         }
 
         await dbApp.UpSertRecordAsync<DominateDocsData.Models.PropertyRecord>(EditingRecord);
@@ -82,13 +84,17 @@ public partial class QuickPropertyViewModel : ObservableObject
     [RelayCommand]
     private async Task DeleteRecord(DominateDocsData.Models.PropertyRecord r)
     {
-        int myPropertyIndex = MyPropertyList.FindIndex(x => x.Id == r.Id);
+        int index = MyList.FindIndex(x => x.Id == r.Id);
 
-        if (myPropertyIndex > -1)
+        if (index > -1)
         {
-            MyPropertyList.RemoveAt(myPropertyIndex);
+            MyList.RemoveAt(index);
         }
+
+      
     }
+
+    
 
     [RelayCommand]
     private void SelectRecord(DominateDocsData.Models.PropertyRecord r)

@@ -14,7 +14,7 @@ public partial class QuickGuarantorViewModel : ObservableObject
     private ObservableCollection<DominateDocsData.Models.Guarantor> recordList = new();
 
     [ObservableProperty]
-    private ObservableCollection<DominateDocsData.Models.Guarantor> myGuarantorList = new();
+    private ObservableCollection<DominateDocsData.Models.Guarantor> myList = new();
 
     [ObservableProperty]
     private DominateDocsData.Models.Guarantor editingRecord = null;
@@ -39,8 +39,10 @@ public partial class QuickGuarantorViewModel : ObservableObject
     }
 
     [RelayCommand]
-    private async Task InitializePage()
+    private async Task InitializePage(List<DominateDocsData.Models.Guarantor> list)
     {
+        if (list is not null) MyList = list.ToObservableCollection();
+
         if (EditingRecord is null) GetNewRecord();
 
         RecordList.Clear();
@@ -58,42 +60,45 @@ public partial class QuickGuarantorViewModel : ObservableObject
 
         //Update All Collections
 
-        int recordListIndex = RecordList.FindIndex(x => x.Id == EditingRecord.Id);
-
-        if (recordListIndex > -1)
+        int index = RecordList.FindIndex(x => x.Id == EditingRecord.Id);
+                
+        if (index > -1)
         {
-            RecordList[recordListIndex] = EditingRecord;
+            RecordList[index] = EditingRecord;
         }
         else
-        {
+        { 
             RecordList.Add(EditingRecord);
         }
 
-        int myGuarantorIndex = MyGuarantorList.FindIndex(x => x.Id == EditingRecord.Id);
+        index = MyList.FindIndex(x => x.Id == EditingRecord.Id);
 
-        if (myGuarantorIndex > -1)
+        if (index > -1)
         {
-            MyGuarantorList[myGuarantorIndex] = EditingRecord;
+            MyList[index] = EditingRecord;
         }
         else
         {
-            MyGuarantorList.Add(EditingRecord);
+            MyList.Add(EditingRecord);
         }
 
         await dbApp.UpSertRecordAsync<DominateDocsData.Models.Guarantor>(EditingRecord);
     }
 
     [RelayCommand]
-    private async Task DeleteRecord(DominateDocsData.Models.Guarantor r)
+    private void DeleteRecord(DominateDocsData.Models.Guarantor r)
     {
-        int myGuarantorIndex = MyGuarantorList.FindIndex(x => x.Id == r.Id);
+        int index = MyList.FindIndex(x => x.Id == r.Id);
 
-        if (myGuarantorIndex > -1)
+        if (index > -1)
         {
-            MyGuarantorList.RemoveAt(myGuarantorIndex);
+            MyList.RemoveAt(index);
         }
+
+       
     }
 
+    
     [RelayCommand]
     private void SelectRecord(DominateDocsData.Models.Guarantor r)
     {
@@ -119,7 +124,8 @@ public partial class QuickGuarantorViewModel : ObservableObject
     {
         EditingRecord = new DominateDocsData.Models.Guarantor()
         {
-            UserId = userId
+            UserId = userId,
+            GuarantorCode = $"G-{DisplayHelper.GenerateIdCode()}"
         };
     }
 }

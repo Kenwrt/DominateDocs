@@ -1,6 +1,8 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using DominateDocsData.Enums;
+using DominateDocsData.Models;
+using DominateDocsSite.Components.Pages;
 using DominateDocsSite.Database;
 using DominateDocsSite.Helpers;
 using DominateDocsSite.State;
@@ -8,27 +10,27 @@ using System.Collections.ObjectModel;
 
 namespace DominateDocsSite.ViewModels;
 
-public partial class QuickBorrowerViewModel : ObservableObject
+public partial class QuickServicerViewModel : ObservableObject
 {
     [ObservableProperty]
-    private ObservableCollection<DominateDocsData.Models.Borrower> recordList = new();
+    private ObservableCollection<DominateDocsData.Models.Servicer> recordList = new();
 
     [ObservableProperty]
-    private ObservableCollection<DominateDocsData.Models.Borrower> myList = new();
+    private ObservableCollection<DominateDocsData.Models.Servicer> myList = new();
 
     [ObservableProperty]
-    private DominateDocsData.Models.Borrower editingRecord = null;
+    private DominateDocsData.Models.Servicer editingRecord = null;
 
     [ObservableProperty]
-    private DominateDocsData.Models.Borrower selectedRecord = null;
+    private DominateDocsData.Models.Servicer selectedRecord = null;
 
     private Guid userId;
     private readonly UserSession userSession;
-    private IApplicationStateManager appState;
     private readonly IMongoDatabaseRepo dbApp;
-    private readonly ILogger<QuickBorrowerViewModel> logger;
+    private readonly ILogger<QuickServicerViewModel> logger;
+    private IApplicationStateManager appState;
 
-    public QuickBorrowerViewModel(IMongoDatabaseRepo dbApp, ILogger<QuickBorrowerViewModel> logger, UserSession userSession, IApplicationStateManager appState)
+    public QuickServicerViewModel(IMongoDatabaseRepo dbApp, ILogger<QuickServicerViewModel> logger, UserSession userSession, IApplicationStateManager appState)
     {
         this.dbApp = dbApp;
         this.logger = logger;
@@ -39,23 +41,23 @@ public partial class QuickBorrowerViewModel : ObservableObject
     }
 
     [RelayCommand]
-    private async Task InitializePage(List<DominateDocsData.Models.Borrower> list)
+    private async Task InitializePage(List<DominateDocsData.Models.Servicer> list)
     {
-        if (list is not null)
-        {
-            MyList = list.ToObservableCollection();
-        }
-        else
-        {
-            MyList = new ObservableCollection<DominateDocsData.Models.Borrower>();
-        }
-
-
+        if (list is not null) MyList = list.ToObservableCollection();
+    
         if (EditingRecord is null) GetNewRecord();
 
         RecordList.Clear();
 
-        dbApp.GetRecords<DominateDocsData.Models.Borrower>().ToList().ForEach(lf => RecordList.Add(lf));
+        dbApp.GetRecords<DominateDocsData.Models.Servicer>().ToList().ForEach(lf => RecordList.Add(lf));
+    }
+
+    [RelayCommand]
+    private void SelectRecordById(Guid id)
+    {
+
+        EditingRecord = dbApp.GetRecords<DominateDocsData.Models.Servicer>().FirstOrDefault(x => x.Id == id);
+
     }
 
     [RelayCommand]
@@ -90,11 +92,11 @@ public partial class QuickBorrowerViewModel : ObservableObject
             MyList.Add(EditingRecord);
         }
 
-        await dbApp.UpSertRecordAsync<DominateDocsData.Models.Borrower>(EditingRecord);
+        await dbApp.UpSertRecordAsync<DominateDocsData.Models.Servicer>(EditingRecord);
     }
 
     [RelayCommand]
-    private async Task DeleteRecord(DominateDocsData.Models.Borrower r)
+    private async Task DeleteRecord(DominateDocsData.Models.Servicer r)
     {
         int index = MyList.FindIndex(x => x.Id == r.Id);
 
@@ -102,28 +104,13 @@ public partial class QuickBorrowerViewModel : ObservableObject
         {
             MyList.RemoveAt(index);
         }
-                
-    }
 
-    //[RelayCommand]
-    //private void AddRecord(DominateDocsData.Models.Borrower r)
-    //{
-    //    int index = MyList.FindIndex(x => x.Id == r.Id);
+    }   
 
-    //    if (index > -1)
-    //    {
-    //        MyList[index] = r;
-    //    }
-    //    else
-    //    {
-    //        MyList.Add(r);
-    //    }
-
-
-    //}
+    
 
     [RelayCommand]
-    private void SelectRecord(DominateDocsData.Models.Borrower r)
+    private void SelectRecord(DominateDocsData.Models.Servicer r)
     {
         if (r != null)
         {
@@ -145,10 +132,9 @@ public partial class QuickBorrowerViewModel : ObservableObject
     [RelayCommand]
     private void GetNewRecord()
     {
-        EditingRecord = new DominateDocsData.Models.Borrower()
+        EditingRecord = new DominateDocsData.Models.Servicer()
         {
             UserId = userId
-            
         };
     }
 }

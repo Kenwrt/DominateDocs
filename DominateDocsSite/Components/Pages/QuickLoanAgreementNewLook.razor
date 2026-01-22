@@ -57,7 +57,8 @@
     </div>
 
     <!-- MAIN CARD -->
-    <MudPaper Elevation="0" Class="mx-auto mt-10" Style="max-width: 920px; border-radius: 16px; border: 1px solid var(--mud-palette-lines-default); overflow: hidden;">
+    @* <MudPaper Elevation="0" Class="mx-auto mt-10" Style="max-width: 920px; border-radius: 16px; border: 1px solid var(--mud-palette-lines-default); overflow: hidden;"> *@
+    <MudPaper Elevation="0" Class="mx-auto mt-10" Style="max-width: 1380px; border-radius: 16px; border: 1px solid var(--mud-palette-lines-default); overflow: hidden;">
 
         @* STEP 1 *@
         @if (ActiveStep == 0)
@@ -83,6 +84,7 @@
                                 {                                            
                                     SelectedLoanType = type.Name;
                                     vm.EditingAgreement.LoanTypeId = type.Id;
+                                    
                                 })">
                                 <div class="d-flex flex-column align-center justify-center"
                                         style="height: 120px; padding: 18px;">
@@ -124,17 +126,14 @@
         else if (ActiveStep == 1)
         {
             <div class="pa-7">
-                <MudText Typo="Typo.h6">Loan Info</MudText>
-                <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mt-1">
-                    Add general loan information.
-                </MudText>
-
+                <MudText Typo="Typo.h6">Loan Info - Add general loan information </MudText>
+                
                 <MudGrid Spacing="3">
 
-                    <MudItem xs="12">
-                        <MudText Typo="Typo.h6">Loan Info</MudText>
-                        <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mt-1"> Add general loan information.</MudText>
-                    </MudItem>
+                   @*  <MudItem xs="12">
+                        <MudText Typo="Typo.h6">Loan Info - Add general loan information</MudText>
+                        
+                    </MudItem> *@
 
                     <MudItem xs="12" sm="6">
                         <div class="d-flex flex-column gap-2">
@@ -235,45 +234,57 @@
 
 
                 <MudItem xs="12">
-                    <MudText Typo="Typo.h6">Loan Info</MudText>
-                    <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mt-1"> Add general loan information.</MudText>
+                    <MudText Typo="Typo.h6">Enter Loan Details</MudText>
+                    
                 </MudItem>
 
                 <MudPaper Elevation="0" Class="rounded-xl pa-6" Style="background-color: #ffffff; border: 1px solid rgba(0,0,0,0.08);">
-                    <MudText Typo="Typo.h6" Class="mb-4">What's your role when executing loans?</MudText>
-
-                    <MudGrid GutterSize="3">
-                        @foreach (var role in Roles)
+                   
+                    <MudGrid GutterSize="3" Justify="Justify.Center">
+                        @foreach (var defaultFormSelection in Enum.GetValues<DominateDocsData.Enums.QuickLoanSettings.FormSections>())
                         {
-                            <MudItem xs="12" sm="6" md="3">
+                            <MudItem xs="12" sm="4" md="4">
                                 <div class="w-100"
-                                     style="@($"cursor:pointer; {GetTileStyle(SelectedRoleUi == role.Value)}")"
-                                     @onclick="@(() => SelectRole(role.Value))">
+                                     style="@($"cursor:pointer; {GetTileStyle(SelectedDefaultFormTypeUi == defaultFormSelection)}")"
+                                     @onclick="@(() => SelectedDefualtForm(defaultFormSelection))">
                                     <div class="d-flex flex-column align-center justify-center"
                                          style="height: 96px; border-radius: 12px;">
-                                        <MudIcon Icon="@role.Icon" Size="Size.Large" Class="mb-2" />
-                                        <MudText Typo="Typo.subtitle2">@role.Label</MudText>
+                                        <MudIcon Icon="@(GetFormIcon(defaultFormSelection))" Size="Size.Large" Class="mb-2" />
+                                        <MudText Typo="Typo.subtitle2">@defaultFormSelection.ToString()</MudText>
                                     </div>
                                 </div>
                             </MudItem>
                         }
                     </MudGrid>
 
-                    <MudGrid GutterSize="3">
+
+                    <MudGrid Class="mt-6" GutterSize="3">
                         <MudItem xs="12" sm="12" md="12">
 
-                            @if (SelectedRoleUi == DominateDocsData.Enums.UserEnums.UserTypes.Lender)
+                            @if (SelectedDefaultFormTypeUi == DominateDocsData.Enums.QuickLoanSettings.FormSections.Lender)
                             {
-                                <QuickLoanLender OnLenderComplete="OnLenderComplete" OnLenderCanceled="OnLenderCanceled"/>
+                                <QuickLoanLender OnLenderComplete="OnLenderComplete" OnLenderCanceled="OnLenderCanceled" SelectedLenders="@vm.EditingAgreement.Lenders" />
                             }
-                            else if (SelectedRoleUi == DominateDocsData.Enums.UserEnums.UserTypes.Broker)
+                            else if (SelectedDefaultFormTypeUi == DominateDocsData.Enums.QuickLoanSettings.FormSections.Broker)
                             {
-                                <QuickLoanBroker OnBrokerComplete="OnBrokerComplete" OnBrokerCanceled="OnBrokerCanceled" />
+                                <QuickLoanBroker OnBrokerComplete="OnBrokerComplete" OnBrokerCanceled="OnBrokerCanceled" SelectedBrokers="@vm.EditingAgreement.Brokers" />
                             }
-                            else if (SelectedRoleUi == DominateDocsData.Enums.UserEnums.UserTypes.Servicer)
+                            else if (SelectedDefaultFormTypeUi == DominateDocsData.Enums.QuickLoanSettings.FormSections.Borrower)
+                            {
+                                <QuickLoanBorrower OnBorrowerComplete="OnBorrowerComplete" OnBorrowerCanceled="OnBorrowerCanceled" SelectedBorrowers="@vm.EditingAgreement.Borrowers" />
+                            }
+                            else if (SelectedDefaultFormTypeUi == DominateDocsData.Enums.QuickLoanSettings.FormSections.Guarantor)
+                            {
+                                <QuickLoanGuarantor OnGuarantorComplete="OnGuarantorComplete" OnGuarantorCanceled="OnGuarantorCanceled" SelectedGuarantors="@vm.EditingAgreement.Guarantors" />
+                            }
+                            else if (SelectedDefaultFormTypeUi == DominateDocsData.Enums.QuickLoanSettings.FormSections.Property )
+                            {
+                                <QuickLoanProperty OnPropertyComplete="OnPropertyComplete" OnPropertyCanceled="OnPropertyCanceled" SelectedProperties="@vm.EditingAgreement.Properties" />                                                
+                            }
+                            else if (SelectedDefaultFormTypeUi == DominateDocsData.Enums.QuickLoanSettings.FormSections.Servicer)
                             {
 
-                                <QuickLoanGuarantor OnGuarantorComplete="OnGuarantorComplete" OnGuarantorCanceled="OnGuarantorCanceled"  />
+                                <QuickLoanServicer OnServicerComplete="OnServicerComplete" OnServicerCanceled="OnServicerCanceled" SelectedServicers="@vm.EditingAgreement.Servicers" />
                             }
 
                         </MudItem>
@@ -311,6 +322,12 @@
     private int ActiveStep { get; set; } = 0;
 
     private string? SelectedLoanType { get; set; }
+
+    private bool defaultProfileApplied = false;
+
+    private DominateDocsData.Enums.QuickLoanSettings.FormSections? SelectedDefaultFormTypeUi { get; set; } = null;
+
+
     private bool CanGoNext => !string.IsNullOrWhiteSpace(SelectedLoanType);
 
     private DominateDocsData.Enums.UserEnums.UserTypes? SelectedRoleUi { get; set; } = null;
@@ -339,13 +356,24 @@
     {
         vm.InitializePageCommand.Execute(null);
 
-        // Keep UI updating when VM properties change.
+        SelectedRoleUi = UserEnums.UserTypes.Lender;
 
-        // _handler = (_, __) => InvokeAsync(StateHasChanged);
+          
+        if (vm.EditingAgreement.UserType == UserEnums.UserTypes.Lender)
+        {
+            SelectedDefaultFormTypeUi = DominateDocsData.Enums.QuickLoanSettings.FormSections.Lender;
 
-        // vm.PropertyChanged += _handler;
+        }
+        else if (vm.EditingAgreement.UserType == UserEnums.UserTypes.Broker)
+        {
+            SelectedDefaultFormTypeUi = DominateDocsData.Enums.QuickLoanSettings.FormSections.Broker;
+        }
+        else if (vm.EditingAgreement.UserType == UserEnums.UserTypes.Servicer)
+        {
+            SelectedDefaultFormTypeUi = DominateDocsData.Enums.QuickLoanSettings.FormSections.Servicer;
+        }
 
-
+       
     }
 
     private void SelectRole(DominateDocsData.Enums.UserEnums.UserTypes role)
@@ -357,11 +385,31 @@
         StateHasChanged();
     }
 
+    private void SelectedDefualtForm(DominateDocsData.Enums.QuickLoanSettings.FormSections formSection)
+    {
+
+        // Enable Continue without auto-advancing
+        SelectedDefaultFormTypeUi = formSection;
+
+        StateHasChanged();
+    }
+
+
     private static string GetRoleIcon(DominateDocsData.Enums.UserEnums.UserTypes role) => role switch
     {
         DominateDocsData.Enums.UserEnums.UserTypes.Lender => Icons.Material.Filled.AccountBalance,
         DominateDocsData.Enums.UserEnums.UserTypes.Broker => Icons.Material.Filled.Handshake,
         DominateDocsData.Enums.UserEnums.UserTypes.Servicer => Icons.Material.Filled.VerifiedUser,
+        _ => Icons.Material.Filled.HelpOutline
+    };
+
+    private static string GetFormIcon(DominateDocsData.Enums.QuickLoanSettings.FormSections formSelection) => formSelection switch
+    {
+        DominateDocsData.Enums.QuickLoanSettings.FormSections.Lender => Icons.Material.Filled.AccountBalance,
+        DominateDocsData.Enums.QuickLoanSettings.FormSections.Broker => Icons.Material.Filled.Handshake,
+        DominateDocsData.Enums.QuickLoanSettings.FormSections.Guarantor => Icons.Material.Filled.Shield,
+        DominateDocsData.Enums.QuickLoanSettings.FormSections.Property => Icons.Material.Filled.Home,
+        DominateDocsData.Enums.QuickLoanSettings.FormSections.Servicer => Icons.Material.Filled.VerifiedUser,
         _ => Icons.Material.Filled.HelpOutline
     };
 
@@ -400,20 +448,108 @@
         // e.g. vm.GenerateDocumentsCommand.Execute(null);
     }
 
-    private void OnLenderComplete(List<DominateDocsData.Models.Lender> lenders)
+   
+
+    private void OnPropertyAddressComplete(List<AddressDTO> list)
     {
-        
+        if (vm.EditingAgreement.Properties is not null)
+        {
+            vm.EditingAgreement.Properties.Clear();
+        }
+
+        foreach (var p in list)
+        {
+            PropertyRecord propertyRecord = new()
+            {
+                FullAddress = p.FullAddress,
+                StreetAddress = p.StreetAddress,
+                City = p.City,
+                ZipCode = p.ZipCode,
+                County = p.County,
+                Country = p.Country,
+                Lat = p.Lat,
+                Lng = p.Lng
+            };
+
+            if (!vm.EditingAgreement.Properties.Any(x => x.FullAddress != p.FullAddress))
+            {
+                vm.EditingAgreement.Properties.Add(propertyRecord);
+            }
+        }
+
+        vm.UpsertRecordCommand.Execute(null);
+    }
+       
+
+    private void OnBrokerComplete(List<DominateDocsData.Models.Broker> list)
+    {
+
+        vm.EditingAgreement.Brokers.Clear();
+        vm.EditingAgreement.Brokers = list;
+        vm.UpsertRecordCommand.Execute(null);
     }
 
-    private void OnBrokerComplete(List<DominateDocsData.Models.Broker> brokers)
+    private void OnPropertyComplete(List<DominateDocsData.Models.PropertyRecord> list)
     {
 
+        vm.EditingAgreement.Properties.Clear();
+        vm.EditingAgreement.Properties = list;
+        vm.UpsertRecordCommand.Execute(null);
+    }
+
+    
+    
+
+    private void OnServicerComplete(List<DominateDocsData.Models.Servicer> list)
+    {
+        // vm.EditingAgreement.Servicers.Clear();
+        // vm.EditingAgreement.Servicers = list;
+        vm.UpsertRecordCommand.Execute(null);
        
     }
 
-    private void OnGuarantorComplete(List<DominateDocsData.Models.Guarantor> guarantors)
+   
+
+    private void OnBorrowerComplete(List<DominateDocsData.Models.Borrower> list)
+    {
+        vm.EditingAgreement.Borrowers.Clear();
+
+        vm.EditingAgreement.Borrowers = list;
+
+        vm.UpsertRecordCommand.Execute(null);
+    }
+
+    private void OnLenderComplete(List<DominateDocsData.Models.Lender> list)
+    {
+        vm.EditingAgreement.Lenders.Clear();
+        vm.EditingAgreement.Lenders = list;
+        vm.UpsertRecordCommand.Execute(null);
+
+    }
+
+    private void OnGuarantorComplete(List<DominateDocsData.Models.Guarantor> list)
+    {
+        vm.EditingAgreement.Guarantors.Clear();
+        vm.EditingAgreement.Guarantors = list;
+        vm.UpsertRecordCommand.Execute(null);
+
+    }
+
+
+    private void OnBorrowerCanceled()
     {
 
+    }
+
+
+    private void OnGuarantorCanceled()
+    {
+
+    }
+
+   
+    private void OnPropertyCanceled()
+    {
 
     }
 
@@ -427,14 +563,10 @@
 
     }
 
-    private void OnServicerComplete(List<DominateDocsData.Models.Servicer> servicer)
-    {
-
-       
-    }
-
-    private void OnGuarantorCanceled()
+    private void OnServicerCanceled()
     {
 
     }
+
+    
 }

@@ -8,7 +8,7 @@
 @inject NavigationManager Nav
 @inject UserDefaultProfileViewModel vm
 @inject UserSession Session
-@inject QuickLoanAgreementViewModel lvm
+@inject QuickLoanAgreementViewModel kvm
 @inject QuickLoanAgreementValidator loanValidator
 
 <MudContainer MaxWidth="MaxWidth.False" Class="pa-0">
@@ -129,16 +129,16 @@
 
                                 @if (SelectedRoleUi == UserTypes.Lender)
                                 {
-                                    <LenderDefaultProfile OnLenderComplete="OnLenderComplete" OnLenderCanceled="OnLenderCanceled" SelectedRecordId="vm.EditingUserProfile.UserDefaultProfile.LenderId" />
+                                    <LenderDefaultProfile OnLenderComplete="OnLenderComplete" OnLenderCanceled="OnLenderCanceled" SelectedRecordId="vm.EditingUserProfile.LoanDefaults.LenderId" />
                                 }
                                 else if (SelectedRoleUi == UserTypes.Broker)
                                 {
-                                    <BrokerDefaultProfile OnBrokerComplete="OnBrokerComplete" OnBrokerCanceled="OnBrokerCanceled" SelectedRecordId="vm.EditingUserProfile.UserDefaultProfile.BrokerId" />
+                                    <BrokerDefaultProfile OnBrokerComplete="OnBrokerComplete" OnBrokerCanceled="OnBrokerCanceled" SelectedRecordId="vm.EditingUserProfile.LoanDefaults.BrokerId" />
                                 }
                                 else if (SelectedRoleUi == UserTypes.Servicer)
                                 {
 
-                                    <ServicerDefaultProfile OnServicerComplete="OnServicerComplete" OnServicerCanceled="OnServicerCanceled" SelectedRecordId="vm.EditingUserProfile.UserDefaultProfile.ServicerId" />
+                                    <ServicerDefaultProfile OnServicerComplete="OnServicerComplete" OnServicerCanceled="OnServicerCanceled" SelectedRecordId="vm.EditingUserProfile.LoanDefaults.ServicerId" />
                                 }
 
                             </MudItem>
@@ -223,16 +223,16 @@
 
 
                                     <MudNumericField Class="" Style="background-color: white;" HideSpinButtons="true" Adornment="Adornment.Start" AdornmentText="$" Culture="CultureInfo.InvariantCulture"
-                                                     Format="N2" @bind-Value="lvm.EditingAgreement.PrincipalAmount" Label="Principal Amount" Variant="Variant.Outlined" Step=".2M" />
+                                                     Format="N2" @bind-Value="vm.EditingUserProfile.LoanDefaults.PrincipalAmount" Label="Principal Amount" Variant="Variant.Outlined" Step=".2M" />
 
-                                    <MudSelect Variant="Variant.Outlined" T="Payment.RateTypes" @bind-Value="lvm.EditingAgreement.RateType" Label="Interest Rate Type">
+                                    <MudSelect Variant="Variant.Outlined" T="Payment.RateTypes" @bind-Value="vm.EditingUserProfile.LoanDefaults.RateType" Label="Interest Rate Type">
                                         @foreach (var v in Enum.GetValues<Payment.RateTypes>())
                                         {
                                             <MudSelectItem Value="v">@v</MudSelectItem>
                                         }
                                     </MudSelect>
 
-                                    <MudSelect Class="" Variant="Variant.Outlined" T="Payment.AmortizationTypes" @bind-Value="lvm.EditingAgreement.AmorizationType" Label="Amorization Type">
+                                    <MudSelect Class="" Variant="Variant.Outlined" T="Payment.AmortizationTypes" @bind-Value="vm.EditingUserProfile.LoanDefaults.AmorizationType" Label="Amorization Type">
                                         @foreach (var v in Enum.GetValues<Payment.AmortizationTypes>())
                                         {
                                             <MudSelectItem Value="v">@v</MudSelectItem>
@@ -240,16 +240,16 @@
                                     </MudSelect>
 
 
-                                    <MudNumericField Immediate="false" Class="" Variant="Variant.Outlined" HideSpinButtons="true" T="decimal" @bind-Value="lvm.EditingAgreement.InterestRate" Format="N2" Label="Interest Rate (%)" />
+                                    <MudNumericField Immediate="false" Class="" Variant="Variant.Outlined" HideSpinButtons="true" T="decimal" @bind-Value="vm.EditingUserProfile.LoanDefaults.InterestRate" Format="N2" Label="Interest Rate (%)" />
 
-                                    <MudSelect Class="" Variant="Variant.Outlined" T="Payment.AmortizationTypes" @bind-Value="lvm.EditingAgreement.AmorizationType" Label="Payment Type">
+                                    <MudSelect Class="" Variant="Variant.Outlined" T="Payment.AmortizationTypes" @bind-Value="vm.EditingUserProfile.LoanDefaults.AmorizationType" Label="Payment Type">
                                         @foreach (var v in Enum.GetValues<Payment.AmortizationTypes>())
                                         {
                                             <MudSelectItem Value="v">@v</MudSelectItem>
                                         }
                                     </MudSelect>
 
-                                    <MudNumericField Immediate="false" Class="" Variant="Variant.Outlined" T="int" HideSpinButtons="true" @bind-Value="lvm.EditingAgreement.TermInMonths" Label="Term (months)" />
+                                    <MudNumericField Immediate="false" Class="" Variant="Variant.Outlined" T="int" HideSpinButtons="true" @bind-Value="vm.EditingUserProfile.LoanDefaults.TermInMonths" Label="Term (months)" />
 
                                 </div>
 
@@ -258,21 +258,21 @@
                             <MudItem xs="12" sm="6">
 
                                 <div class="d-flex flex-column gap-2">
-                                    @if (lvm.EditingAgreement.RateType == Payment.RateTypes.Variable)
+                                    @if (vm.EditingUserProfile.LoanDefaults.RateType == Payment.RateTypes.Variable)
                                     {
-                                        <MudNumericField Immediate="false" Class="" Variant="Variant.Outlined" HideSpinButtons="true" T="decimal" @bind-Value="lvm.EditingAgreement.InitialMargin" Format="N2" Label="Initial Margin (%)" />
+                                        <MudNumericField Immediate="false" Class="" Variant="Variant.Outlined" HideSpinButtons="true" T="decimal" @bind-Value="vm.EditingUserProfile.LoanDefaults.InitialMargin" Format="N2" Label="Initial Margin (%)" />
                                     }
-                                    <MudSelect Class="" Variant="Variant.Outlined" T="Payment.Schedules" @bind-Value="lvm.EditingAgreement.RepaymentSchedule" Label="Repayment Schedule">
+                                    <MudSelect Class="" Variant="Variant.Outlined" T="Payment.Schedules" @bind-Value="vm.EditingUserProfile.LoanDefaults.RepaymentSchedule" Label="Repayment Schedule">
                                         @foreach (var v in Enum.GetValues<Payment.Schedules>())
                                         {
                                             <MudSelectItem Value="v">@v</MudSelectItem>
                                         }
                                     </MudSelect>
 
-                                    @if (lvm.EditingAgreement.RateType == Payment.RateTypes.Variable)
+                                    @if (vm.EditingUserProfile.LoanDefaults.RateType == Payment.RateTypes.Variable)
                                     {
 
-                                        <MudSelect Class="" Variant="Variant.Outlined" T="Payment.Schedules" @bind-Value="lvm.EditingAgreement.VariableInterestProperties.AdjustmentInterval" Label="Adjustment Intervals">
+                                        <MudSelect Class="" Variant="Variant.Outlined" T="Payment.Schedules" @bind-Value="vm.EditingUserProfile.LoanDefaults.VariableInterestProperties.AdjustmentInterval" Label="Adjustment Intervals">
                                             @foreach (var v in Enum.GetValues<Payment.Schedules>())
                                             {
                                                 <MudSelectItem Value="v">@v</MudSelectItem>
@@ -281,7 +281,7 @@
 
 
 
-                                        <MudSelect Class="" Variant="Variant.Outlined" T="Payment.IndexPaths" @bind-Value="lvm.EditingAgreement.VariableInterestProperties.AssumedIndexPath" Label="Assumed Index Path">
+                                        <MudSelect Class="" Variant="Variant.Outlined" T="Payment.IndexPaths" @bind-Value="vm.EditingUserProfile.LoanDefaults.VariableInterestProperties.AssumedIndexPath" Label="Assumed Index Path">
                                             @foreach (var v in Enum.GetValues<Payment.IndexPaths>())
                                             {
                                                 <MudSelectItem Value="v">@v</MudSelectItem>
@@ -354,13 +354,13 @@
         new("Loan Terms",   "Principal, rate, term, payment schedule")
     };
 
-    private string SelectedLoanTypeName => vm?.EditingUserProfile?.UserDefaultProfile?.LoanTypeName ?? string.Empty;
+    private string SelectedLoanTypeName => vm?.EditingUserProfile?.LoanDefaults?.LoanTypeName ?? string.Empty;
 
     // KEY FIX: Gate Continue based on the current step
     private bool CanContinue => ActiveStep switch
     {
         0 => SelectedRoleUi.HasValue,
-        1 => vm?.EditingUserProfile?.UserDefaultProfile?.LoanTypeName is not null,
+        1 => vm?.EditingUserProfile?.LoanDefaults?.LoanTypeName is not null,
         _ => true
     };
 
@@ -375,24 +375,24 @@
     {
         await vm.InitializePageCommand.ExecuteAsync(null);
 
-        await lvm.InitializePageCommand.ExecuteAsync(null);
+        //await lvm.InitializePageCommand.ExecuteAsync(null);
 
         // If this user already has a saved profile, hydrate the wizard UI from it.
-        if (vm.HasExistingProfile && vm.EditingUserProfile?.UserDefaultProfile is not null)
-        {
-            SelectedRoleUi = vm.EditingUserProfile.UserDefaultProfile.UserType;
+        // if (vm.HasExistingProfile && vm.EditingUserProfile?.LoanDefaults is not null)
+        // {
+        //     SelectedRoleUi = vm.EditingUserProfile.LoanDefaults.UserType;
 
-            var t = vm.EditingUserProfile.UserDefaultProfile.LoanTerms;
-            if (t is not null && lvm?.EditingAgreement is not null)
-            {
-                lvm.EditingAgreement.AmorizationType = t.AmorizationType;
-                lvm.EditingAgreement.InterestRate = t.InterestRate;
-                lvm.EditingAgreement.PrincipalAmount = t.PrincipalAmount;
-                lvm.EditingAgreement.RateType = t.RateType;
-                lvm.EditingAgreement.RepaymentSchedule = t.RepaymentSchedule;
-                lvm.EditingAgreement.TermInMonths = t.TermInMonths;
-            }
-        }
+           
+        //     // if (t is not null && lvm?.EditingAgreement is not null)
+        //     // {
+        //     //     lvm.EditingAgreement.AmorizationType = t.AmorizationType;
+        //     //     lvm.EditingAgreement.InterestRate = t.InterestRate;
+        //     //     lvm.EditingAgreement.PrincipalAmount = t.PrincipalAmount;
+        //     //     lvm.EditingAgreement.RateType = t.RateType;
+        //     //     lvm.EditingAgreement.RepaymentSchedule = t.RepaymentSchedule;
+        //     //     lvm.EditingAgreement.TermInMonths = t.TermInMonths;
+        //     // }
+        // }
 
         // IMPORTANT: do NOT default SelectedRoleUi.
         // If you ever want "edit existing profile" behavior later, you can set it here conditionally.
@@ -402,11 +402,9 @@
     {
         if (vm?.EditingUserProfile is null)
             return;
-
-        vm.EditingUserProfile.UserDefaultProfile ??= new DominateDocsData.Models.UserDefaultProfile();
-
+                  
         // Store on the model like you already do
-        vm.EditingUserProfile.UserDefaultProfile.UserType = role;
+        vm.EditingUserProfile.LoanDefaults.UserType = role;
 
         // Enable Continue without auto-advancing
         SelectedRoleUi = role;
@@ -457,16 +455,7 @@
     {
         try
         {
-            if (vm.EditingUserProfile.UserDefaultProfile.LoanTerms is null) vm.EditingUserProfile.UserDefaultProfile.LoanTerms = new DominateDocsData.Models.LoanTerms();
-
-            vm.EditingUserProfile.UserDefaultProfile!.LoanTerms.AmorizationType = lvm.EditingAgreement.AmorizationType;
-            vm.EditingUserProfile.UserDefaultProfile!.LoanTerms.InterestRate = lvm.EditingAgreement.InterestRate;
-            vm.EditingUserProfile.UserDefaultProfile!.LoanTerms.PrincipalAmount = lvm.EditingAgreement.PrincipalAmount;
-            vm.EditingUserProfile.UserDefaultProfile!.LoanTerms.RateType = lvm.EditingAgreement.RateType;
-            vm.EditingUserProfile.UserDefaultProfile!.LoanTerms.RepaymentSchedule = lvm.EditingAgreement.RepaymentSchedule;
-            vm.EditingUserProfile.UserDefaultProfile!.LoanTerms.TermInMonths = lvm.EditingAgreement.TermInMonths;
-
-            vm.UpsertUserProfileCommand.Execute(null);
+           vm.UpsertUserProfileCommand.Execute(null);
         }
         catch (FluentValidation.ValidationException ex)
         {
@@ -516,7 +505,7 @@
 
     private void OnLenderComplete(DominateDocsData.Models.Lender lender)
     {
-        vm.EditingUserProfile.UserDefaultProfile.LenderId = lender.Id;
+        vm.EditingUserProfile.LoanDefaults.LenderId = lender.Id;
 
         vm.UpsertUserProfileCommand.Execute(null);
 
@@ -525,7 +514,7 @@
     private void OnBrokerComplete(DominateDocsData.Models.Broker broker)
     {
 
-        vm.EditingUserProfile.UserDefaultProfile.BrokerId = broker.Id;
+        vm.EditingUserProfile.LoanDefaults.BrokerId = broker.Id;
         vm.UpsertUserProfileCommand.Execute(null);
     }
 
@@ -542,7 +531,7 @@
     private void OnServicerComplete(DominateDocsData.Models.Servicer servicer)
     {
 
-        vm.EditingUserProfile.UserDefaultProfile.ServicerId = servicer.Id;
+        vm.EditingUserProfile.LoanDefaults.ServicerId = servicer.Id;
         vm.UpsertUserProfileCommand.Execute(null);
     }
 

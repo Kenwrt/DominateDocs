@@ -5,6 +5,9 @@ namespace DominateDocsSite.Helpers;
 
 public static class DisplayHelper
 {
+
+    private static readonly Random rng = Random.Shared;
+
     public static string ToCurrencyString(this decimal amount)
     {
         return string.Format(CultureInfo.CurrentCulture, "{0:C}", amount);
@@ -296,6 +299,12 @@ public static class DisplayHelper
         // Otherwise $ with thousands separators, no cents
         return $"{sign}${abs:0,0}";
     }
+
+    public static int GenerateIdCode()
+    {
+        return rng.Next(10000, 100000); // upper bound is exclusive
+    }
+
 
     // Nullable-friendly wrapper if needed
     public static string FormatDollarsCompact(decimal? amount) =>

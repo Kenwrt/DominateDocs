@@ -56,17 +56,13 @@ public partial class UserDefaultProfileViewModel : ObservableObject
         try
         {
             // 1) Load loan types (used regardless of profile existence)
-            var types = dbApp.GetRecords<DominateDocsData.Models.LoanType>()
-                .Select(x => new LoanTypeListDTO(x.Id, x.Name, x.Description, x.IconKey))
-                .ToList();
+            var types = dbApp.GetRecords<DominateDocsData.Models.LoanType>().Select(x => new LoanTypeListDTO(x.Id, x.Name, x.Description, x.IconKey)).ToList();
 
             LoanTypes = new ObservableCollection<LoanTypeListDTO>(types);
 
             // 2) Load current user's profile (by UserId). Create if missing.
-            var profile = dbApp.GetRecords<UserProfile>()
-                .FirstOrDefault(x => x.UserId == CurrentUserId);
+            var profile = dbApp.GetRecords<UserProfile>().FirstOrDefault(x => x.UserId == CurrentUserId);
 
-            
 
             HasExistingProfile = profile is not null;
 
@@ -75,17 +71,14 @@ public partial class UserDefaultProfileViewModel : ObservableObject
                 profile = new UserProfile
                 {
                     UserId = CurrentUserId,
-                    UserDefaultProfile = new UserDefaultProfile()
+                   
                 };
 
                 // Persist immediately so the UI/components can rely on it existing.
                 await dbApp.UpSertRecordAsync(profile);
             }
-
-            // Defensive: ensure nested objects exist
-            profile.UserDefaultProfile ??= new UserDefaultProfile();
-            profile.UserDefaultProfile.LoanTerms ??= new LoanTerms();
-
+            
+            
             EditingUserProfile = profile;
             SelectedProfile = profile;
 
@@ -105,11 +98,8 @@ public partial class UserDefaultProfileViewModel : ObservableObject
         {
             if (EditingUserProfile is null) return;
 
-            // Defensive: ensure nested objects exist
-            EditingUserProfile.UserDefaultProfile ??= new UserDefaultProfile();
-            EditingUserProfile.UserDefaultProfile.LoanTerms ??= new LoanTerms();
-
             await dbApp.UpSertRecordAsync(EditingUserProfile);
+
             HasExistingProfile = true;
         }
         catch (Exception ex)
@@ -125,18 +115,17 @@ public partial class UserDefaultProfileViewModel : ObservableObject
         EditingUserProfile = r;
 
         // Defensive
-        EditingUserProfile.UserDefaultProfile ??= new UserDefaultProfile();
-        EditingUserProfile.UserDefaultProfile.LoanTerms ??= new LoanTerms();
+        EditingUserProfile.LoanDefaults ??= new LoanDefaults();
+       
     }
 
     [RelayCommand]
     private void SelectLoanType(LoanTypeListDTO r)
     {
-        EditingUserProfile.UserDefaultProfile ??= new UserDefaultProfile();
-        EditingUserProfile.UserDefaultProfile.LoanTerms ??= new LoanTerms();
-
-        EditingUserProfile.UserDefaultProfile.LoanTypeId = r.Id;
-        EditingUserProfile.UserDefaultProfile.LoanTypeName = r.Name;
+        EditingUserProfile.LoanDefaults ??= new LoanDefaults();
+      
+        EditingUserProfile.LoanDefaults.LoanTypeId = r.Id;
+        EditingUserProfile.LoanDefaults.LoanTypeName = r.Name;
     }
 
     [RelayCommand]
@@ -151,9 +140,9 @@ public partial class UserDefaultProfileViewModel : ObservableObject
         EditingUserProfile = new UserProfile
         {
             UserId = CurrentUserId,
-            UserDefaultProfile = new UserDefaultProfile()
+           
         };
 
-        EditingUserProfile.UserDefaultProfile.LoanTerms ??= new LoanTerms();
+       
     }
 }

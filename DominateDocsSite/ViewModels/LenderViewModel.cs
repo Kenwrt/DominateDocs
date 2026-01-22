@@ -28,10 +28,11 @@ public partial class LenderViewModel : ObservableObject
     private Guid? loanAgreementId = null;
 
     private readonly IMongoDatabaseRepo dbApp;
-    private readonly ILogger<LenderViewModel> logger;
-    private IApplicationStateManager appState;
-    private static readonly Random rng = Random.Shared;
 
+    private readonly ILogger<LenderViewModel> logger;
+
+    private IApplicationStateManager appState;
+  
     private readonly UserSession userSession;
 
     public LenderViewModel(IMongoDatabaseRepo dbApp, ILogger<LenderViewModel> logger, UserSession userSession, IApplicationStateManager appState)
@@ -127,10 +128,7 @@ public partial class LenderViewModel : ObservableObject
         }
     }
 
-    public int GenerateLenderCode()
-    {
-        return rng.Next(10000, 100000); // upper bound is exclusive
-    }
+   
 
     [RelayCommand]
     private void GetNewRecord()
@@ -138,7 +136,7 @@ public partial class LenderViewModel : ObservableObject
         EditingRecord = new DominateDocsData.Models.Lender()
         {
             UserId = userId,
-            LenderCode = GenerateLenderCode()
+            LenderCode = $"L-{DisplayHelper.GenerateIdCode()}"
 
         };
     }

@@ -21,10 +21,19 @@
                 if (doc.Id == Guid.Empty)
                     continue;
 
-                <MudCheckBox T="bool"
+                @* <MudCheckBox T="bool"
                              Label="@doc.Name"
                              Value="@SelectedIds.Contains(doc.Id)"
-                             ValueChanged="@((bool isChecked) => OnCheckedChanged(doc.Id, isChecked))" />
+                             ValueChanged="@((bool isChecked) => OnCheckedChanged(doc.Id, isChecked))" /> *@
+
+                <MudChip T="string" Clickable="true"
+                             Variant="Variant.Outlined"
+                             Color="Color.Default"
+                             OnClick="@(() => SelectDoc(doc.Id))"
+                             Class="ma-1">
+                        <MudIcon Icon="@Icons.Material.Filled.Add" Size="Size.Small" Class="me-1" />
+                        @doc.Name
+                    </MudChip>
                 
             }
         </MudPaper>
@@ -87,6 +96,12 @@
         if (isChecked) SelectedIds.Add(id);
         else SelectedIds.Remove(id);
 
+    }
+
+    private void SelectDoc(Guid id)
+    {
+        // Clicking a chip means "select it" (it will disappear because the list filters SelectedIds out).
+        if (!SelectedIds.Contains(id)) SelectedIds.Add(id);
     }
 
     private void Cancel()

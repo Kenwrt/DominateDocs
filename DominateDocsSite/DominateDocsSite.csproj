@@ -115,15 +115,19 @@
 	  <PackageReference Include="System.Windows.Forms" Version="4.0.0.0" />
   </ItemGroup>
 
-  <ItemGroup>
-    <ProjectReference Include="..\DocumentManager\DocumentManager.csproj" />
-    <ProjectReference Include="..\DominateDocsData\DominateDocsData.csproj" />
-    <ProjectReference Include="..\DominateDocsNotifier\DominateDocsNotify.csproj" />
-    <ProjectReference Include="..\StripeBillingManager\StripeBillingManager.csproj" />
-  </ItemGroup>
+ 
 
   <ItemGroup>
     <Folder Include="Data\Migrations\" />
+  </ItemGroup>
+
+ 
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Kenwrt\DominateDocs\DocumentManager\DocumentManager.csproj" />
+    <ProjectReference Include="..\..\Kenwrt\DominateDocs\DominateDocsData\DominateDocsData.csproj" />
+    <ProjectReference Include="..\..\Kenwrt\DominateDocs\DominateDocsNotifier\DominateDocsNotify.csproj" />
+    <ProjectReference Include="..\..\Kenwrt\DominateDocs\StripeBillingManager\StripeBillingManager.csproj" />
   </ItemGroup>
 
 </Project>

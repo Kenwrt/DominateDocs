@@ -274,6 +274,7 @@ builder.Services.TryAddScoped<QuickBrokerViewModel>();
 builder.Services.TryAddScoped<QuickGuarantorViewModel>();
 builder.Services.TryAddScoped<QuickLenderViewModel>();
 builder.Services.TryAddScoped<QuickPropertyViewModel>();
+builder.Services.TryAddScoped<QuickServicerViewModel>();
 builder.Services.TryAddScoped<QuickLoanAgreementViewModel>();
 builder.Services.TryAddScoped<UserDefaultProfileViewModel>();
 builder.Services.TryAddScoped<UserDefaultLenderViewModel>();

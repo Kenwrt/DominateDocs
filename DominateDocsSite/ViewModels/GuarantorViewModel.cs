@@ -130,7 +130,8 @@ public partial class GuarantorViewModel : ObservableObject
     {
         EditingRecord = new DominateDocsData.Models.Guarantor()
         {
-            UserId = userId
+            UserId = userId,
+            GuarantorCode = $"G-{DisplayHelper.GenerateIdCode()}"
         };
     }
 }

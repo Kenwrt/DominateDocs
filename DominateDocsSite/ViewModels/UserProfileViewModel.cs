@@ -54,29 +54,29 @@ public partial class UserProfileViewModel : ObservableObject
 
         recordList = new ObservableCollection<DominateDocsSite.Data.ApplicationUser>(dbContext.ApplicationUsers.ToList());
 
-        foreach (var user in recordList)
-        {
-            UserProfile userProfile = dbApp.GetRecords<DominateDocsData.Models.UserProfile>().FirstOrDefault(x => x.UserId == Guid.Parse(user.Id));
+        //foreach (var user in recordList)
+        //{
+        //    UserProfile userProfile = dbApp.GetRecords<DominateDocsData.Models.UserProfile>().FirstOrDefault(x => x.UserId == Guid.Parse(user.Id));
 
-            if (userProfile is null)
-            {
-                UserProfile newUserProfile = new UserProfile
-                {
-                    UserId = Guid.Parse(user.Id),
-                    UserName = user.UserName,
-                    Email = user.Email,
-                    Name = user.Name,
-                    Password = user.PasswordHash,
-                    ConfirmedPassword = string.Empty,
-                    ProfilePictureUrl = string.Empty,
-                    UserRole = DominateDocsData.Enums.UserEnums.Roles.User,
-                    UserDefaultProfile = new DominateDocsData.Models.UserDefaultProfile()
-                };
+        //    if (userProfile is null)
+        //    {
+        //        UserProfile newUserProfile = new UserProfile
+        //        {
+        //            UserId = Guid.Parse(user.Id),
+        //            UserName = user.UserName,
+        //            Email = user.Email,
+        //            Name = user.Name,
+        //            Password = user.PasswordHash,
+        //            ConfirmedPassword = string.Empty,
+        //            ProfilePictureUrl = string.Empty,
+        //            UserRole = DominateDocsData.Enums.UserEnums.Roles.User,
+                   
+        //        };
 
-                dbApp.UpSertRecordAsync<DominateDocsData.Models.UserProfile>(newUserProfile);
-            }
+        //        dbApp.UpSertRecordAsync<DominateDocsData.Models.UserProfile>(newUserProfile);
+        //    }
 
-        }
+        //}
 
         UserProfileList = new ObservableCollection<DominateDocsData.Models.UserProfile>(dbApp.GetRecords<DominateDocsData.Models.UserProfile>().ToList());
 
@@ -137,7 +137,7 @@ public partial class UserProfileViewModel : ObservableObject
 
         dbContext.ApplicationUsers.Remove(r);
 
-        dbApp.DeleteRecordById<DominateDocsData.Models.UserDefaultProfile>(Guid.Parse(r.Id));
+        dbApp.DeleteRecordById<DominateDocsData.Models.UserProfile>(Guid.Parse(r.Id));
     }
 
     [RelayCommand]

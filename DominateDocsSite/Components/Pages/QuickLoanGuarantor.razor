@@ -22,123 +22,89 @@
 @if (!String.IsNullOrEmpty(searchString))
 {
     <MudGrid>
+        <MudItem md="12">
 
-       <MudItem md="12">
-
-            <MudText class="pl-4 mt-5" Typo="Typo.h6">Existing Guarantors</MudText>
-            <MudTable Items="FilteredList" Context="GuarantorContext" Hover="true" Bordered="true" Dense="true" @bind-SelectedItem="vm.SelectedRecord" @ref="searchTable" RowClick="OnSelectedGuarantor" T="DominateDocsData.Models.Guarantor">
-                <ToolBarContent>
-                    <MudTextField @bind-Value="searchString"
-                                  Placeholder="Search..."
-                                  Immediate="true" />
-                </ToolBarContent>
-                <HeaderContent>
-                    <MudTh>Entity Name</MudTh>
-                    <MudTh>Address</MudTh>
-                    <MudTh>Phone</MudTh>
-                    <MudTh>Email</MudTh>
-                    <MudTh>Add</MudTh>
-                    <MudTh>
-                        <MudButton Class="rounded-4"
-                                   Variant="Variant.Text"
-                                   Size="Size.Small"
-                                   Color="Color.Primary"
-                                   StartIcon="@Icons.Material.Filled.ArrowBack"
-                                   OnClick="SearchBackAsync">
-                            Back
-                        </MudButton>
-                    </MudTh>
-
-                </HeaderContent>
-                <RowTemplate>
-                    <MudTd DataLabel="Enitity Name">@GuarantorContext.EntityName</MudTd>
-                    <MudTd DataLabel="Address">@GuarantorContext.FullAddress</MudTd>
-                    <MudTd DataLabel="Phone">@GuarantorContext.ContactPhoneNumber</MudTd>
-                    <MudTd DataLabel="Email">@GuarantorContext.ContactEmail</MudTd>
-                    <MudTd>
-                        <MudButton Class="rounded-4"
-                                   Variant="Variant.Text"
-                                   Size="Size.Small"
-                                   Color="Color.Primary"
-                                   StartIcon="@Icons.Material.Filled.Add"
-                                   OnClick="@(() => AddSearchForEditAsync(GuarantorContext))">
-                            Add Guarantor
-                        </MudButton>
-                    </MudTd>
-                </RowTemplate>
-                <NoRecordsContent>
-                    <MudText Color="Color.Secondary" Class="pa-4">
-                        🚫 No Active Guarantors Found!
-                    </MudText>
-                </NoRecordsContent>
-            </MudTable>
-
+            <MudStack Spacing="2" Class="mb-4 mt-5">
+                @foreach (var item in vm.RecordList)
+                {
+                    <MudPaper Elevation="0" Class="pa-3" Style="background: #fafafa; border: 1px solid #e0e0e0; border-radius: 6px;">
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3">
+                                <MudChip T="string" Size="Size.Small" Color="Color.Primary" Variant="Variant.Filled">@item.EntityName</MudChip>
+                                <MudChip T="string" Size="Size.Small" Color="Color.Secondary" Variant="Variant.Filled">@item.FullAddress</MudChip>
+                                <MudChip T="string" Size="Size.Small" Color="Color.Success" Variant="Variant.Filled">@item.ContactPhoneNumber</MudChip>
+                            </MudStack>
+                            <MudStack Row="true" Spacing="4">
+                                <MudButton Variant="Variant.Text"
+                                           Size="Size.Small"
+                                           Color="Color.Info"
+                                           StartIcon="@Icons.Material.Filled.Add"
+                                           OnClick="@(() => AddExistingButton(item))">
+                                    Add This Guarantor
+                                </MudButton>
+                                @* <MudLink Href="#" Typo="Typo.body2" Color="Color.Primary">edit</MudLink>
+                                <MudLink Href="#" Typo="Typo.body2" Color="Color.Error">remove</MudLink> *@
+                            </MudStack>
+                        </MudStack>
+                    </MudPaper>
+                }
+            </MudStack>
+                      
         </MudItem>
-
     </MudGrid>
 }
 else
 {
     @if (displayList)
     {
-
         <MudGrid>
 
             <MudItem md="12">
-                
-                <div class="d-flex justify-space-between align-center">
 
-                    <MudTable Items="vm.MyGuarantorList" Context="GuarantorContext" Hover="true" Bordered="false" Dense="true" @bind-SelectedItem="vm.SelectedRecord" @ref="listTable" RowClick="OnSelectedGuarantorFromList" T="DominateDocsData.Models.Guarantor">
-                       
-                        <HeaderContent>
-                            <MudTh>Name</MudTh>
-                            <MudTh>Address</MudTh>
-                            <MudTh></MudTh>
-                        </HeaderContent>
-                        <RowTemplate>
-                            <MudTd DataLabel="Enitity Name">@GuarantorContext.EntityName</MudTd>
-                            <MudTd DataLabel="Address">@GuarantorContext.FullAddress</MudTd>
-                                <MudTd>
-                                <MudButton Variant="Variant.Text"
-                                           Size="Size.Small"
-                                           Color="Color.Info"
-                                           StartIcon="@Icons.Material.Filled.Edit"
-                                           OnClick="@(() => OnSelectedRecord(GuarantorContext))">
-                                    Edit
-                                </MudButton>
+                <MudStack Spacing="2" Class="mb-4">
 
-                                <MudButton Variant="Variant.Text"
-                                           Size="Size.Small"
-                                           Color="Color.Error"
-                                           StartIcon="@Icons.Material.Filled.Delete"
-                                           OnClick="@(() => DeleteRecordAsync(GuarantorContext))">
-                                    Delete
-                                </MudButton>
-                            </MudTd>
-                        </RowTemplate>
-                        <NoRecordsContent>
-                            <MudText Color="Color.Secondary" Class="pa-4">
-                                🚫 No Active Guarantors Found!
-                            </MudText>
-                        </NoRecordsContent>
-                    </MudTable>
-                   
-                </div>
-            `
-            </MudItem>
-            <MudItem md="12">
-                
-                <div class="d-flex justify-start mb-4 ml-20">
-                    <div class="add-display-button-container">
-                        <MudButton Variant="Variant.Text"
-                                   Size="Size.Small"
-                                   Color="Color.Error"
-                                   StartIcon="@Icons.Material.Filled.Delete"
-                                   OnClick="AddAdditionalButton">
-                            Additional Gurantors?
-                        </MudButton>
-                    </div>
-                </div>
+                    @foreach (var item in vm.MyList)
+                    {
+                        <MudPaper Elevation="0" Class="pa-3" Style="background: #fafafa; border: 1px solid #e0e0e0; border-radius: 6px;">
+                            <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3">
+                                    <MudChip T="string" Size="Size.Small" Color="Color.Primary" Variant="Variant.Filled">@item.EntityName</MudChip>
+                                    <MudChip T="string" Size="Size.Small" Color="Color.Secondary" Variant="Variant.Filled">@item.FullAddress</MudChip>
+                                    <MudChip T="string" Size="Size.Small" Color="Color.Success" Variant="Variant.Filled">@item.ContactPhoneNumber</MudChip>
+                                </MudStack>
+                                <MudStack Row="true" Spacing="4">
+                                    <MudButton Variant="Variant.Text"
+                                               Size="Size.Small"
+                                               Color="Color.Info"
+                                               StartIcon="@Icons.Material.Filled.Edit"
+                                               OnClick="@(() => OnSelectedRecord(item))">
+                                        Edit
+                                    </MudButton>
+
+                                    <MudButton Variant="Variant.Text"
+                                               Size="Size.Small"
+                                               Color="Color.Error"
+                                               StartIcon="@Icons.Material.Filled.Delete"
+                                               OnClick="@(() => DeleteRecordAsync(item))">
+                                        Remove
+                                    </MudButton>
+                                    @* <MudLink Href="#" Typo="Typo.body2" Color="Color.Primary">edit</MudLink>
+                                    <MudLink Href="#" Typo="Typo.body2" Color="Color.Error">remove</MudLink> *@
+                                </MudStack>
+                            </MudStack>
+                        </MudPaper>
+                    }
+
+                </MudStack>
+
+
+                <MudButton Variant="Variant.Text"
+                           Size="Size.Small"
+                           Color="Color.Error"
+                           StartIcon="@Icons.Material.Filled.Add"
+                           OnClick="AddButton">
+                    Add Guarantor?
+                </MudButton>
 
             </MudItem>
 
@@ -150,12 +116,8 @@ else
 
             <MudItem md="12">
 
-                <MudTextField @bind-Value="searchString"
-                              Placeholder="Search..."
-                              Immediate="true" />
+                <MudTextField @bind-Value="searchString" Placeholder="Search..." Immediate="true" />
            
-                
-
             </MudItem>
 
             <MudItem md="12">
@@ -277,7 +239,7 @@ else
                                 }
 
 
-                                <AddressCompleteMap OnAddressChange="OnAddressComplete" Row="false" MultipleAddress="false" AddressList="@addresDTOList" />
+                                <AddressCompleteMap OnAddressChange="OnAddressComplete" Row="false" MultipleAddress="false" AddressList="@addresDTOList" DisplayMap="false" />
 
 
                                 
@@ -305,17 +267,15 @@ else
     }
 }
 
-
-
-
-
 @code
 {
 
     [Parameter] public EventCallback<List<DominateDocsData.Models.Guarantor>> OnGuarantorComplete { get; set; }
     [Parameter] public EventCallback OnGuarantorCanceled { get; set; }
+    [Parameter] public List<DominateDocsData.Models.Guarantor> SelectedGuarantors { get; set; } = new();
 
     public MudTable<DominateDocsData.Models.Guarantor> listTable = null;
+
     private MudTable<DominateDocsData.Models.Guarantor> searchTable = new();
 
     private MudForm formEditRecord;
@@ -323,9 +283,11 @@ else
     private bool editRecord = false;
 
     private bool displayList = false;
+
     private bool AddButtonDisabled = false;
 
     private List<DominateDocsData.Models.Guarantor> searchList = new();
+
     private List<AddressDTO> addresDTOList = new();
 
     private string emailPattern = @"^[\w\-\.]+@([\w\-]+\.)+[\w\-]{2,4}$";
@@ -335,6 +297,7 @@ else
     private readonly PatternMask einMask = new("00-0000000");
 
     private readonly PatternMask socialMask = new("000-00-0000");
+
     private int editingIndex = -1;
 
     private string searchString = "";
@@ -355,7 +318,7 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        await vm.InitializePageCommand.ExecuteAsync(null);
+        await vm.InitializePageCommand.ExecuteAsync(SelectedGuarantors);
 
         if (!String.IsNullOrEmpty(vm.EditingRecord.FullAddress))
         {
@@ -403,9 +366,10 @@ else
                 }
             }
 
+          
             vm.UpsertRecordCommand.Execute(null);
 
-            await OnGuarantorComplete.InvokeAsync(vm.MyGuarantorList.ToList());
+            await OnGuarantorComplete.InvokeAsync(vm.MyList.ToList());
 
             displayList = true;
 
@@ -458,11 +422,14 @@ else
 
         vm.DeleteRecordCommand.Execute(r);
 
+
+        await OnGuarantorComplete.InvokeAsync(vm.MyList.ToList());
+
         displayList = true;
 
         StateHasChanged();
 
-        await OnGuarantorComplete.InvokeAsync(vm.MyGuarantorList.ToList());
+       
 
 
 
@@ -496,6 +463,7 @@ else
         searchString = "";
 
         AddButtonDisabled = true;
+
         StateHasChanged();
     }
 
@@ -503,20 +471,33 @@ else
     {
         vm.GetNewRecordCommand.Execute(null);
 
-        AddButtonDisabled = true;
-        displayList = true;
-    }
-
-    private void AddAdditionalButton()
-    {
-
-        vm.GetNewRecordCommand.Execute(null);
-
         addresDTOList.Clear();
 
+        AddButtonDisabled = true;
+
+        editRecord = false;
+
+        displayList = false;
+    }
+
+    private void AddExistingButton(DominateDocsData.Models.Guarantor r)
+    {
+
+        vm.SelectRecordCommand.Execute(r);
+
+        int index = vm.MyList.FindIndex(x => x.Id == r.Id);
+
+        if (index == -1) vm.MyList.Add(r);
 
         AddButtonDisabled = true;
+
+        searchString = "";
+
+        editRecord = true;
+
         displayList = false;
+
+        StateHasChanged();
     }
 
 
@@ -546,9 +527,6 @@ else
             addresDTOList.Add(dto);
         }
     }
-
-
-
 
     private async Task EditRecordAsync(DominateDocsData.Models.Guarantor r)
     {
