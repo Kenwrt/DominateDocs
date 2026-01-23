@@ -386,3 +386,27 @@ body, .mud-typography {
     border-radius: 999px !important;
 }
 
+/* Force Mud inputs to look like modern inputs again */
+.form-skin .mud-input-control > .mud-input-control-input-container,
+.form-skin .mud-input-root,
+.form-skin .mud-input-slot,
+.form-skin .mud-input {
+    background-color: #fff !important;
+    border-radius: 12px !important;
+}
+
+/* Outlined variant border rounding */
+.form-skin .mud-input-outlined .mud-input-outlined-border {
+    border-radius: 12px !important;
+}
+
+/* Keep the label/outline from looking clipped */
+.form-skin .mud-input-outlined {
+    border-radius: 12px !important;
+}
+
+/* Optional: make it feel tighter/cleaner */
+.form-skin .mud-input {
+    padding-top: 2px;
+    padding-bottom: 2px;
+}

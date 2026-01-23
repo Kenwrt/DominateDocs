@@ -39,11 +39,22 @@ public partial class PropertyViewModel : ObservableObject
     }
 
     [RelayCommand]
-    private async Task InitializePage(List<DominateDocsData.Models.PropertyRecord> propertyList)
+    private async Task InitializePage(DominateDocsData.Models.PropertyRecord property)
     {
         if (EditingRecord is null) GetNewRecord();
 
         RecordList.Clear();
+        if (property != null)
+        {
+            var r = dbApp.GetRecordById<DominateDocsData.Models.PropertyRecord>(property.Id);
+
+            if (r is not null)
+            {
+                SelectedRecord = r;
+                EditingRecord = r;
+            }
+        }
+          
 
         dbApp.GetRecords<DominateDocsData.Models.PropertyRecord>().Where(x => x.UserId == userId).ToList().ForEach(lf => RecordList.Add(lf));
     }

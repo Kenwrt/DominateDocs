@@ -309,13 +309,11 @@
 
     protected override async Task OnInitializedAsync()
     {
-        vm.InitializePageCommand.Execute(null);
+        vm.InitializePageCommand.Execute(SelectedBorrower);
 
         if (SelectedBorrower is not null)
         {
-
-            vm.EditingRecord = SelectedBorrower;
-            editRecord = true;  
+            editRecord = true;
         }
 
         if (!String.IsNullOrEmpty(vm.EditingRecord.FullAddress))

@@ -289,13 +289,11 @@
 
     protected override async Task OnInitializedAsync()
     {
-        vm.InitializePageCommand.Execute(null);
+        vm.InitializePageCommand.Execute(SelectedBroker);
 
         if (SelectedBroker is not null)
         {
-            vm.SelectRecordCommand.Execute(SelectedBroker);
             editRecord = true;
-                        
         }
 
         if (!String.IsNullOrEmpty(vm.EditingRecord.FullAddress))

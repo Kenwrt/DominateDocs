@@ -47,19 +47,28 @@ public partial class LenderViewModel : ObservableObject
     }
 
     [RelayCommand]
-    private async Task InitializePage(List<DominateDocsData.Models.Lender> lenderList = null)
+    private async Task InitializePage(DominateDocsData.Models.Lender lender)
     {
+        if (lender != null)
+        {
+            var dbLender = dbApp.GetRecordById<DominateDocsData.Models.Lender>(lender.Id);
+            if (dbLender is not null)
+            {
+                SelectedRecord = dbLender;
+                EditingRecord = dbLender;
+            }
+        }
+
         if (EditingRecord is null) GetNewRecord();
 
         RecordList.Clear();
 
         dbApp.GetRecords<DominateDocsData.Models.Lender>().ToList().ForEach(lf => RecordList.Add(lf));
 
-        if (lenderList is not null)
-        {
-            MyLenderList.Clear();
-            MyLenderList = lenderList.ToObservableCollection();
-        }
+       
+        
+       
+                
     }
 
     [RelayCommand]
@@ -91,6 +100,12 @@ public partial class LenderViewModel : ObservableObject
         {
             MyLenderList.Add(EditingRecord);
         }
+
+         if (EditingRecord.LenderCode is null)
+        {
+            EditingRecord.LenderCode = $"L-{DominateDocsSite.Helpers.DisplayHelper.GenerateIdCode().ToString()}";
+        }
+
 
         await dbApp.UpSertRecordAsync<DominateDocsData.Models.Lender>(EditingRecord);
     }

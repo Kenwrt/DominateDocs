@@ -95,6 +95,11 @@ public partial class UserDefaultBrokerViewModel : ObservableObject
             MyBrokerList.Add(EditingRecord);
         }
 
+        if (EditingRecord.BrokerCode is null)
+        {
+            EditingRecord.BrokerCode = $"B-{DominateDocsSite.Helpers.DisplayHelper.GenerateIdCode().ToString()}";
+        }
+
         await dbApp.UpSertRecordAsync<DominateDocsData.Models.Broker>(EditingRecord);
     }
 

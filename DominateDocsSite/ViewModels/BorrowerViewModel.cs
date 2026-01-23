@@ -45,11 +45,22 @@ public partial class BorrowerViewModel : ObservableObject
     }
 
     [RelayCommand]
-    private async Task InitializePage()
+    private async Task InitializePage(DominateDocsData.Models.Borrower borrower)
     {
         if (EditingRecord is null) GetNewRecord();
 
         RecordList.Clear();
+
+        if (borrower != null)
+        {
+            var r = dbApp.GetRecordById<DominateDocsData.Models.Borrower>(borrower.Id);
+
+            if (r is not null)
+            {
+                SelectedRecord = r;
+                EditingRecord = r;
+            }
+        }
 
         dbApp.GetRecords<DominateDocsData.Models.Borrower>().ToList().ForEach(lf => RecordList.Add(lf));
     }

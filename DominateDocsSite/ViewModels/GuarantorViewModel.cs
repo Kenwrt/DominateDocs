@@ -43,20 +43,33 @@ public partial class GuarantorViewModel : ObservableObject
     }
 
     [RelayCommand]
-    private async Task InitializePage(List<DominateDocsData.Models.Guarantor> guarantorList = null)
+    private async Task InitializePage(DominateDocsData.Models.Guarantor guarantor)
     {
+        if (guarantor != null)
+        {
+            var r = dbApp.GetRecordById<DominateDocsData.Models.Guarantor>(guarantor.Id);
+
+            if (r is not null)
+            {
+                SelectedRecord = r;
+                EditingRecord = r;
+            }
+        }
+
         if (EditingRecord is null) GetNewRecord();
 
         RecordList.Clear();
 
         dbApp.GetRecords<DominateDocsData.Models.Guarantor>().ToList().ForEach(lf => RecordList.Add(lf));
 
-        if (guarantorList is not null)
-        {
-            MyGuarantorList.Clear();
+        //if (guarantorList is not null)
+        //{
+        //    MyGuarantorList.Clear();
 
-            MyGuarantorList = guarantorList.ToObservableCollection();
-        }
+        //    MyGuarantorList = guarantorList.ToObservableCollection();
+        //}
+
+        
     }
 
     [RelayCommand]

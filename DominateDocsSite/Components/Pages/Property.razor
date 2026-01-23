@@ -101,11 +101,10 @@
 
     protected override async Task OnInitializedAsync()
     {
-        vm.InitializePageCommand.Execute(null);
+        vm.InitializePageCommand.Execute(SelectedProperty);
 
         if (SelectedProperty is not null)
         {
-            vm.EditingRecord = SelectedProperty;
             editRecord = true;
         }
 

@@ -82,6 +82,11 @@ public partial class QuickLenderViewModel : ObservableObject
             MyList.Add(EditingRecord);
         }
 
+        if (EditingRecord.LenderCode is null)
+        {
+            EditingRecord.LenderCode = $"L-{DominateDocsSite.Helpers.DisplayHelper.GenerateIdCode().ToString()}";
+        }
+
         await dbApp.UpSertRecordAsync<DominateDocsData.Models.Lender>(EditingRecord);
     }
 

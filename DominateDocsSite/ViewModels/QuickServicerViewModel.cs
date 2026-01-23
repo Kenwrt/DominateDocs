@@ -134,7 +134,8 @@ public partial class QuickServicerViewModel : ObservableObject
     {
         EditingRecord = new DominateDocsData.Models.Servicer()
         {
-            UserId = userId
+            UserId = userId,
+            ServicerCode = $"S-{DisplayHelper.GenerateIdCode()}"
         };
     }
 }

@@ -1,5 +1,6 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using DocumentManager.Helpers;
 using DominateDocsData.Enums;
 using DominateDocsSite.Database;
 using DominateDocsSite.Helpers;
@@ -42,12 +43,6 @@ public partial class UserDefaultLenderViewModel : ObservableObject
     [RelayCommand]
     private async Task InitializePage()
     {
-
-       
-
-
-
-
         RecordList.Clear();
 
        // dbApp.GetRecords<DominateDocsData.Models.Lender>().ToList().ForEach(lf => RecordList.Add(lf));
@@ -85,7 +80,12 @@ public partial class UserDefaultLenderViewModel : ObservableObject
             MyLenderList.Add(EditingRecord);
         }
 
-        await dbApp.UpSertRecordAsync<DominateDocsData.Models.Lender>(EditingRecord);
+        if (EditingRecord.LenderCode is null)
+        {
+            EditingRecord.LenderCode = $"L-{DominateDocsSite.Helpers.DisplayHelper.GenerateIdCode().ToString()}";
+        }
+
+    await dbApp.UpSertRecordAsync<DominateDocsData.Models.Lender>(EditingRecord);
     }
 
     [RelayCommand]

@@ -27,6 +27,36 @@
         .mud-table .mud-table-cell.top-cell .mud-icon-button {
             margin-top: 0 !important;
         }
+
+    .mini-chip {
+        height: 20px !important;
+    }
+
+        .mini-chip .mud-chip-content {
+            font-size: 0.70rem !important;
+            line-height: 1 !important;
+            padding: 0 6px !important;
+        }
+
+    .chip-wrap {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        align-items: center;
+    }
+
+    /* One-chip lender pill: compact + readable */
+    .lender-pill {
+        height: 22px !important;
+        border-radius: 999px !important;
+    }
+
+        .lender-pill .mud-chip-content {
+            font-size: 0.72rem !important;
+            line-height: 1 !important;
+            padding: 0 8px !important;
+            white-space: nowrap !important; /* keep it one line */
+        }
 </style>
 
 
@@ -161,58 +191,41 @@
 
                 </MudGrid>
 
-                <MudTable Items="@vm.EditingAgreement.Borrowers" Hover="true" Dense="true" Elevation="0">
-                    
-                    <HeaderContent>
-                    
-                        <MudTh Style="background-color: lightgrey;">Name</MudTh>
-                        <MudTh Style="background-color: lightgrey;">Remove</MudTh>
-                        
-                    </HeaderContent>
-                    
-                    <RowTemplate>
-                    
-                        <MudTd DataLabel="Name">
-                        
-                            <div>
-                                <MudText Typo="Typo.body1" Style="font-weight: 500;">@context.EntityName</MudText>
-                                <MudText Typo="Typo.caption" Color="Color.Secondary">@context.ContactEmail</MudText>
-                                <MudText Typo="Typo.caption" Color="Color.Secondary">@context.ContactPhoneNumber</MudText>
-                            
+                <div class="d-flex flex-column gap-2">
+
+                    @foreach (var item in vm.EditingAgreement.Borrowers)
+                    {
+                        var phone = string.IsNullOrWhiteSpace(item.ContactPhoneNumber) ? "" : $" • {item.ContactPhoneNumber}";
+                        var label = $"{item.EntityName}{phone}";
+
+                        <div class="d-flex align-center justify-space-between"
+                             style="width:100%;">
+
+                            <MudChip T="string"
+                                     Class="lender-pill"
+                                     Size="Size.Small"
+                                     Color="Color.Success"
+                                     Variant="Variant.Filled">
+                                <MudIcon Icon="@Icons.Material.Filled.Person" Size="Size.Small" Class="me-1" />
+                                @label
+                            </MudChip>
+
+                            <div class="d-flex align-center" style="gap:6px;">
+                                <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                                               Size="Size.Small"
+                                               Color="Color.Info"
+                                               OnClick="@(() => OnSelectedBorrowerAsync(item))" />
+
+                                <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                               Size="Size.Small"
+                                               Color="Color.Error"
+                                               OnClick="@(() => OnDeleteBorrowerAsync(item))" />
                             </div>
 
-                        </MudTd>
-                        <MudTd DataLabel="Remove">
+                        </div>
+                    }
 
-                            <MudButton Variant="Variant.Text"
-                                       Size="Size.Small"
-                                       Color="Color.Info"
-                                       StartIcon="@Icons.Material.Filled.Edit"
-                                       OnClick="@(() => OnSelectedBorrowerAsync(context))">
-                                Edit
-                            </MudButton>
-
-                            <MudButton Variant="Variant.Text"
-                                       Size="Size.Small"
-                                       Color="Color.Error"
-                                       StartIcon="@Icons.Material.Filled.Delete"
-                                       OnClick="@(() => OnDeleteBorrowerAsync(context))">
-                                Delete
-                            </MudButton>
-                           
-                        </MudTd>
-                       
-                    </RowTemplate>
-
-                    <NoRecordsContent>
-
-                        <MudText Color="Color.Secondary" Class="pa-4">
-                            🚫 No Borrowers Assinged to this Loan!
-                        </MudText>
-
-                    </NoRecordsContent>
-
-                </MudTable>
+                </div>
 
             </MudPaper>
 
@@ -245,58 +258,41 @@
 
                 </MudGrid>
 
-                <MudTable Items="@vm.EditingAgreement.Guarantors" Hover="true" Dense="true" Elevation="0">
+                <div class="d-flex flex-column gap-2">
 
-                    <HeaderContent>
+                    @foreach (var item in vm.EditingAgreement.Guarantors)
+                    {
+                        var phone = string.IsNullOrWhiteSpace(item.ContactPhoneNumber) ? "" : $" • {item.ContactPhoneNumber}";
+                        var label = $"{item.EntityName}{phone}";
 
-                        <MudTh Style="background-color: lightgrey;">Name</MudTh>
-                        <MudTh Style="background-color: lightgrey;">Remove</MudTh>
+                        <div class="d-flex align-center justify-space-between"
+                             style="width:100%;">
 
-                    </HeaderContent>
+                            <MudChip T="string"
+                                     Class="lender-pill"
+                                     Size="Size.Small"
+                                     Color="Color.Success"
+                                     Variant="Variant.Filled">
+                                <MudIcon Icon="@Icons.Material.Filled.Person" Size="Size.Small" Class="me-1" />
+                                @label
+                            </MudChip>
 
-                    <RowTemplate>
+                            <div class="d-flex align-center" style="gap:6px;">
+                                <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                                               Size="Size.Small"
+                                               Color="Color.Info"
+                                               OnClick="@(() => OnSelectedGuarantorAsync(item))" />
 
-                        <MudTd DataLabel="Name">
-
-                            <div>
-                                <MudText Typo="Typo.body1" Style="font-weight: 500;">@context.EntityName</MudText>
-                                <MudText Typo="Typo.caption" Color="Color.Secondary">@context.ContactEmail</MudText>
-                                <MudText Typo="Typo.caption" Color="Color.Secondary">@context.ContactPhoneNumber</MudText>
-
+                                <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                               Size="Size.Small"
+                                               Color="Color.Error"
+                                               OnClick="@(() => OnDeleteGuarantorAsync(item))" />
                             </div>
 
-                        </MudTd>
-                        <MudTd DataLabel="Remove">
-                            
-                            <MudButton Variant="Variant.Text"
-                                       Size="Size.Small"
-                                       Color="Color.Info"
-                                       StartIcon="@Icons.Material.Filled.Edit"
-                                       OnClick="@(() => OnSelectedGuarantorAsync(context))">
-                                Edit
-                            </MudButton>
+                        </div>
+                    }
 
-                            <MudButton Variant="Variant.Text"
-                                       Size="Size.Small"
-                                       Color="Color.Error"
-                                       StartIcon="@Icons.Material.Filled.Delete"
-                                       OnClick="@(() => OnDeleteGuarantorAsync(context))">
-                                Delete
-                            </MudButton>
-
-                        </MudTd>
-
-                    </RowTemplate>
-
-                    <NoRecordsContent>
-
-                        <MudText Color="Color.Secondary" Class="pa-4">
-                            🚫 No Guarantors Assinged to this Loan!
-                        </MudText>
-
-                    </NoRecordsContent>
-
-                </MudTable>
+                </div>
 
             </MudPaper>
 
@@ -330,7 +326,47 @@
 
                 </MudGrid>
 
-                <MudTable Items="@vm.EditingAgreement.Lenders" Hover="true" Dense="true" Elevation="0">
+                <MudStack Spacing="2" Class="mb-4">
+
+                    <div class="d-flex flex-column gap-2">
+
+                        @foreach (var item in vm.EditingAgreement.Lenders)
+                        {
+                            var phone = string.IsNullOrWhiteSpace(item.ContactPhoneNumber) ? "" : $" • {item.ContactPhoneNumber}";
+                            var label = $"{item.EntityName}{phone}";
+
+                            <div class="d-flex align-center justify-space-between"
+                                 style="width:100%;">
+
+                                <MudChip T="string"
+                                         Class="lender-pill"
+                                         Size="Size.Small"
+                                         Color="Color.Success"
+                                         Variant="Variant.Filled">
+                                    <MudIcon Icon="@Icons.Material.Filled.Person" Size="Size.Small" Class="me-1" />
+                                    @label
+                                </MudChip>
+
+                                <div class="d-flex align-center" style="gap:6px;">
+                                    <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                                                   Size="Size.Small"
+                                                   Color="Color.Info"
+                                                   OnClick="@(() => OnSelectedLenderAsync(item))" />
+
+                                    <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                                   Size="Size.Small"
+                                                   Color="Color.Error"
+                                                   OnClick="@(() => OnDeleteLenderAsync(item))" />
+                                </div>
+
+                            </div>
+                        }
+
+                    </div>
+
+                </MudStack>
+
+                @* <MudTable Items="@vm.EditingAgreement.Lenders" Hover="true" Dense="true" Elevation="0">
 
                     <HeaderContent>
 
@@ -380,7 +416,7 @@
 
                     </NoRecordsContent>
 
-                </MudTable>
+                </MudTable> *@
 
             </MudPaper>
 
@@ -414,58 +450,41 @@
 
                 </MudGrid>
 
-                <MudTable Items="@vm.EditingAgreement.Brokers" Hover="true" Dense="true" Elevation="0">
+                <div class="d-flex flex-column gap-2">
 
-                    <HeaderContent>
+                    @foreach (var item in vm.EditingAgreement.Brokers)
+                    {
+                        var phone = string.IsNullOrWhiteSpace(item.ContactPhoneNumber) ? "" : $" • {item.ContactPhoneNumber}";
+                        var label = $"{item.EntityName}{phone}";
 
-                        <MudTh Style="background-color: lightgrey;">Name</MudTh>
-                        <MudTh Style="background-color: lightgrey;">Remove</MudTh>
+                        <div class="d-flex align-center justify-space-between"
+                             style="width:100%;">
 
-                    </HeaderContent>
+                            <MudChip T="string"
+                                     Class="lender-pill"
+                                     Size="Size.Small"
+                                     Color="Color.Success"
+                                     Variant="Variant.Filled">
+                                <MudIcon Icon="@Icons.Material.Filled.Person" Size="Size.Small" Class="me-1" />
+                                @label
+                            </MudChip>
 
-                    <RowTemplate>
+                            <div class="d-flex align-center" style="gap:6px;">
+                                <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                                               Size="Size.Small"
+                                               Color="Color.Info"
+                                               OnClick="@(() => OnSelectedBrokerAsync(item))" />
 
-                        <MudTd DataLabel="Name">
-
-                            <div>
-                                <MudText Typo="Typo.body1" Style="font-weight: 500;">@context.EntityName</MudText>
-                                <MudText Typo="Typo.caption" Color="Color.Secondary">@context.ContactEmail</MudText>
-                                <MudText Typo="Typo.caption" Color="Color.Secondary">@context.ContactPhoneNumber</MudText>
-
+                                <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                               Size="Size.Small"
+                                               Color="Color.Error"
+                                               OnClick="@(() => OnDeleteBrokerAsync(item))" />
                             </div>
 
-                        </MudTd>
-                        <MudTd DataLabel="Remove">
-                            
-                            <MudButton Variant="Variant.Text"
-                                       Size="Size.Small"
-                                       Color="Color.Info"
-                                       StartIcon="@Icons.Material.Filled.Edit"
-                                       OnClick="@(() => OnSelectedBrokerAsync(context))">
-                                Edit
-                            </MudButton>
+                        </div>
+                    }
 
-                            <MudButton Variant="Variant.Text"
-                                       Size="Size.Small"
-                                       Color="Color.Error"
-                                       StartIcon="@Icons.Material.Filled.Delete"
-                                       OnClick="@(() => OnDeleteBrokerAsync(context))">
-                                Delete
-                            </MudButton>
-
-                        </MudTd>
-
-                    </RowTemplate>
-
-                    <NoRecordsContent>
-
-                        <MudText Color="Color.Secondary" Class="pa-4">
-                            🚫 No Brokers Assinged to this Loan!
-                        </MudText>
-
-                    </NoRecordsContent>
-
-                </MudTable>
+                </div>
 
             </MudPaper>
 

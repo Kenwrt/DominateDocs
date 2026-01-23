@@ -48,13 +48,24 @@ public partial class BrokerViewModel : ObservableObject
     }
 
     [RelayCommand]
-    private async Task InitializePage()
+    private async Task InitializePage(DominateDocsData.Models.Broker broker)
     {
         if (EditingRecord is null) GetNewRecord();
 
         RecordList.Clear();
 
-        dbApp.GetRecords<DominateDocsData.Models.Broker>().ToList().ForEach(lf => RecordList.Add(lf));
+        if (broker != null)
+        {
+            dbApp.GetRecords<DominateDocsData.Models.Broker>().ToList().ForEach(lf => RecordList.Add(lf));
+
+            var r = dbApp.GetRecordById<DominateDocsData.Models.Broker>(broker.Id);
+
+            if (r is not null)
+            {
+                SelectedRecord = r;
+                EditingRecord = r;
+            }
+        }
     }
 
     [RelayCommand]

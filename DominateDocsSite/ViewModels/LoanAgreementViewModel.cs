@@ -254,6 +254,8 @@ public partial class LoanAgreementViewModel : ObservableObject
             EditingAgreement.Borrowers.RemoveAt(index);
         }
 
+        SelectedBorrower = null;
+
         UpsertAgreement(EditingAgreement);
     }
 
@@ -283,6 +285,8 @@ public partial class LoanAgreementViewModel : ObservableObject
         {
             EditingAgreement.Brokers.RemoveAt(index);
         }
+
+        SelectedBroker = null;
 
         UpsertAgreement(EditingAgreement);
     }
@@ -314,6 +318,8 @@ public partial class LoanAgreementViewModel : ObservableObject
             EditingAgreement.Guarantors.RemoveAt(index);
         }
 
+        SelectedGuarantor = null;
+
         UpsertAgreement(EditingAgreement);
     }
 
@@ -343,6 +349,8 @@ public partial class LoanAgreementViewModel : ObservableObject
         {
             EditingAgreement.Lenders.RemoveAt(index);
         }
+
+        SelectedLender = null;
 
         UpsertAgreement(EditingAgreement);
     }

@@ -302,11 +302,10 @@ else
     protected override async Task OnInitializedAsync()
     {
 
-        vm.InitializePageCommand.Execute(null);
+        vm.InitializePageCommand.Execute(SelectedGuarantor);
 
         if (SelectedGuarantor is not null)
         {
-            vm.SelectRecordCommand.Execute(SelectedGuarantor);
             editRecord = true;
         }
 

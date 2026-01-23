@@ -495,8 +495,9 @@
 
     private void Generate()
     {
-        // Hook this to your actual doc generation pipeline.
-        // e.g. vm.GenerateDocumentsCommand.Execute(null);
+        vm.UpsertRecordCommand.Execute(null);
+
+        Nav.NavigateTo("/DashBoard");
     }
 
    
