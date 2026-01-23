@@ -166,7 +166,7 @@
         <!-- Borrower Section -->
         <MudItem xs="12" md="3">
             
-            <MudPaper Elevation="2" Class="pa-4" Style="height: 100%;">
+            <MudPaper Elevation="2" Style="background-color: var(--mud-palette-background); height: 100%;" Class="pa-4">
 
                 <MudGrid Class="mb-4">
 
@@ -234,7 +234,7 @@
         <!-- Guarantors Section -->
         <MudItem xs="12" md="3">
 
-            <MudPaper Elevation="2" Class="pa-4" Style="height: 100%;">
+            <MudPaper Style="background-color: var(--mud-palette-background); height: 100%;" Elevation="2" Class="pa-4">
 
                 <MudGrid Class="mb-4">
 
@@ -301,7 +301,7 @@
         <!-- Lenders Section -->
         <MudItem xs="12" md="3">
 
-            <MudPaper Elevation="2" Class="pa-4" Style="height: 100%;">
+            <MudPaper Style="background-color: var(--mud-palette-background); height: 100%;" Elevation="2" Class="pa-4">
 
                 <MudGrid Class="mb-4">
 
@@ -365,58 +365,7 @@
                     </div>
 
                 </MudStack>
-
-                @* <MudTable Items="@vm.EditingAgreement.Lenders" Hover="true" Dense="true" Elevation="0">
-
-                    <HeaderContent>
-
-                        <MudTh Style="background-color: lightgrey;">Name</MudTh>
-                        <MudTh Style="background-color: lightgrey;">Remove</MudTh>
-
-                    </HeaderContent>
-
-                    <RowTemplate>
-
-                        <MudTd DataLabel="Name">
-
-                            <div>
-                                <MudText Typo="Typo.body1" Style="font-weight: 500;">@context.EntityName</MudText>
-                                <MudText Typo="Typo.caption" Color="Color.Secondary">@context.ContactEmail</MudText>
-                                <MudText Typo="Typo.caption" Color="Color.Secondary">@context.ContactPhoneNumber</MudText>
-
-                            </div>
-
-                        </MudTd>
-                        <MudTd DataLabel="Remove">
-                            <MudButton Variant="Variant.Text"
-                                       Size="Size.Small"
-                                       Color="Color.Info"
-                                       StartIcon="@Icons.Material.Filled.Edit"
-                                       OnClick="@(() => OnSelectedLenderAsync(context))">
-                                Edit
-                            </MudButton>
-
-                            <MudButton Variant="Variant.Text"
-                                       Size="Size.Small"
-                                       Color="Color.Error"
-                                       StartIcon="@Icons.Material.Filled.Delete"
-                                       OnClick="@(() => OnDeleteLenderAsync(context))">
-                                Delete
-                            </MudButton>
-
-                        </MudTd>
-
-                    </RowTemplate>
-
-                    <NoRecordsContent>
-
-                        <MudText Color="Color.Secondary" Class="pa-4">
-                            🚫 No Lenders Assinged to this Loan!
-                        </MudText>
-
-                    </NoRecordsContent>
-
-                </MudTable> *@
+                               
 
             </MudPaper>
 
@@ -425,7 +374,7 @@
         <!-- Broker Section -->
         <MudItem xs="12" md="3">
 
-            <MudPaper Elevation="2" Class="pa-4" Style="height: 100%;">
+            <MudPaper Style="background-color: var(--mud-palette-background); height: 100%;" Elevation="2" Class="pa-4">
                                 
                 <MudGrid Class="mb-4">
 
@@ -493,7 +442,7 @@
 
 </MudGrid>
 
-<MudPaper Elevation="2" Class="pa-6 mt-6">
+<MudPaper Style="background-color: var(--mud-palette-background);" Elevation="2" Class="pa-6 mt-6">
 
     <MudGrid>
    

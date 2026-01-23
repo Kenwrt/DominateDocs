@@ -18,8 +18,8 @@
         <MudGrid>
 
             <MudItem xs="12" md="12">
-                
-                <MudTable Class="ml-4 mr-5" Style="background-color: #FCFCFC;" Items="vm.MyRecordList" Context="context" Hover="true" Bordered="true" Dense="true" @bind-SelectedItem="vm.SelectedRecord" RowClick="OnSelectedRecord">
+
+            <MudTable Class="ml-4 mr-5" Style="background-color: var(--mud-palette-background);" Items="vm.MyRecordList" Context="context" Hover="true" Bordered="true" Dense="true" @bind-SelectedItem="vm.SelectedRecord" RowClick="OnSelectedRecord">
                     <HeaderContent>
                         <MudTh>Name</MudTh>
                         <MudTh>Title</MudTh>
@@ -55,11 +55,7 @@
                         </MudButton>
                     </MudTd>
                     </RowTemplate>
-                    <NoRecordsContent>
-                        <MudText Color="Color.Secondary" Class="pa-4">
-                            🚫 No Active Owner Assignments!
-                        </MudText>
-                    </NoRecordsContent>
+                
 
                 </MudTable>
 
@@ -73,13 +69,13 @@ else
 
             <MudItem xs="12" md="12">
 
-                <MudForm Context="contextESA" Model="@vm.EditingRecord" @ref="@form" Validation="@SigningAuthorityValidator" ValidationDelay="0">
+            <MudForm Context="contextESA"  Model="@vm.EditingRecord" @ref="@form" Validation="@SigningAuthorityValidator" ValidationDelay="0">
                     <MudGrid Class="mt-2">
                         <MudItem md="6">
                             <div class="d-flex flex-column gap-2">
-                                <MudTextField Class="pl-4" Variant="Variant.Outlined" Style="background-color: white;" @bind-Value="vm.EditingRecord.Name" Label="Name" Required="true" />
-                                <MudTextField Class="pl-4" Variant="Variant.Outlined" Style="background-color: white;" @bind-Value="vm.EditingRecord.Title" Label="Title" Required="true" />
-                                <MudTextField Class="pl-4" Label="Phone Number" Style="background-color: white;" Variant="Variant.Outlined"
+                                <MudTextField Class="pl-4" Variant="Variant.Outlined"  @bind-Value="vm.EditingRecord.Name" Label="Name" Required="true" />
+                                <MudTextField Class="pl-4" Variant="Variant.Outlined"  @bind-Value="vm.EditingRecord.Title" Label="Title" Required="true" />
+                                <MudTextField Class="pl-4" Label="Phone Number"  Variant="Variant.Outlined"
                                               @bind-Value="vm.EditingRecord.PhoneNumber"
                                               Mask="phoneMask"
                                               Placeholder="(___) ___-____"

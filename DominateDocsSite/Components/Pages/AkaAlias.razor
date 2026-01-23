@@ -21,7 +21,7 @@
 
             <MudItem xs="12" md="12">
 
-                <MudTable Class="ml-4 mr-5" Style="background-color: #FCFCFC;" Items="vm.MyRecordList" Context="contextAlias" Hover="true" Bordered="true" Dense="true" @bind-SelectedItem="vm.SelectedRecord" RowClick="OnSelectedRecord">
+            <MudTable Class="ml-4 mr-5" Style="background-color: var(--mud-palette-background);" Items="vm.MyRecordList" Context="contextAlias" Hover="true" Bordered="true" Dense="true" @bind-SelectedItem="vm.SelectedRecord" RowClick="OnSelectedRecord">
                     <HeaderContent>
                         <MudTh>Name</MudTh>
                         <MudTh>Alias</MudTh>
@@ -60,11 +60,11 @@
                         </MudTd>
                         
                     </RowTemplate>
-                    <NoRecordsContent>
+                   @*  <NoRecordsContent>
                         <MudText Color="Color.Secondary" Class="pa-4">
                             🚫 No Active Alias Names Found. Please add!
                         </MudText>
-                    </NoRecordsContent>
+                    </NoRecordsContent> *@
 
                 </MudTable>
 
@@ -88,9 +88,9 @@ else
                             <div class="d-flex flex-column gap-2">
 
 
-                                <MudTextField Class="ml-4" Style="background-color: white;" Variant="Variant.Outlined" @bind-Value="vm.EditingRecord.Name" For="@(() => vm.EditingRecord.Name)" Label="Name" Required="true" />
+                                <MudTextField Class="ml-4"  Variant="Variant.Outlined" @bind-Value="vm.EditingRecord.Name" For="@(() => vm.EditingRecord.Name)" Label="Name" Required="true" />
 
-                                <MudTextField Class="pl-4" Style="background-color: white;" Variant="Variant.Outlined" @bind-Value="vm.EditingRecord.AlsoKnownAs" Label="Also Known As" Required="false" />
+                                <MudTextField Class="pl-4"  Variant="Variant.Outlined" @bind-Value="vm.EditingRecord.AlsoKnownAs" Label="Also Known As" Required="false" />
 
                                 <MudStack Row="true" Spacing="10" Class="mt-4 mb-10">
                                     <MudButton Class="ml-10" Type="Submit" OnClick="HandleSubmit" Color="Color.Success" Variant="Variant.Filled">@(vm.SelectedRecord == null ? "Add" : "Save")</MudButton>

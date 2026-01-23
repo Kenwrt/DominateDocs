@@ -21,7 +21,7 @@
             <MudItem xs="12" md="12">
 
                 <MudText Class="pl-4 ml-2" Typo="Typo.subtitle1">Owners: @vm.MyRecordList.Count </MudText>
-                <MudTable Class="ml-4 mr-5" Style="background-color: #FCFCFC;" Items="vm.MyRecordList" Context="context" Hover="true" Bordered="true" Dense="true" @bind-SelectedItem="vm.SelectedRecord" RowClick="OnSelectedRecord">
+                <MudTable Class="ml-4 mr-5" Style="background-color: var(--mud-palette-background);" Items="vm.MyRecordList" Context="context" Hover="true" Bordered="true" Dense="true" @bind-SelectedItem="vm.SelectedRecord" RowClick="OnSelectedRecord">
                     <HeaderContent>
                         <MudTh>Name</MudTh>
                         <MudTh>% Owner</MudTh>
@@ -61,11 +61,11 @@
                             </MudButton>      
                         </MudTd>
                     </RowTemplate>
-                    <NoRecordsContent>
+                    @* <NoRecordsContent>
                         <MudText Color="Color.Secondary" Class="pa-4">
                             🚫 No Active Entity Owners Found. Please add!
                         </MudText>
-                    </NoRecordsContent>
+                    </NoRecordsContent> *@
 
                 </MudTable>
 
@@ -86,21 +86,21 @@ else
                     <MudGrid>
                         <MudItem md="6">
                             <div class="d-flex flex-column gap-2">
-                                <MudTextField Class="pl-4" Variant="Variant.Outlined" Style="background-color: white;" @bind-Value="vm.EditingRecord.Name" Label="Name" Required="true" />
+                                <MudTextField Class="pl-4" Variant="Variant.Outlined" Style="" @bind-Value="vm.EditingRecord.Name" Label="Name" Required="true" />
 
-                                <MudTextField Class="pl-4" Variant="Variant.Outlined" Style="background-color: white;" @bind-Value="vm.EditingRecord.Email" Label="Email" Required="true" />
-                                <MudTextField Class="pl-4" Variant="Variant.Outlined" Style="background-color: white;" @bind-Value="vm.EditingRecord.PhoneNumber" Label="Phone" Required="true" />
-                                <MudTextField Class="pl-4" Variant="Variant.Outlined" Style="background-color: white;" @bind-Value="vm.EditingRecord.FullAddress" Label="Address" Required="true" />
-                                <MudSelect Class="ml-4" T="DominateDocsData.Enums.Entity.ContactRoles" Style="background-color: white;" Variant="Variant.Outlined" Label="Select Entity Role" @bind-Value="vm.EditingRecord.EntityRole" Dense="true">
+                                <MudTextField Class="pl-4" Variant="Variant.Outlined" Style="" @bind-Value="vm.EditingRecord.Email" Label="Email" Required="true" />
+                                <MudTextField Class="pl-4" Variant="Variant.Outlined" Style="" @bind-Value="vm.EditingRecord.PhoneNumber" Label="Phone" Required="true" />
+                                <MudTextField Class="pl-4" Variant="Variant.Outlined" Style="" @bind-Value="vm.EditingRecord.FullAddress" Label="Address" Required="true" />
+                                <MudSelect Class="ml-4" T="DominateDocsData.Enums.Entity.ContactRoles" Style="" Variant="Variant.Outlined" Label="Select Entity Role" @bind-Value="vm.EditingRecord.EntityRole" Dense="true">
 
                                     @foreach (var gt in Enum.GetValues<DominateDocsData.Enums.Entity.ContactRoles>())
                                     {
-                                        <MudSelectItem Style="background-color: white;" T="DominateDocsData.Enums.Entity.ContactRoles" Value="gt">@gt.GetDescription()</MudSelectItem>
+                                        <MudSelectItem Style="" T="DominateDocsData.Enums.Entity.ContactRoles" Value="gt">@gt.GetDescription()</MudSelectItem>
                                     }
 
                                 </MudSelect>
 
-                                <MudNumericField T="decimal" Class="pl-4" Style="background-color: white;" Variant="Variant.Outlined" @bind-Value="vm.EditingRecord.PercentOfOwnership" Min="0" Max="100" Step="0.01m"
+                                <MudNumericField T="decimal" Class="pl-4" Style="" Variant="Variant.Outlined" @bind-Value="vm.EditingRecord.PercentOfOwnership" Min="0" Max="100" Step="0.01m"
                                      Immediate="true" HideSpinButtons="true" Adornment="Adornment.End" AdornmentText="%" Required="true" Label="% of Ownership" Rules="@PercentRules" />
 
                                 <MudStack Row="true" Spacing="10" Class="mt-4 mb-10">

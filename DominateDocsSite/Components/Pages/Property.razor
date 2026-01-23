@@ -22,17 +22,17 @@
 
                 <MudItem md="4">
                     <div class="d-flex flex-column gap-2">
-                        <MudSelect Class="ml-4 mt-10" Style="background-color: white;" T="DominateDocsData.Enums.Property.Types" Variant="Variant.Outlined" Label="Select Property Type" @bind-Value="vm.EditingRecord.PropertyType" Dense="true">
+                        <MudSelect Class="ml-4 mt-10" Style="" T="DominateDocsData.Enums.Property.Types" Variant="Variant.Outlined" Label="Select Property Type" @bind-Value="vm.EditingRecord.PropertyType" Dense="true">
 
                             @foreach (var tr in Enum.GetValues<DominateDocsData.Enums.Property.Types>())
                             {
-                                <MudSelectItem Style="background-color: white;" T="DominateDocsData.Enums.Property.Types" Value="tr">@tr.GetDescription()</MudSelectItem>
+                                <MudSelectItem Style="" T="DominateDocsData.Enums.Property.Types" Value="tr">@tr.GetDescription()</MudSelectItem>
                             }
 
                         </MudSelect>
 
                         <MudSwitch Class="pl-4 mb-4 mt-4" T="bool" @bind-Value="vm.EditingRecord.IsOwnerOccupied" Color="Color.Primary" Label="Is Owner Occupied" />
-                        <MudTextField Class="pl-4" Style="background-color: white;" Variant="Variant.Outlined" @bind-Value="vm.EditingRecord.LegalDescription" Label="Description" Required="true" />
+                        <MudTextField Class="pl-4" Style="" Variant="Variant.Outlined" @bind-Value="vm.EditingRecord.LegalDescription" Label="Description" Required="true" />
 
 
                         <AddressCompleteMap OnAddressChange="OnAddressComplete" Row="false" MultipleAddress="false" AddressList="@addresDTOList" DisplayMap="true" />
@@ -44,18 +44,18 @@
                 <MudItem md="4">
                     <div class="d-flex flex-column gap-2">
 
-                        <MudTextField Class="pl-4 mt-10 mr-5" Style="background-color: white;" Variant="Variant.Outlined" @bind-Value="vm.EditingRecord.ParcelNumber" Label="Parcel Number" Required="false" />
+                        <MudTextField Class="pl-4 mt-10 mr-5" Style="" Variant="Variant.Outlined" @bind-Value="vm.EditingRecord.ParcelNumber" Label="Parcel Number" Required="false" />
 
-                        <MudNumericField Class="pl-4 mr-5" Style="background-color: white;" HideSpinButtons="true" Adornment="Adornment.Start" AdornmentText="$" Culture="CultureInfo.InvariantCulture"
+                        <MudNumericField Class="pl-4 mr-5" Style="" HideSpinButtons="true" Adornment="Adornment.Start" AdornmentText="$" Culture="CultureInfo.InvariantCulture"
                                  Format="N2" @bind-Value="vm.EditingRecord.EstimatedValue" Label="Estimated Value" Variant="Variant.Outlined" Step=".2M" />
 
-                        <MudDatePicker Class="pl-4 mr-5" Style="background-color: white;" Label="Maturity Date" Editable="true" @bind-Date="vm.EditingRecord.LastAppraisalDate" Mask="@(new DateMask("00-00-0000"))" DateFormat="MM-dd-yyyy" Placeholder="mm-dd-yyyy" Variant="Variant.Outlined" />
+                        <MudDatePicker Class="pl-4 mr-5" Style="" Label="Maturity Date" Editable="true" @bind-Date="vm.EditingRecord.LastAppraisalDate" Mask="@(new DateMask("00-00-0000"))" DateFormat="MM-dd-yyyy" Placeholder="mm-dd-yyyy" Variant="Variant.Outlined" />
 
-                        <MudNumericField Class="pl-4 mr-5" Style="background-color: white;" HideSpinButtons="true" Adornment="Adornment.Start" AdornmentText="$" Culture="CultureInfo.InvariantCulture"
+                        <MudNumericField Class="pl-4 mr-5" Style="" HideSpinButtons="true" Adornment="Adornment.Start" AdornmentText="$" Culture="CultureInfo.InvariantCulture"
                                  Format="N2" @bind-Value="vm.EditingRecord.MinimumReleasePrice" Label="Minumum Release Price" Variant="Variant.Outlined" Step=".2M" />
 
 
-                        <MudNumericField Class="pl-4 mr-5" Style="background-color: white;" HideSpinButtons="true" Culture="CultureInfo.InvariantCulture"
+                        <MudNumericField Class="pl-4 mr-5" Style="" HideSpinButtons="true" Culture="CultureInfo.InvariantCulture"
                                  Format="N0" @bind-Value="vm.EditingRecord.SquareFootage" Label="Square Footage" Variant="Variant.Outlined" />
                             
                     </div>

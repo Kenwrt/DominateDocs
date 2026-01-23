@@ -18,7 +18,7 @@
     <MudGrid>
         <MudItem xs="12" md="12">
             <MudText Class="pl-4 mt-6" Typo="Typo.subtitle1">Property Owner(s): @vm.MyOwnerList.Count </MudText>
-            <MudTable Class="ml-4 mr-5" Style="background-color: #FCFCFC;" Items="vm.MyOwnerList" Context="contextOwner" Hover="true" Bordered="true" Dense="true" @bind-SelectedItem="vm.SelectedRecord" RowClick="OnSelectedRecord">
+            <MudTable Class="ml-4 mr-5" Items="vm.MyOwnerList" Context="contextOwner" Hover="true" Bordered="true" Dense="true" @bind-SelectedItem="vm.SelectedRecord" RowClick="OnSelectedRecord">
                 <HeaderContent>
                     <MudTh>Name</MudTh>
                     <MudTh>Address</MudTh>
@@ -67,16 +67,16 @@ else
                     <MudGrid Class="mt-2">
                         <MudItem md="6">
                             <div class="d-flex flex-column gap-2">
-                            <MudTextField Class="pl-4" Variant="Variant.Outlined" Style="background-color: white;" @bind-Value="vm.EditingRecord.EntityName" Label="EntityName" Required="true" />
-                            <MudTextField Class="pl-4" Variant="Variant.Outlined" Style="background-color: white;" @bind-Value="vm.EditingRecord.StreetAddress" Label="Street Address" Required="true" />
-                            <MudTextField Label="Contact Phone" Class="pl-4" Style="background-color: white;" Variant="Variant.Outlined" For="@(() => vm.EditingRecord.ContactPhoneNumber)"
+                            <MudTextField Class="pl-4" Variant="Variant.Outlined" Style="" @bind-Value="vm.EditingRecord.EntityName" Label="EntityName" Required="true" />
+                            <MudTextField Class="pl-4" Variant="Variant.Outlined" Style="" @bind-Value="vm.EditingRecord.StreetAddress" Label="Street Address" Required="true" />
+                            <MudTextField Label="Contact Phone" Class="pl-4" Style="" Variant="Variant.Outlined" For="@(() => vm.EditingRecord.ContactPhoneNumber)"
                                           @bind-Value="vm.EditingRecord.ContactPhoneNumber"
                                               Mask="@phoneMask"
                                               Placeholder="(___) ___-____"
                                               Required="true"
                                               Immediate="true" />
 
-                                <MudNumericField Class="pl-4" HideSpinButtons="true" Style="background-color: white;" Adornment="Adornment.End" AdornmentText="%" Culture="CultureInfo.InvariantCulture"
+                                <MudNumericField Class="pl-4" HideSpinButtons="true" Style="" Adornment="Adornment.End" AdornmentText="%" Culture="CultureInfo.InvariantCulture"
                                              Format="N2" @bind-Value="vm.EditingRecord.PercentageOfOwnership" Label="Minumum Release Price" Variant="Variant.Outlined" />
 
                                 <MudStack Row="true" Spacing="10" Class="mt-4 mb-10">

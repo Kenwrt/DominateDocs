@@ -386,27 +386,103 @@ body, .mud-typography {
     border-radius: 999px !important;
 }
 
-/* Force Mud inputs to look like modern inputs again */
-.form-skin .mud-input-control > .mud-input-control-input-container,
-.form-skin .mud-input-root,
-.form-skin .mud-input-slot,
-.form-skin .mud-input {
-    background-color: #fff !important;
-    border-radius: 12px !important;
-}
-
-/* Outlined variant border rounding */
-.form-skin .mud-input-outlined .mud-input-outlined-border {
-    border-radius: 12px !important;
-}
-
-/* Keep the label/outline from looking clipped */
+/* 1) Make the OUTLINE rounded (you already mostly have this) */
+.form-skin .mud-input-outlined .mud-input-outlined-border,
 .form-skin .mud-input-outlined {
     border-radius: 12px !important;
 }
 
-/* Optional: make it feel tighter/cleaner */
-.form-skin .mud-input {
-    padding-top: 2px;
-    padding-bottom: 2px;
+/* 2) Make the INNER input container rounded so the fill corners match the outline */
+.form-skin .mud-input-control > .mud-input-control-input-container,
+.form-skin .mud-input-slot {
+    border-radius: 12px !important;
+    overflow: hidden; /* critical: clips inner corners */
+    background-color: #fff !important;
 }
+
+/* 3) Select / Autocomplete sometimes use an inner "input-root" element */
+.form-skin .mud-select .mud-input-root,
+.form-skin .mud-autocomplete .mud-input-root,
+.form-skin .mud-input-root {
+    border-radius: 12px !important;
+    overflow: hidden;
+    background-color: #fff !important;
+}
+
+/* 4) Fix the outlined notch/label background so it doesn't show the page gray */
+.form-skin .mud-input-outlined legend span,
+.form-skin .mud-input-outlined .mud-input-label {
+    background-color: #fff !important;
+    padding: 0 4px;
+}
+
+/* The “fill” is on nested containers. Your '>' selector misses them. */
+.form-skin .mud-input-control,
+.form-skin .mud-input-control-input-container,
+.form-skin .mud-input-slot {
+    border-radius: 12px !important;
+    overflow: hidden !important; /* this is what actually forces rounded fill */
+    background-color: #fff !important;
+}
+
+/* Outlined wrapper and the fieldset border should match */
+.form-skin .mud-input-outlined,
+.form-skin .mud-input-outlined .mud-input-outlined-border {
+    border-radius: 12px !important;
+}
+
+/* Selects/autocomplete have their own inner “input” surface */
+.form-skin .mud-select .mud-input-control,
+.form-skin .mud-autocomplete .mud-input-control,
+.form-skin .mud-select .mud-input-control-input-container,
+.form-skin .mud-autocomplete .mud-input-control-input-container {
+    border-radius: 12px !important;
+    overflow: hidden !important;
+    background-color: #fff !important;
+}
+
+/* The notch/label needs a white background (otherwise it shows page gray) */
+.form-skin .mud-input-outlined legend span,
+.form-skin .mud-input-outlined .mud-input-label {
+    background-color: #fff !important;
+    padding: 0 4px;
+}
+
+/* ===== FORCE the inner "fill" to be rounded (MudBlazor v8) ===== */
+
+/* Outlined border rounding (keep) */
+.form-skin .mud-input-outlined,
+.form-skin .mud-input-outlined .mud-input-outlined-border {
+    border-radius: 12px !important;
+}
+
+/* The inner surface that paints the white fill:
+   remove the direct-child assumption and CLIP the corners */
+.form-skin .mud-input-control,
+.form-skin .mud-input-control-input-container,
+.form-skin .mud-input-slot,
+.form-skin .mud-input-root {
+    border-radius: 12px !important;
+    overflow: hidden !important; /* critical */
+    background-color: #fff !important;
+}
+
+/* Selects/Autocomplete have additional inner elements that can remain square */
+.form-skin .mud-select,
+.form-skin .mud-autocomplete,
+.form-skin .mud-select .mud-input-control,
+.form-skin .mud-autocomplete .mud-input-control,
+.form-skin .mud-select .mud-input-slot,
+.form-skin .mud-autocomplete .mud-input-slot {
+    border-radius: 12px !important;
+    overflow: hidden !important;
+    background-color: #fff !important;
+}
+
+/* Fix the notch/label background showing the page gray */
+.form-skin .mud-input-outlined legend span,
+.form-skin .mud-input-outlined .mud-input-label {
+    background-color: #fff !important;
+    padding: 0 4px;
+}
+
