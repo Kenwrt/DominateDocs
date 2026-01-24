@@ -142,7 +142,7 @@
                 <MudMenu AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight">
 
                     <ActivatorContent>
-                        <MudAvatar Size="Size.Small">K</MudAvatar>
+                        <MudAvatar Size="Size.Small">@avaLetter</MudAvatar>
                     </ActivatorContent>
 
                     <ChildContent>
@@ -201,6 +201,7 @@
 
     private bool IsDark = false;
 
+    string avaLetter => !string.IsNullOrEmpty(userName) ? userName.Substring(0, 1).ToUpper() : "?";
 
     private DominateDocsSite.Data.ApplicationUser user = default!;
     private string? username;
