@@ -31,7 +31,7 @@ public partial class LoanAgreementViewModel : ObservableObject
 
     [ObservableProperty]
     private DominateDocsData.Models.Guarantor selectedGuarantor = null;
-
+      
     [ObservableProperty]
     private DominateDocsData.Models.Lender selectedLender = null;
 
@@ -152,22 +152,22 @@ public partial class LoanAgreementViewModel : ObservableObject
     }
 
     [RelayCommand]
-    private void UpsertAgreement(DominateDocsData.Models.LoanAgreement r)
+    private void UpsertAgreement()
     {
         try
         {
-            int index = AgreementList.FindIndex(x => x.Id == r.Id);
+            int index = AgreementList.FindIndex(x => x.Id == EditingAgreement.Id);
 
             if (index > -1)
             {
-                AgreementList[index] = r;
+                AgreementList[index] = EditingAgreement;
             }
             else
             {
-                AgreementList.Add(r);
+                AgreementList.Add(EditingAgreement);
             }
 
-            dbApp.UpSertRecord<DominateDocsData.Models.LoanAgreement>(r);
+            dbApp.UpSertRecord<DominateDocsData.Models.LoanAgreement>(EditingAgreement);
         }
         catch (Exception ex)
         {
@@ -176,13 +176,13 @@ public partial class LoanAgreementViewModel : ObservableObject
     }
 
     [RelayCommand]
-    private async Task EditAgreement(DominateDocsData.Models.LoanAgreement r)
+    private async Task EditAgreement()
     {
-        int index = AgreementList.FindIndex(x => x.Id == r.Id);
+        int index = AgreementList.FindIndex(x => x.Id == EditingAgreement.Id);
 
         if (index > -1)
         {
-            AgreementList[index] = r;
+            AgreementList[index] = EditingAgreement;
         }
 
         await dbApp.UpSertRecordAsync<DominateDocsData.Models.LoanAgreement>(EditingAgreement);
@@ -256,7 +256,7 @@ public partial class LoanAgreementViewModel : ObservableObject
 
         SelectedBorrower = null;
 
-        UpsertAgreement(EditingAgreement);
+        UpsertAgreement();
     }
 
     [RelayCommand]
@@ -273,107 +273,11 @@ public partial class LoanAgreementViewModel : ObservableObject
             EditingAgreement.Borrowers.Add(r);
         }
 
-        UpsertAgreement(EditingAgreement);
+        UpsertAgreement();
     }
 
     [RelayCommand]
-    private async Task DeleteBroker(DominateDocsData.Models.Broker r)
-    {
-        int index = EditingAgreement.Brokers.FindIndex(x => x.Id == r.Id);
-
-        if (index > -1)
-        {
-            EditingAgreement.Brokers.RemoveAt(index);
-        }
-
-        SelectedBroker = null;
-
-        UpsertAgreement(EditingAgreement);
-    }
-
-    [RelayCommand]
-    private async Task UpsertBroker(DominateDocsData.Models.Broker r)
-    {
-        int index = EditingAgreement.Brokers.FindIndex(x => x.Id == r.Id);
-
-        if (index > -1)
-        {
-            EditingAgreement.Brokers[index] = r;
-        }
-        else
-        {
-            EditingAgreement.Brokers.Add(r);
-        }
-
-        UpsertAgreement(EditingAgreement);
-    }
-
-    [RelayCommand]
-    private async Task DeleteGuarantor(DominateDocsData.Models.Guarantor r)
-    {
-        int index = EditingAgreement.Guarantors.FindIndex(x => x.Id == r.Id);
-
-        if (index > -1)
-        {
-            EditingAgreement.Guarantors.RemoveAt(index);
-        }
-
-        SelectedGuarantor = null;
-
-        UpsertAgreement(EditingAgreement);
-    }
-
-    [RelayCommand]
-    private async Task UpsertGuarantor(DominateDocsData.Models.Guarantor r)
-    {
-        int index = EditingAgreement.Guarantors.FindIndex(x => x.Id == r.Id);
-
-        if (index > -1)
-        {
-            EditingAgreement.Guarantors[index] = r;
-        }
-        else
-        {
-            EditingAgreement.Guarantors.Add(r);
-        }
-
-        UpsertAgreement(EditingAgreement);
-    }
-
-    [RelayCommand]
-    private async Task DeleteLender(DominateDocsData.Models.Lender r)
-    {
-        int index = EditingAgreement.Lenders.FindIndex(x => x.Id == r.Id);
-
-        if (index > -1)
-        {
-            EditingAgreement.Lenders.RemoveAt(index);
-        }
-
-        SelectedLender = null;
-
-        UpsertAgreement(EditingAgreement);
-    }
-
-    [RelayCommand]
-    private async Task UpsertLender(DominateDocsData.Models.Lender r)
-    {
-        int index = EditingAgreement.Lenders.FindIndex(x => x.Id == r.Id);
-
-        if (index > -1)
-        {
-            EditingAgreement.Lenders[index] = r;
-        }
-        else
-        {
-            EditingAgreement.Lenders.Add(r);
-        }
-
-        UpsertAgreement(EditingAgreement);
-    }
-
-    [RelayCommand]
-    private async Task DeleteProperty(DominateDocsData.Models.PropertyRecord r)
+    private void DeleteProperty(DominateDocsData.Models.PropertyRecord r)
     {
         int index = EditingAgreement.Properties.FindIndex(x => x.Id == r.Id);
 
@@ -382,7 +286,9 @@ public partial class LoanAgreementViewModel : ObservableObject
             EditingAgreement.Properties.RemoveAt(index);
         }
 
-        UpsertAgreement(EditingAgreement);
+        SelectedProperty = null;
+
+        UpsertAgreement();
     }
 
     [RelayCommand]
@@ -399,9 +305,107 @@ public partial class LoanAgreementViewModel : ObservableObject
             EditingAgreement.Properties.Add(r);
         }
 
-        UpsertAgreement(EditingAgreement);
+        UpsertAgreement();
     }
 
+
+
+    [RelayCommand]
+    private async Task DeleteBroker(DominateDocsData.Models.Broker r)
+    {
+        int index = EditingAgreement.Brokers.FindIndex(x => x.Id == r.Id);
+
+        if (index > -1)
+        {
+            EditingAgreement.Brokers.RemoveAt(index);
+        }
+
+        SelectedBroker = null;
+
+        UpsertAgreement();
+    }
+
+    [RelayCommand]
+    private async Task UpsertBroker(DominateDocsData.Models.Broker r)
+    {
+        int index = EditingAgreement.Brokers.FindIndex(x => x.Id == r.Id);
+
+        if (index > -1)
+        {
+            EditingAgreement.Brokers[index] = r;
+        }
+        else
+        {
+            EditingAgreement.Brokers.Add(r);
+        }
+
+        UpsertAgreement();
+    }
+
+    [RelayCommand]
+    private async Task DeleteGuarantor(DominateDocsData.Models.Guarantor r)
+    {
+        int index = EditingAgreement.Guarantors.FindIndex(x => x.Id == r.Id);
+
+        if (index > -1)
+        {
+            EditingAgreement.Guarantors.RemoveAt(index);
+        }
+
+        SelectedGuarantor = null;
+
+        UpsertAgreement();
+    }
+
+    [RelayCommand]
+    private async Task UpsertGuarantor(DominateDocsData.Models.Guarantor r)
+    {
+        int index = EditingAgreement.Guarantors.FindIndex(x => x.Id == r.Id);
+
+        if (index > -1)
+        {
+            EditingAgreement.Guarantors[index] = r;
+        }
+        else
+        {
+            EditingAgreement.Guarantors.Add(r);
+        }
+
+        UpsertAgreement();
+    }
+
+    [RelayCommand]
+    private async Task DeleteLender(DominateDocsData.Models.Lender r)
+    {
+        int index = EditingAgreement.Lenders.FindIndex(x => x.Id == r.Id);
+
+        if (index > -1)
+        {
+            EditingAgreement.Lenders.RemoveAt(index);
+        }
+
+        SelectedLender = null;
+
+        UpsertAgreement();
+    }
+
+    [RelayCommand]
+    private async Task UpsertLender(DominateDocsData.Models.Lender r)
+    {
+        int index = EditingAgreement.Lenders.FindIndex(x => x.Id == r.Id);
+
+        if (index > -1)
+        {
+            EditingAgreement.Lenders[index] = r;
+        }
+        else
+        {
+            EditingAgreement.Lenders.Add(r);
+        }
+
+        UpsertAgreement();
+    }
+      
     public async Task<string> GenerateNewLoanNumberAsync()
     {
         nextLoanNumber++;

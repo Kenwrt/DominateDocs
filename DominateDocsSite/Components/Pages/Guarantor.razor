@@ -83,6 +83,11 @@ else
                       Placeholder="Search..."
                       Immediate="true" />
 
+    <MudItem xs="12" Class="mt-3 mb-3 ml-5">
+        <MudText Typo="Typo.h5">Guarantor</MudText>
+
+    </MudItem>
+
         <MudForm Context="contextGurantor" Model="@vm.EditingRecord" @ref="@formEditRecord" Validation="@GuarantorValidator" ValidationDelay="0">
             <MudGrid GutterSize="3">
                 <MudItem md="4">

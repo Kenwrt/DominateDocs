@@ -10,8 +10,7 @@
             <div class="d-flex flex-column gap-2">
                 <MudAutocomplete T="string"
                                  Class="ml-4 mr-7"
-                                 Style="background-color: white;"
-                                 Variant="Variant.Outlined"
+                                  Variant="Variant.Outlined"
                                  Label="Address"
                                  @bind-Value="currentAddress"
                                  SearchFunc="@SearchAddresses"
@@ -27,14 +26,14 @@
                                  Autocomplete="Autocomplete.Off"
                                  InputAttributes="_attrs" />
 
-                <MudButton Variant="Variant.Filled"
+               @*  <MudButton Variant="Variant.Filled"
                            Color="Color.Primary"
                            OnClick="AddAddressAsync"
                            Class="mt-3"
                            FullWidth="true"
                            StartIcon="@(editingIndex >= 0 ? Icons.Material.Filled.Edit : Icons.Material.Filled.Add)">
                     @(editingIndex >= 0 ? "Update Address" : "Validate Address")
-                </MudButton>
+                </MudButton> *@
 
                 @if (addresses.Any())
                 {
@@ -96,8 +95,7 @@ else
                 {
                     <MudAutocomplete T="string"
                                      Class="ml-4 mr-7"
-                                     Style="background-color: white;"
-                                     Variant="Variant.Outlined"
+                                      Variant="Variant.Outlined"
                                      Label="Address"
                                      Value="currentAddress"
                                      ValueChanged="OnAutocompleteSelectedAsync"
@@ -117,7 +115,7 @@ else
                                      InputAttributes="_attrs" />
 
 
-                    @if (DisplayMap)
+                    @* @if (DisplayMap)
                     {
                         <div class="d-flex gap-2 ml-4 mr-5">
                             <MudButton Variant="Variant.Filled"
@@ -138,7 +136,7 @@ else
                                 </MudButton>
                             }
                         </div>
-                    } 
+                    }  *@
                 }
 
                 @if (addresses.Any())
@@ -382,5 +380,44 @@ else
     private async Task OnAddressEntryHasCompletedAsync()
     {
         await OnAddressChange.InvokeAsync(AddressList);
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        // Update addresses when AddressList parameter changes
+        if (AddressList?.Any() == true)
+        {
+            var newAddresses = AddressList.Select(a => a.FullAddress).ToList();
+
+            // Only update if the addresses have actually changed
+            if (!addresses.SequenceEqual(newAddresses))
+            {
+                addresses = newAddresses;
+
+                if (!MultipleAddress)
+                    currentAddress = addresses.FirstOrDefault();
+
+                // Rebuild markers if map is already initialized
+                if (DisplayMap && mapInitialized)
+                {
+                    await JSRuntime.InvokeVoidAsync("AppMaps.rebuildAllMarkers", addresses);
+                }
+
+                StateHasChanged();
+            }
+        }
+        else if (AddressList?.Any() == false && addresses.Any())
+        {
+            // Clear addresses if AddressList is now empty
+            addresses.Clear();
+            currentAddress = "";
+
+            if (DisplayMap && mapInitialized)
+            {
+                await JSRuntime.InvokeVoidAsync("AppMaps.rebuildAllMarkers", addresses);
+            }
+
+            StateHasChanged();
+        }
     }
 }

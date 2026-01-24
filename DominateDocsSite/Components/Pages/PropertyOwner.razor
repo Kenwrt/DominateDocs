@@ -18,7 +18,7 @@
     <MudGrid>
         <MudItem xs="12" md="12">
             <MudText Class="pl-4 mt-6" Typo="Typo.subtitle1">Property Owner(s): @vm.MyOwnerList.Count </MudText>
-            <MudTable Class="ml-4 mr-5" Items="vm.MyOwnerList" Context="contextOwner" Hover="true" Bordered="true" Dense="true" @bind-SelectedItem="vm.SelectedRecord" RowClick="OnSelectedRecord">
+            <MudTable Class="ml-4 mr-5" Style="background-color: var(--mud-palette-background);" Items="vm.MyOwnerList" Context="contextOwner" Hover="true" Bordered="true" Dense="true" @bind-SelectedItem="vm.SelectedRecord" RowClick="OnSelectedRecord">
                 <HeaderContent>
                     <MudTh>Name</MudTh>
                     <MudTh>Address</MudTh>

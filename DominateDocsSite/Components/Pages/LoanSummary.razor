@@ -68,13 +68,13 @@
 
     <MudGrid>
 
-       <MudItem xs="12" sm="6" md="2">
+        <MudItem xs="12" sm="6" md="2">
 
             <MudText Typo="Typo.h4" Class="mb-2" Style="color: white;">Loan Summary</MudText>
             <MudText Typo="Typo.h3" Adornment="Adornment.Start" AdornmentText="$" Culture="CultureInfo.InvariantCulture" Class="mb-4" Style="color: white; font-weight: 300;">@vm.EditingAgreement.PrincipalAmount.ToString("#,0.##", CultureInfo.GetCultureInfo("en-US"))</MudText>
 
         </MudItem>
-   
+
         <MudItem xs="12" sm="6" md="2">
 
             <MudText Typo="Typo.caption" Style="color: rgba(255,255,255,0.8);">Ref Name</MudText>
@@ -88,7 +88,7 @@
             <MudText Typo="Typo.body1" Style="color: white; font-weight: 500;">@vm.EditingAgreement.LoanNumber</MudText>
 
         </MudItem>
-        
+
         <MudItem xs="12" sm="6" md="2">
 
             <MudText Typo="Typo.caption" Style="color: rgba(255,255,255,0.8);">Interest Rate</MudText>
@@ -103,9 +103,9 @@
             <MudText Typo="Typo.body1" Style="color: white; font-weight: 500;">@vm.EditingAgreement.TermInMonths Months</MudText>
 
         </MudItem>
-    
+
         <MudItem xs="12" sm="6" md="2">
-        
+
             <MudText Typo="Typo.caption" Style="color: rgba(255,255,255,0.8);">Status</MudText>
 
             <MudText Typo="Typo.body1" Style="color: white; font-weight: 500;">@vm.EditingAgreement.Status</MudText>
@@ -134,29 +134,29 @@
             {
                 <Guarantor OnGuarantorComplete="OnGuarantorCompleteAsync"
                            OnGuarantorCancel="OnGuarantorCancel"
-                           AllowRecordEdit="true" 
-                           SelectedGuarantor="@vm.SelectedGuarantor"/>
+                           AllowRecordEdit="true"
+                           SelectedGuarantor="@vm.SelectedGuarantor" />
             }
             @if (AddLender)
             {
                 <Lender OnLenderComplete="OnLenderCompleteAsync"
                         OnLenderCancel="OnLenderCancel"
                         AllowRecordEdit="true"
-                        SelectedLender="@vm.SelectedLender"/>
+                        SelectedLender="@vm.SelectedLender" />
             }
             @if (AddBroker)
             {
                 <Broker OnBrokerComplete="OnBrokerCompleteAsync"
                         OnBrokerCancel="OnBrokerCancel"
                         AllowRecordEdit="true"
-                        SelectedBroker="@vm.SelectedBroker"/>
+                        SelectedBroker="@vm.SelectedBroker" />
             }
             @if (AddBorrower)
             {
                 <Borrower OnBorrowerComplete="OnBorrowerCompleteAsync"
                           OnBorrowerCanceled="OnBorrowerCanceled"
                           AllowRecordEdit="true"
-                          SelectedBorrower="@vm.SelectedBorrower"/>   
+                          SelectedBorrower="@vm.SelectedBorrower" />
             }
 
         </MudItem>
@@ -165,7 +165,7 @@
     {
         <!-- Borrower Section -->
         <MudItem xs="12" md="3">
-            
+
             <MudPaper Elevation="2" Style="background-color: var(--mud-palette-background); height: 100%;" Class="pa-4">
 
                 <MudGrid Class="mb-4">
@@ -178,7 +178,7 @@
 
                     <MudItem xs="6" Class="d-flex justify-end align-center">
 
-                       <MudButton Class="rounded-4"
+                        <MudButton Class="rounded-4"
                                    Variant="Variant.Text"
                                    Size="Size.Small"
                                    Color="Color.Primary"
@@ -365,7 +365,7 @@
                     </div>
 
                 </MudStack>
-                               
+
 
             </MudPaper>
 
@@ -375,17 +375,17 @@
         <MudItem xs="12" md="3">
 
             <MudPaper Style="background-color: var(--mud-palette-background); height: 100%;" Elevation="2" Class="pa-4">
-                                
+
                 <MudGrid Class="mb-4">
 
                     <MudItem xs="6" Class="d-flex align-center">
-                        
+
                         <MudText Typo="Typo.h5" Class="m-0">Brokers</MudText>
 
                     </MudItem>
 
                     <MudItem xs="6" Class="d-flex justify-end align-center">
-                    
+
                         <MudButton Class="rounded-4"
                                    Variant="Variant.Text"
                                    Size="Size.Small"
@@ -445,7 +445,7 @@
 <MudPaper Style="background-color: var(--mud-palette-background);" Elevation="2" Class="pa-6 mt-6">
 
     <MudGrid>
-   
+
         @if (!EditLoanDetail)
         {
             <MudItem xs="12" md="8">
@@ -457,23 +457,81 @@
             <MudItem xs="12" md="2">
                 <MudButton Variant="Variant.Text" Color="Color.Primary" OnClick="ProcessLoanDocsAsync">Process Loan Docs</MudButton>
             </MudItem>
-            <MudItem xs="12" md="4">
-                <MudText Typo="Typo.body1" Style="font-weight: 500;" Class="mb-1">Property Address</MudText> 
-                <MudText Typo="Typo.body2" Color="Color.Secondary">123 Main Street, Anytown, ST 12345</MudText>
-            </MudItem>
-            <MudItem xs="12" md="4">
+            <MudItem xs="12" md="6">
                 <MudText Typo="Typo.body1" Style="font-weight: 500;" Class="mb-1">Loan Purpose</MudText>
                 <MudText Typo="Typo.body2" Color="Color.Secondary">Home Purchase</MudText>
             </MudItem>
-            <MudItem xs="12" md="4">
+            <MudItem xs="12" md="6">
                 <MudText Typo="Typo.body1" Style="font-weight: 500;" Class="mb-1">Next Payment Due</MudText>
                 <MudText Typo="Typo.body2" Color="Color.Secondary">April 1, 2024</MudText>
             </MudItem>
+
+            <!-- Properties Section - Full Width -->
+            @if (AddProperty)
+            {
+                <MudItem xs="12">
+                    <Property OnPropertyComplete="OnPropertyComplete"
+                              OnPropertyCanceled="OnPropertyCanceled"
+                              AllowRecordEdit="true"
+                              SelectedProperty="@vm.SelectedProperty" />
+                </MudItem>
+            }
+            else
+            {
+                <MudItem xs="12" Class="mt-4">
+                    <MudPaper Elevation="2" Style="background-color: var(--mud-palette-background);" Class="pa-4">
+                        <MudGrid Class="mb-4">
+                            <MudItem xs="6" Class="d-flex align-center">
+                                <MudText Typo="Typo.h5" Class="m-0">Properties</MudText>
+                            </MudItem>
+                            <MudItem xs="6" Class="d-flex justify-end align-center">
+                                <MudButton Class="rounded-4"
+                                           Variant="Variant.Text"
+                                           Size="Size.Small"
+                                           Color="Color.Primary"
+                                           StartIcon="@Icons.Material.Filled.Add"
+                                           OnClick="AddPropertyAsync">
+                                    Add Property
+                                </MudButton>
+                            </MudItem>
+                        </MudGrid>
+
+                        <MudStack Spacing="1" Class="mb-4">
+                            @foreach (var item in vm.EditingAgreement.Properties)
+                            {
+                                <MudPaper Elevation="0" Class="pa-2" Style="background-color: var(--mud-palette-background);">
+                                    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3">
+                                            <MudChip T="string" Size="Size.Small" Color="Color.Success" Variant="Variant.Filled">@item.FullAddress</MudChip>
+                                        </MudStack>
+                                        <MudStack Row="true" Spacing="4">
+                                            <MudButton Variant="Variant.Text"
+                                                       Size="Size.Small"
+                                                       Color="Color.Info"
+                                                       StartIcon="@Icons.Material.Filled.Edit"
+                                                       OnClick="@(() => OnSelectedProperty(item))">
+                                                Edit
+                                            </MudButton>
+                                            <MudButton Variant="Variant.Text"
+                                                       Size="Size.Small"
+                                                       Color="Color.Error"
+                                                       StartIcon="@Icons.Material.Filled.Delete"
+                                                       OnClick="@(() => OnRemovePropertyAsync(item))">
+                                                Remove
+                                            </MudButton>
+                                        </MudStack>
+                                    </MudStack>
+                                </MudPaper>
+                            }
+                        </MudStack>
+                    </MudPaper>
+                </MudItem>
+            }
         }
         else
         {
             <LoanDetail OnLoanAgreementComplete="OnAgreementComplete"
-                       OnLoanAgreementCancel="OnAgreementCancel" />
+                        OnLoanAgreementCancel="OnAgreementCancel" />
         }
 
     </MudGrid>
@@ -494,7 +552,7 @@
     protected override async Task OnInitializedAsync()
     {
 
-        vm.InitializePageCommand.Execute(null); 
+        vm.InitializePageCommand.Execute(null);
 
     }
 
@@ -503,6 +561,17 @@
         if (vm.EditingAgreement.Brokers is null) vm.EditingAgreement.Brokers = new();
 
         AddBroker = true;
+
+        StateHasChanged();
+
+
+    }
+
+    public async Task AddPropertyAsync()
+    {
+        if (vm.EditingAgreement.Properties is null) vm.EditingAgreement.Properties = new();
+
+        AddProperty = true;
 
         StateHasChanged();
 
@@ -542,7 +611,7 @@
 
     }
 
-    public async Task AddPropertyAsync()
+    public void AddPropertyButton()
     {
         if (vm.EditingAgreement.Properties is null) vm.EditingAgreement.Properties = new();
 
@@ -600,6 +669,26 @@
 
     }
 
+    private void OnSelectedProperty(DominateDocsData.Models.PropertyRecord r)
+    {
+        vm.SelectedProperty = r;
+
+        AddProperty = true;
+
+        StateHasChanged();
+
+    }
+
+    private async Task OnRemovePropertyAsync(DominateDocsData.Models.PropertyRecord r)
+    {
+        if (vm.EditingAgreement.Properties.Any(x => x.Id == r.Id))
+        {
+            vm.EditingAgreement.Properties.Remove(r);
+        }
+
+        await vm.EditAgreementCommand.ExecuteAsync(null);
+    }
+
     private async Task OnSelectedGuarantorAsync(DominateDocsData.Models.Guarantor record)
     {
         vm.SelectedGuarantor = record;
@@ -613,15 +702,6 @@
     {
         vm.SelectedBroker = record;
         AddBroker = true;
-
-        StateHasChanged();
-
-    }
-
-    private async Task OnSelectedPropertyAsync(DominateDocsData.Models.PropertyRecord record)
-    {
-        vm.SelectedProperty = record;
-        AddLender = true;
 
         StateHasChanged();
 
@@ -660,13 +740,6 @@
     private async Task OnDeleteBrokerAsync(DominateDocsData.Models.Broker r)
     {
         if (r is not null) vm.DeleteBrokerCommand.Execute(r);
-
-        //AddEdit = false;
-    }
-
-    private async Task OnDeletePropertyAsync(DominateDocsData.Models.PropertyRecord r)
-    {
-        if (r is not null) vm.DeletePropertyCommand.Execute(r);
 
         //AddEdit = false;
     }
@@ -754,22 +827,22 @@
     private async Task OnBorrowerCompleteAsync(DominateDocsData.Models.Borrower borrower)
     {
         vm.UpsertBorrowerCommand.Execute(borrower);
-        
+
         AddBorrower = false;
 
         StateHasChanged();
 
     }
-        
+
     private void OnBrokerCancel()
     {
 
         // Handle cancellation
     }
 
-    private async Task OnPropertyCompleteAsync(DominateDocsData.Models.PropertyRecord property)
+    private void OnPropertyComplete(DominateDocsData.Models.PropertyRecord property)
     {
-               
+
         vm.UpsertPropertyCommand.Execute(property);
 
         AddProperty = false;
@@ -778,13 +851,9 @@
 
     }
 
-    private void OnPropertyCancel()
+    private void OnPropertyCanceled()
     {
         // Handle cancellation
     }
 
-
-
-
-   
 }

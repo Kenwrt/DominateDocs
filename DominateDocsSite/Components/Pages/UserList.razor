@@ -73,6 +73,14 @@
                                    OnClick="@(() => OnDeleteUserRecord(context))">
                             Delete
                         </MudButton>
+
+                        <MudButton Variant="Variant.Text"
+                                   Size="Size.Small"
+                                   Color="Color.Error"
+                                   StartIcon="@Icons.Material.Filled.Delete"
+                                   OnClick="@(() => OnResetPasswordAsync(context))">
+                            Reset Password
+                        </MudButton>
                     </MudTd>
                 </RowTemplate>
                 <NoRecordsContent>
@@ -152,6 +160,13 @@ else
        if (r is not null) vm.DeleteUserCommand.Execute(r);         
        
         AddEdit = false;
+    }
+
+    private async Task OnResetPasswordAsync(DominateDocsSite.Data.ApplicationUser r)
+    {
+        if (r is not null) await vm.ResetPasswordCommand.ExecuteAsync(r);
+
+        
     }
 
     private void OnBorrowerComplete()

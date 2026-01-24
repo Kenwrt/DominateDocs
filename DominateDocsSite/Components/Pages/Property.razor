@@ -1,106 +1,182 @@
-﻿
-@using System.Text
+﻿@using System.Text
+@using Blazored.FluentValidation
 @using DominateDocsData.Models
 @using DominateDocsData.Enums
 @using System.Globalization
-@using DominateDocsSite.Helpers
-
+@using DominateDocsSite.State
+@using MudBlazor
+@using System.Threading
 
 @rendermode InteractiveServer
+
 @inject PropertyViewModel vm
 @inject NavigationManager NavigationManager
 @inject ISnackbar Snackbar
+@inject PropertyRecordValidator PropertyValidator
+@inject SigningAuthorityValidator SigningAuthorityValidator
+@inject AliasValidator AliasValidator
+@inject EntityOwnerValidator EntityOwnerValidator
 @inject UserSession Session
-@inject PropertyValidator PropertyValidator
-@inject PropertyOwnerValidator PropertyOwnerValidator
-@inject LienValidator LienValidator
 
 
+@if (!string.IsNullOrEmpty(searchString))
+{
+    <MudText class="pl-4 mt-5" Typo="Typo.h6">Existing PropertyRecords</MudText>
 
-         <MudForm Context="contextProperty" Model="@vm.EditingRecord" @ref="@formEditRecord" Validation="@PropertyValidator" ValidationDelay="0">
-            <MudGrid GutterSize="3">
+    <MudTable Items="FilteredList"
+              Hover="true"
+              Bordered="true"
+              Dense="true"
+              @bind-SelectedItem="vm.SelectedRecord"
+              RowClick="OnSelectedRecord">
+        <ToolBarContent>
+            <MudTextField @bind-Value="searchString"
+                          Placeholder="Search..."
+                          Immediate="true" />
+        </ToolBarContent>
+        <HeaderContent>
+           
+            <MudTh>Address</MudTh>
+          
+            <MudTh>
+                <MudButton Class="rounded-4"
+                           Variant="Variant.Text"
+                           Size="Size.Small"
+                           Color="Color.Primary"
+                           StartIcon="@Icons.Material.Filled.ArrowBack"
+                           OnClick="SearchBackAsync">
+                    Back
+                </MudButton>
+            </MudTh>
+        </HeaderContent>
+        <RowTemplate>
+          
+            <MudTd DataLabel="Address">@context.FullAddress</MudTd>
+            <MudTd>
+                <MudButton Class="rounded-4"
+                           Variant="Variant.Text"
+                           Size="Size.Small"
+                           Color="Color.Primary"
+                           StartIcon="@Icons.Material.Filled.ArrowBack"
+                           OnClick="@(() => OnSelectedRecord(context))">
+                    Add this Property
+                </MudButton>
+            </MudTd>
+        </RowTemplate>
+        <NoRecordsContent>
+            <MudText Color="Color.Secondary" Class="pa-4">
+                🚫 No Properties Found. Please add!
+            </MudText>
+        </NoRecordsContent>
+    </MudTable>
+}
+else
+{
 
-                <MudItem md="4">
-                    <div class="d-flex flex-column gap-2">
-                        <MudSelect Class="ml-4 mt-10" Style="" T="DominateDocsData.Enums.Property.Types" Variant="Variant.Outlined" Label="Select Property Type" @bind-Value="vm.EditingRecord.PropertyType" Dense="true">
+    <MudTextField T="string"
+                  @bind-Value="searchString"
+                  Immediate="true"
+                  Placeholder="Search for Existing Properties"
+                  Adornment="Adornment.Start"
+                  AdornmentIcon="@Icons.Material.Filled.Search"
+                  IconSize="Size.Medium"
+                  Class="pa-4 mt-5 form-skin" />
 
-                            @foreach (var tr in Enum.GetValues<DominateDocsData.Enums.Property.Types>())
-                            {
-                                <MudSelectItem Style="" T="DominateDocsData.Enums.Property.Types" Value="tr">@tr.GetDescription()</MudSelectItem>
-                            }
+    <MudForm Context="contextProperty" Model="@vm.EditingRecord" @ref="@formEditRecord" Validation="@PropertyValidator" ValidationDelay="0">
 
-                        </MudSelect>
+        <MudGrid GutterSize="3">
 
-                        <MudSwitch Class="pl-4 mb-4 mt-4" T="bool" @bind-Value="vm.EditingRecord.IsOwnerOccupied" Color="Color.Primary" Label="Is Owner Occupied" />
-                        <MudTextField Class="pl-4" Style="" Variant="Variant.Outlined" @bind-Value="vm.EditingRecord.LegalDescription" Label="Description" Required="true" />
+            <MudItem md="4">
 
+                 <div class="d-flex flex-column gap-2 mt-10">
 
-                        <AddressCompleteMap OnAddressChange="OnAddressComplete" Row="false" MultipleAddress="false" AddressList="@addresDTOList" DisplayMap="true" />
+                <AddressCompleteMap OnAddressChange="OnAddressComplete" Row="false" MultipleAddress="false" AddressList="@addresDTOList" DisplayMap="true" />
+                </div>
                 
-                
+            </MudItem>
+            <MudItem md="4">
+
+                <div class="d-flex flex-column gap-2">
+                    <MudSelect Class="ml-4 mt-10 mr-5" Style="" T="DominateDocsData.Enums.Property.Types" Variant="Variant.Outlined" Label="Select Property Type" @bind-Value="vm.EditingRecord.PropertyType" Dense="true">
+
+                        @foreach (var tr in Enum.GetValues<DominateDocsData.Enums.Property.Types>())
+                        {
+                            <MudSelectItem Style="" T="DominateDocsData.Enums.Property.Types" Value="tr">@tr.GetDescription()</MudSelectItem>
+                        }
+
+                    </MudSelect>
                     
-                    </div>
-                </MudItem>
-                <MudItem md="4">
-                    <div class="d-flex flex-column gap-2">
+                    <MudTextField Class="pl-4 mr-5" Style="" Variant="Variant.Outlined" @bind-Value="vm.EditingRecord.ParcelNumber" Label="Parcel Number" Required="false" />
 
-                        <MudTextField Class="pl-4 mt-10 mr-5" Style="" Variant="Variant.Outlined" @bind-Value="vm.EditingRecord.ParcelNumber" Label="Parcel Number" Required="false" />
+                    <MudNumericField Class="pl-4 mr-5" Style="" HideSpinButtons="true" Adornment="Adornment.Start" AdornmentText="$" Culture="CultureInfo.InvariantCulture"
+                                     Format="N2" @bind-Value="vm.EditingRecord.EstimatedValue" Label="Estimated Value" Variant="Variant.Outlined" Step=".2M" />
 
-                        <MudNumericField Class="pl-4 mr-5" Style="" HideSpinButtons="true" Adornment="Adornment.Start" AdornmentText="$" Culture="CultureInfo.InvariantCulture"
-                                 Format="N2" @bind-Value="vm.EditingRecord.EstimatedValue" Label="Estimated Value" Variant="Variant.Outlined" Step=".2M" />
+                    <MudDatePicker Class="pl-4 mr-5" Style="" Label="Maturity Date" Editable="true" @bind-Date="vm.EditingRecord.LastAppraisalDate" Mask="@(new DateMask("00-00-0000"))" DateFormat="MM-dd-yyyy" Placeholder="mm-dd-yyyy" Variant="Variant.Outlined" />
 
-                        <MudDatePicker Class="pl-4 mr-5" Style="" Label="Maturity Date" Editable="true" @bind-Date="vm.EditingRecord.LastAppraisalDate" Mask="@(new DateMask("00-00-0000"))" DateFormat="MM-dd-yyyy" Placeholder="mm-dd-yyyy" Variant="Variant.Outlined" />
+                    <MudNumericField Class="pl-4 mr-5" Style="" HideSpinButtons="true" Adornment="Adornment.Start" AdornmentText="$" Culture="CultureInfo.InvariantCulture"
+                                     Format="N2" @bind-Value="vm.EditingRecord.MinimumReleasePrice" Label="Minumum Release Price" Variant="Variant.Outlined" Step=".2M" />
 
-                        <MudNumericField Class="pl-4 mr-5" Style="" HideSpinButtons="true" Adornment="Adornment.Start" AdornmentText="$" Culture="CultureInfo.InvariantCulture"
-                                 Format="N2" @bind-Value="vm.EditingRecord.MinimumReleasePrice" Label="Minumum Release Price" Variant="Variant.Outlined" Step=".2M" />
+                    <MudNumericField Class="pl-4 mr-5" Style="" HideSpinButtons="true" Culture="CultureInfo.InvariantCulture"
+                                     Format="N0" @bind-Value="vm.EditingRecord.SquareFootage" Label="Square Footage" Variant="Variant.Outlined" />
 
+                </div>
+            </MudItem>
+            <MudItem md="4">
+                <div class="d-flex flex-column gap-2">
 
-                        <MudNumericField Class="pl-4 mr-5" Style="" HideSpinButtons="true" Culture="CultureInfo.InvariantCulture"
-                                 Format="N0" @bind-Value="vm.EditingRecord.SquareFootage" Label="Square Footage" Variant="Variant.Outlined" />
-                            
-                    </div>
-                </MudItem>
-                 <MudItem md="4">
-                    <div class="d-flex flex-column gap-2">
+                    <MudSwitch Class="pl-4 mb-4 mt-10" T="bool" @bind-Value="vm.EditingRecord.IsOwnerOccupied" Color="Color.Primary" Label="Is Owner Occupied" />
+                    <MudSwitch Class="pl-4 pr-4" T="bool" @bind-Value="vm.EditingRecord.IsPropertyOwnerDisplay" Color="Color.Primary">Property Owners(@(vm.EditingRecord?.PropertyOwners?.Count ?? 0))</MudSwitch>
 
-                            <PropertyOwner OnPropertyOwnerComplete="OnPropertyOwnerComplete" OnPropertyOwnerCancel="OnPropertyOwnerCancel" AllowRecordEdit=true PropertyOwnerList="vm.EditingRecord.PropertyOwners" />
+                    @if (vm.EditingRecord.IsPropertyOwnerDisplay)
+                    {
+                        <PropertyOwner OnPropertyOwnerComplete="OnPropertyOwnerComplete" OnPropertyOwnerCancel="OnPropertyOwnerCancel" AllowRecordEdit=true PropertyOwnerList="vm.EditingRecord.PropertyOwners" />
+                    }
 
-                            
-                            <MudStack Row="true" Spacing="5" Class="mt-4">
-                                <MudSwitch Class="pl-4" T="bool" @bind-Value="vm.EditingRecord.IsActive" Color="Color.Primary" Label="Active" />
-                            </MudStack>
+                    <MudStack Row="true" Spacing="2" Class="ml-20 mb-15 mt-15">
+                        <MudButton Class="pl-4 mr-15" Type="Submit" OnClick="HandleSubmit" Color="Color.Success" Variant="Variant.Filled"> @(!editRecord ? "Add" : "Save")</MudButton>
+                        <MudButton Class="pl-4" OnClick="ClearSelection" Color="Color.Secondary" Variant="Variant.Filled">Clear</MudButton>
+                    </MudStack>
+                </div>
+            </MudItem>
 
-                            <MudStack Row="true" Spacing="2" Class="ml-20 mb-15">
-                                <MudButton Class="pl-4 mr-15" Type="Submit" OnClick="HandleSubmit" Color="Color.Success" Variant="Variant.Filled"> @(!editRecord ? "Add" : "Save")</MudButton>
-                                <MudButton Class="pl-4" OnClick="ClearSelection" Color="Color.Secondary" Variant="Variant.Filled">Clear</MudButton>
-                            </MudStack>
-                        </div>
-                    </MudItem>
+        </MudGrid>
 
-                </MudGrid>
-        </MudForm>
-   
+    </MudForm>
+
+}
 
 @code
 {
-    [Parameter] public EventCallback<List<DominateDocsData.Models.PropertyRecord>> OnPropertyComplete { get; set; }
-    [Parameter] public EventCallback OnPropertyCancel { get; set; }
-    [Parameter] public DominateDocsData.Models.PropertyRecord SelectedProperty { get; set; } = null;
+        [Parameter] public EventCallback<DominateDocsData.Models.PropertyRecord> OnPropertyComplete { get; set; }
+        [Parameter] public EventCallback OnPropertyCanceled { get; set; }
+        [Parameter] public bool AllowRecordEdit { get; set; } = false;
+        [Parameter] public DominateDocsData.Models.PropertyRecord SelectedProperty { get; set; } = null;
+
+    private bool AddEdit = false;
 
     private bool editRecord = false;
+
+    private readonly PatternMask phoneMask = new("(000)000-0000");
+    private readonly PatternMask socialMask = new("000-00-0000");
 
     private MudForm formEditRecord;
 
     private List<AddressDTO> addresDTOList = new();
 
-    private readonly PatternMask phoneMask = new("(000)000-0000");
+    private string searchString = "";
+
+    private IEnumerable<DominateDocsData.Models.PropertyRecord> FilteredList =>
+          string.IsNullOrWhiteSpace(searchString)
+              ? vm.RecordList
+              : vm.RecordList.Where(l => !string.IsNullOrEmpty(l.FullAddress) && l.FullAddress.Contains(searchString, StringComparison.OrdinalIgnoreCase));
+
+    private string emailPattern = @"^[\w\-\.]+@([\w\-]+\.)+[\w\-]{2,4}$";
 
     private bool AddButtonDisabled = false;
 
-    private string _search = "";
-
     protected override async Task OnInitializedAsync()
     {
+
         vm.InitializePageCommand.Execute(SelectedProperty);
 
         if (SelectedProperty is not null)
@@ -108,12 +184,13 @@
             editRecord = true;
         }
 
-        if (!String.IsNullOrEmpty(vm.EditingRecord.FullAddress))
+        if (!string.IsNullOrEmpty(vm.EditingRecord.FullAddress))
         {
             AddressDTO dto = new()
             {
                 FullAddress = vm.EditingRecord.FullAddress,
                 StreetAddress = vm.EditingRecord.StreetAddress,
+                State = vm.EditingRecord.State,
                 City = vm.EditingRecord.City,
                 ZipCode = vm.EditingRecord.ZipCode,
                 County = vm.EditingRecord.County,
@@ -124,12 +201,19 @@
             addresDTOList.Add(dto);
         }
 
+
+
+    }
+
+    private async Task SearchBackAsync()
+    {
+        searchString = "";
+
     }
 
     private async Task HandleSubmit()
     {
         await formEditRecord.Validate();
-
 
         if (!formEditRecord.IsValid)
         {
@@ -141,19 +225,21 @@
             if (!editRecord)
             {
 
-                if (vm.RecordList.Any(x => x.FullAddress == vm.EditingRecord.FullAddress))
+                if (vm.RecordList.Any(x => (x.FullAddress == vm.EditingRecord .FullAddress && vm.EditingRecord.FullAddress != null)))
                 {
 
-                    Snackbar.Add("Property already exists.", Severity.Error);
+                    Snackbar.Add("A Property already exists choose from the list of Properties.", Severity.Error);
                     return;
                 }
             }
 
             vm.UpsertRecordCommand.Execute(null);
 
-            await OnPropertyComplete.InvokeAsync(vm.MyPropertyList.ToList());
+            await OnPropertyComplete.InvokeAsync(vm.EditingRecord);
 
             AddButtonDisabled = false;
+
+            editRecord = false;
 
             vm.GetNewRecordCommand.Execute(null);
 
@@ -161,37 +247,53 @@
         }
     }
 
+    private async Task AddPropertyRecordForEditAsync(DominateDocsData.Models.PropertyRecord r)
+    {
+        if (AllowRecordEdit)
+        {
+            vm.EditingRecord = r;
+            searchString = "";
+            AddButtonDisabled = false;
+            editRecord = true;
+        }
 
+
+        StateHasChanged();
+    }
+
+    private async Task SearchBack()
+    {
+        searchString = "";
+
+        StateHasChanged();
+    }
 
     private void ClearSelection()
     {
         vm.ClearSelectionCommand.Execute(null);
+        vm.EditingRecord = new DominateDocsData.Models.PropertyRecord();
+        StateHasChanged();
     }
-
-
 
     private void AddButton()
     {
-        vm.InitializePageCommand.Execute(null);
-
         vm.GetNewRecordCommand.Execute(null);
 
-       
+        editRecord = true;
+        AddEdit = true;
         AddButtonDisabled = true;
     }
 
-
-
-    private void OnSelectedRecord(DominateDocsData.Models.PropertyRecord property)
+    private void OnSelectedRecord(DominateDocsData.Models.PropertyRecord r)
     {
-        vm.SelectRecordCommand.Execute(property);
+        searchString = "";
+
+        vm.SelectRecordCommand.Execute(r);
 
         editRecord = true;
 
-        
+        AddEdit = true;
     }
-
-   
 
     private void OnAddressComplete(List<AddressDTO> addressList)
     {
@@ -200,6 +302,7 @@
             vm.EditingRecord.FullAddress = string.Empty;
             vm.EditingRecord.StreetAddress = string.Empty;
             vm.EditingRecord.City = string.Empty;
+            vm.EditingRecord.State = string.Empty;
             vm.EditingRecord.ZipCode = string.Empty;
             vm.EditingRecord.County = string.Empty;
             vm.EditingRecord.Country = string.Empty;
@@ -211,27 +314,39 @@
             vm.EditingRecord.FullAddress = addressDTO.FullAddress;
             vm.EditingRecord.StreetAddress = addressDTO.StreetAddress;
             vm.EditingRecord.City = addressDTO.City;
+            vm.EditingRecord.State = addressDTO.State;
             vm.EditingRecord.ZipCode = addressDTO.ZipCode;
             vm.EditingRecord.County = addressDTO.County;
             vm.EditingRecord.Country = addressDTO.Country;
+            vm.EditingRecord.Lat = addressDTO.Lat;
+            vm.EditingRecord.Lng = addressDTO.Lng;
         }
-
-        vm.UpsertRecordCommand.Execute(null);
     }
 
-   
+    private async Task OnEntityOwnerComplete(List<DominateDocsData.Models.EntityOwner> entityOwners)
+    {
+        vm.EditingRecord.EntityOwners = entityOwners;
+    }
+
+    private async Task OnEntityOwnerCanceled()
+    {
+        StateHasChanged();
+    }
+
+    private async Task OnStateLicenseCanceled()
+    {
+
+    }
+
     private void OnPropertyOwnerComplete(List<DominateDocsData.Models.PropertyOwner> propertyOwnerList)
     {
         vm.EditingRecord.PropertyOwners = propertyOwnerList;
 
         vm.UpsertRecordCommand.Execute(null);
     }
-    
+
     private void OnPropertyOwnerCancel()
     {
         // No action needed for now
-    }   
-
-
-
+    }
 }

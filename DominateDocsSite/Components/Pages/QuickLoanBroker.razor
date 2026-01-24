@@ -510,8 +510,7 @@ else
     {
         if (broker is not null) vm.SelectRecordCommand.Execute(broker);
 
-        editRecord = true;
-
+       
         if (!String.IsNullOrEmpty(vm.EditingRecord.FullAddress))
         {
             addresDTOList.Clear();
@@ -531,6 +530,10 @@ else
 
             addresDTOList.Add(dto);
         }
+
+        editRecord = true;
+
+        displayList = false;
 
        
     }

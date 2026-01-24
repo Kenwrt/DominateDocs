@@ -81,9 +81,6 @@ else
                                         Remove
                                     </MudButton>
 
-                                   
-                                       @*  <MudLink Href="#" Typo="Typo.body2" Color="Color.Primary">edit</MudLink>
-                                        <MudLink Href="#" Typo="Typo.body2" Color="Color.Error">remove</MudLink> *@
                                     </MudStack>
                                 </MudStack>
                             </MudPaper>
@@ -351,7 +348,7 @@ else
         }
         else
         {
-            if (!editRecord)
+            if (editRecord == false)
             {
                 if (vm.RecordList.Any(x => (x.SSN == vm.EditingRecord.SSN && vm.EditingRecord.SSN != null) || (x.EIN == vm.EditingRecord.EIN && vm.EditingRecord.EIN != null)))
                 {
@@ -512,6 +509,9 @@ else
 
             addresDTOList.Add(dto);
         }
+
+        displayList = false;
+        editRecord = true;
     }
 
     private async Task EditRecordAsync(DominateDocsData.Models.Lender lender)

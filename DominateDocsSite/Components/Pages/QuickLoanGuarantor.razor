@@ -505,8 +505,6 @@ else
     {
         vm.SelectRecordCommand.Execute(Guarantor);
 
-        editRecord = true;
-
         if (!String.IsNullOrEmpty(vm.EditingRecord.FullAddress))
         {
             addresDTOList.Clear();
@@ -526,6 +524,10 @@ else
 
             addresDTOList.Add(dto);
         }
+
+        editRecord = true;
+
+        displayList = false;
     }
 
     private async Task EditRecordAsync(DominateDocsData.Models.Guarantor r)

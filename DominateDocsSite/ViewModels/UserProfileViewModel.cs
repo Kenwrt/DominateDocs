@@ -7,6 +7,7 @@ using DominateDocsSite.Data;
 using DominateDocsSite.Database;
 using DominateDocsSite.Helpers;
 using DominateDocsSite.State;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Nextended.Core.Extensions;
 using System.Collections.ObjectModel;
@@ -42,15 +43,18 @@ public partial class UserProfileViewModel : ObservableObject
     private readonly ILogger<UserDefaultProfileViewModel> logger;
     private readonly ApplicationDbContext dbContext;
 
+    private readonly UserManager<ApplicationUser> userManager;
+
     private int nextLoanNumber = 0;
 
-    public UserProfileViewModel(IMongoDatabaseRepo dbApp, ILogger<UserDefaultProfileViewModel> logger, UserSession userSession, IApplicationStateManager appState, ApplicationDbContext dbContext)
+    public UserProfileViewModel(IMongoDatabaseRepo dbApp, ILogger<UserDefaultProfileViewModel> logger, UserSession userSession, IApplicationStateManager appState, ApplicationDbContext dbContext, UserManager<ApplicationUser> userManager)
     {
         this.dbApp = dbApp;
         this.logger = logger;
         this.userSession = userSession;
         this.appState = appState;
         this.dbContext = dbContext;
+        this.userManager = userManager; 
 
         recordList = new ObservableCollection<DominateDocsSite.Data.ApplicationUser>(dbContext.ApplicationUsers.ToList());
 
@@ -116,6 +120,31 @@ public partial class UserProfileViewModel : ObservableObject
     private void SelectProfile(DominateDocsData.Models.UserProfile r)
     {
         SelectedUserProfile = EditingUserProfile;
+    }
+
+    [RelayCommand]
+    private async Task ResetPassword(DominateDocsSite.Data.ApplicationUser r)
+    {
+        var user = await userManager.FindByEmailAsync(r.Email);
+
+        if (user != null)
+        {
+            var token = await userManager.GeneratePasswordResetTokenAsync(user);
+
+            if (token != null)
+            {
+                var result = await userManager.ResetPasswordAsync(
+                    user,
+                    token,
+                    "TempPassword123!"
+                );
+            }
+        }
+
+        //if (!result.Succeeded)
+        //{
+        //    // inspect result.Errors
+        //}
     }
 
     [RelayCommand]
