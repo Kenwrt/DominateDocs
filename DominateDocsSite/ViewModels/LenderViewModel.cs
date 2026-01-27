@@ -1,8 +1,8 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using DominateDocsData.Enums;
-using DominateDocsSite.Database;
-using DominateDocsSite.Helpers;
+using DominateDocsData.Database;
+using DominateDocsData.Helpers;
 using DominateDocsSite.State;
 using System.Collections.ObjectModel;
 
@@ -103,7 +103,7 @@ public partial class LenderViewModel : ObservableObject
 
          if (EditingRecord.LenderCode is null)
         {
-            EditingRecord.LenderCode = $"L-{DominateDocsSite.Helpers.DisplayHelper.GenerateIdCode().ToString()}";
+            EditingRecord.LenderCode = $"L-{DisplayHelper.GenerateIdCode().ToString()}";
         }
 
 

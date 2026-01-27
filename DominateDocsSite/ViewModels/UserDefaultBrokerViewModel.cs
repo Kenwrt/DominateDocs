@@ -1,8 +1,8 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using DominateDocsData.Enums;
-using DominateDocsSite.Database;
-using DominateDocsSite.Helpers;
+using DominateDocsData.Database;
+using DominateDocsData.Helpers;
 using DominateDocsSite.State;
 using System.Collections.ObjectModel;
 
@@ -97,7 +97,7 @@ public partial class UserDefaultBrokerViewModel : ObservableObject
 
         if (EditingRecord.BrokerCode is null)
         {
-            EditingRecord.BrokerCode = $"B-{DominateDocsSite.Helpers.DisplayHelper.GenerateIdCode().ToString()}";
+            EditingRecord.BrokerCode = $"B-{DisplayHelper.GenerateIdCode().ToString()}";
         }
 
         await dbApp.UpSertRecordAsync<DominateDocsData.Models.Broker>(EditingRecord);

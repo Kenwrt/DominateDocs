@@ -1,148 +1,187 @@
 ﻿@page "/testmergebydocument"
 
-@using Microsoft.AspNetCore.Components.Forms
+@using MudBlazor
+@using DominateDocsData.Enums
+@using DominateDocsData.Models
 
+@rendermode InteractiveServer
 
-@inject IWebHostEnvironment Env
-@inject TestMergeViewModel vm
+@inject DominateDocsSite.ViewModels.TestMergeViewModel vm
+@inject ISnackbar Snackbar
 
-<h3>Test Templates</h3>
+<MudPaper Class="pa-4" Outlined="true">
+    <MudText Typo="Typo.h5">Admin Test Merge Bench</MudText>
+    <MudText Typo="Typo.caption" Class="mud-text-secondary mb-3">
+        Pick a DocLibId (library), then test output evaluation or single-doc merges. This page is for you, not humans.
+    </MudText>
 
- <MudGrid GutterSize="3">
+    <MudGrid GutterSize="3">
 
-    <MudItem md="4">
-        <div class="d-flex flex-column gap-2">
-
-            <MudSelect Class="ml-4" T="DominateDocsData.Enums.DocumentTypes.TestTypes" Style="background-color: white;" Variant="Variant.Outlined" Label="Select Entity Type" @bind-Value="vm.TestType" Dense="true">
-
-                @foreach (var gt in Enum.GetValues<DominateDocsData.Enums.DocumentTypes.TestTypes>())
+        <!-- Library -->
+        <MudItem xs="12" md="8">
+            <MudSelect T="Guid" Label="Document Library (DocLibId)" Variant="Variant.Outlined" Dense="true"
+                       @bind-Value="vm.SelectedDocLibId">
+                @foreach (var id in vm.DocLibIds)
                 {
-                    <MudSelectItem Style="background-color: white;" T="DominateDocsData.Enums.DocumentTypes.TestTypes" Value="gt">@gt.GetDescription()</MudSelectItem>
+                    <MudSelectItem Value="id">@id</MudSelectItem>
                 }
+            </MudSelect>
+        </MudItem>
 
+        <MudItem xs="12" md="4" Class="d-flex align-end" Style="gap:10px;">
+            <MudButton Variant="Variant.Filled" Disabled="@vm.IsBusy" OnClick="ReloadClicked">
+                Reload
+            </MudButton>
+            <MudButton Variant="Variant.Text" Color="Color.Secondary" Disabled="@vm.IsBusy" OnClick="ClearClicked">
+                Clear
+            </MudButton>
+        </MudItem>
+
+        <!-- Email + Output -->
+        <MudItem xs="12" md="6">
+            <MudTextField Label="Email To" Variant="Variant.Outlined" Dense="true"
+                          @bind-Value="vm.EmailTo" />
+        </MudItem>
+
+        <MudItem xs="12" md="6">
+            <MudSelect T="DocumentTypes.OutputTypes" Label="Output Type" Variant="Variant.Outlined" Dense="true"
+                       @bind-Value="vm.OutputType">
+                @foreach (var v in Enum.GetValues<DocumentTypes.OutputTypes>())
+                {
+                    <MudSelectItem Value="v">@v.GetDescription()</MudSelectItem>
+                }
+            </MudSelect>
+        </MudItem>
+
+        <MudItem xs="12">
+            <MudDivider Class="my-2" />
+        </MudItem>
+
+        <!-- Mode -->
+        <MudItem xs="12" md="6">
+            <MudSelect T="DominateDocsSite.ViewModels.TestMergeViewModel.TestMode" Label="Mode"
+                       Variant="Variant.Outlined" Dense="true"
+                       @bind-Value="vm.Mode">
+                <MudSelectItem Value="DominateDocsSite.ViewModels.TestMergeViewModel.TestMode.OutputEvaluation">
+                    Output Evaluation (LoanType)
+                </MudSelectItem>
+                <MudSelectItem Value="DominateDocsSite.ViewModels.TestMergeViewModel.TestMode.SingleDocumentMerge">
+                    Single Document Merge (ignore LoanType)
+                </MudSelectItem>
+            </MudSelect>
+        </MudItem>
+
+        <!-- Loan Agreement (unfiltered) -->
+        <MudItem xs="12" md="6">
+            <MudSelect T="LoanAgreement" Label="Loan Agreement" Variant="Variant.Outlined" Dense="true"
+                       @bind-Value="vm.SelectedLoanAgreement">
+                @foreach (var loan in vm.LoanAgreements)
+                {
+                    <MudSelectItem Value="loan">@vm.GetLoanLabel(loan)</MudSelectItem>
+                }
             </MudSelect>
 
-        @if (vm.TestType == DominateDocsData.Enums.DocumentTypes.TestTypes.Document)
+            <MudText Typo="Typo.caption" Class="mud-text-secondary mt-1">
+                Agreements are not filtered by DocLibId (your DocLibId is down on lender/broker).
+            </MudText>
+        </MudItem>
+
+        @if (vm.Mode == DominateDocsSite.ViewModels.TestMergeViewModel.TestMode.OutputEvaluation)
         {
-                <MudSelect Class="ml-4" T="DominateDocsData.Models.Document" Style="background-color: white;" Variant="Variant.Outlined" Label="Select Document" @bind-Value="vm.EditingDocument" Dense="true">
-
-                    @foreach (var doc in vm.DocumentList)
+            <MudItem xs="12" md="6">
+                <MudSelect T="LoanType" Label="Loan Type" Variant="Variant.Outlined" Dense="true"
+                           @bind-Value="vm.SelectedLoanType">
+                    @foreach (var lt in vm.LoanTypes)
                     {
-                        <MudSelectItem Style="background-color: white;" T="DominateDocsData.Models.Document" Value="doc">@doc.Name</MudSelectItem>
+                        <MudSelectItem Value="lt">@lt.Name</MudSelectItem>
                     }
-
                 </MudSelect>
+            </MudItem>
+
+            <MudItem xs="12" md="6" Class="d-flex align-end" Style="gap:10px;">
+                <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                           Disabled="@(!vm.CanEvaluate || vm.IsBusy)"
+                           OnClick="EvaluateClicked">
+                    Evaluate
+                </MudButton>
+
+                <MudButton Variant="Variant.Filled" Color="Color.Success"
+                           Disabled="@(!vm.CanMergeEvaluated || vm.IsBusy)"
+                           OnClick="MergeEvaluatedClicked">
+                    Merge + Email Evaluated
+                </MudButton>
+            </MudItem>
+
+            <MudItem xs="12">
+                <MudText Typo="Typo.subtitle2" Class="mt-2">Evaluated Output Docs</MudText>
+                <MudPaper Outlined="true" Class="pa-2">
+                    @if (vm.EvaluatedDocs.Count == 0)
+                    {
+                        <MudText Typo="Typo.caption" Class="mud-text-secondary">No results.</MudText>
+                    }
+                    else
+                    {
+                        <div class="d-flex flex-wrap" style="gap:8px;">
+                            @foreach (var d in vm.EvaluatedDocs)
+                            {
+                                <MudChip T="string" Variant="Variant.Outlined" Size="Size.Small">@d.Name</MudChip>
+                            }
+                        </div>
+                    }
+                </MudPaper>
+            </MudItem>
         }
         else
         {
-               @*  <MudSelect Class="ml-4" T="DominateDocsData.Models.DocumentSet" Style="background-color: white;" Variant="Variant.Outlined" Label="Select Document Set" @bind-Value="vm.EditingDocumentSet" Dense="true">
-
-                    @foreach (var docSet in vm.DocumentSetList)
+            <MudItem xs="12" md="6">
+                <MudSelect T="DominateDocsData.Models.Document" Label="Document" Variant="Variant.Outlined" Dense="true"
+                           @bind-Value="vm.SelectedDocument">
+                    @foreach (var doc in vm.Documents)
                     {
-                        <MudSelectItem Style="background-color: white;" T="DominateDocsData.Models.DocumentSet" Value="docSet">@docSet.Name</MudSelectItem>
+                        <MudSelectItem Value="doc">@doc.Name</MudSelectItem>
                     }
+                </MudSelect>
+            </MudItem>
 
-                </MudSelect> *@
-                
+            <MudItem xs="12" md="6" Class="d-flex align-end" Style="gap:10px;">
+                <MudButton Variant="Variant.Filled" Color="Color.Success"
+                           Disabled="@(!vm.CanMergeSingle || vm.IsBusy)"
+                           OnClick="MergeSingleClicked">
+                    Merge + Email Document
+                </MudButton>
+            </MudItem>
         }
 
-        <MudSelect Class="ml-4" T="DominateDocsData.Models.LoanAgreement" Style="background-color: white;" Variant="Variant.Outlined" Label="Select Loan Agreement" @bind-Value="vm.LoanAgreement" Dense="true">
-
-            @foreach (var loan in vm.LoanAgreementList)
+        <MudItem xs="12">
+            @if (!string.IsNullOrWhiteSpace(vm.Status))
             {
-                <MudSelectItem Style="background-color: white;" T="DominateDocsData.Models.LoanAgreement" Value="loan">@loan.ReferenceName</MudSelectItem>
+                <MudAlert Severity="Severity.Info" Dense="true">@vm.Status</MudAlert>
             }
-
-        </MudSelect>
-
-        <MudTextField Class="ml-4" @bind-Value="vm.EditingMailMsg.To" Style="background-color: white;" Variant="Variant.Outlined" Label="Email Address"
-                        Placeholder="example@domain.com"
-                        Required="true"
-                        RequiredError="Email is required"
-                        Pattern="@emailPattern"
-                        PatternErrorMessage="Invalid email format"
-                        Immediate="true" />
-
-        <MudSelect Class="ml-4" T="DominateDocsData.Enums.DocumentTypes.OutputTypes" Style="background-color: white;" Variant="Variant.Outlined" Label="Select Entity Type" @bind-Value="vm.OutputType" Dense="true">
-
-            @foreach (var gt in Enum.GetValues<DominateDocsData.Enums.DocumentTypes.OutputTypes>())
-            {
-                <MudSelectItem Style="background-color: white;" T="DominateDocsData.Enums.DocumentTypes.OutputTypes" Value="gt">@gt.GetDescription()</MudSelectItem>
-            }
-
-        </MudSelect>
-
-            
-
-        <MudCheckBox @bind-Value="@vm.IsZipFile">Send in ZIP File</MudCheckBox>
-
-        <MudGrid Justify="Justify.Center" AlignItems="AlignItems.Center" Class="mt-2 mb-10">
-            <MudItem md="4">
-                <MudButton Class="" Type="Submit" OnClick="OnMergeDocumentAsync" Color="Color.Success" Variant="Variant.Filled">Merge Document</MudButton>
-            </MudItem>
-            <MudItem md="4">
-                    <MudButton Class="" OnClick="OnClearDocumentSelectionAsync" Color="Color.Secondary" Variant="Variant.Filled">Clear</MudButton>
-            </MudItem>
-
-
-              
-        </MudGrid>
-                   
-
-        </div>
-    </MudItem>
-
-</MudGrid>  
-
-
+        </MudItem>
+    </MudGrid>
+</MudPaper>
 
 @code {
 
-    private string emailPattern = @"^[\w\-\.]+@([\w\-]+\.)+[\w\-]{2,4}$";
-
-    private string emailAddress = "";
-
     protected override async Task OnInitializedAsync()
     {
-        await vm.InitializePageCommand.ExecuteAsync(null);
+        await vm.InitializeAsync();
     }
 
-    private async Task OnMergeDocumentAsync()
+    private async Task ReloadClicked()
     {
-
-        await vm.MergeDocumentCommand.ExecuteAsync(null);
-
-        vm.EditingDocument = null;
-
-       
-
-        //vm.EditingDocumentSet = null;
-
-        vm.SelectedDocument = null;
-
-        vm.SelectedDocumentSet = null;
-
-
-        StateHasChanged();
-
-
+        await vm.ReloadAsync();
     }
 
-    // private void OnMoveDocument()
-    // {
-
-    //     vm.MoveDocumentsCommand.Execute(null);
-
-    //     StateHasChanged();
-
-
-    // }
-
-    private async Task OnClearDocumentSelectionAsync()
+    private void ClearClicked()
     {
-        vm.ClearDocumentSelectionCommand.Execute(null);
-        
+        vm.Clear();
+        Snackbar.Add("Cleared.", Severity.Info);
     }
 
-   
+    private Task EvaluateClicked() => vm.EvaluateAsync();
+
+    private Task MergeEvaluatedClicked() => vm.MergeEvaluatedAsync();
+
+    private Task MergeSingleClicked() => vm.MergeSingleAsync();
 }

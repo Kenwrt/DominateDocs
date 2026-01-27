@@ -6,8 +6,149 @@
 
 @inject LoanTypeViewModel vm
 @inject IDialogService DialogService
+@inject NavigationManager Nav
 
-<MudContainer MaxWidth="MaxWidth.False" Class="pa-4">
+<style>
+    /* Loan Type Create page polish */
+    .loan-type-create .mud-breadcrumbs {
+        margin-bottom: 12px;
+    }
+
+    /* Make the breadcrumb items feel clickable and consistent */
+    .loan-type-create .mud-breadcrumb-item a {
+        text-decoration: none;
+    }
+
+        .loan-type-create .mud-breadcrumb-item a:hover {
+            text-decoration: underline;
+        }
+
+    /* Align the details section fields nicely */
+    .loan-type-create .loan-type-details .mud-input-control {
+        margin-bottom: 0;
+    }
+
+    /* Manual breadcrumbs (always renders) */
+    .loan-type-create .loan-breadcrumbs {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: .95rem;
+        margin-bottom: 12px;
+    }
+
+        .loan-type-create .loan-breadcrumbs .crumb-sep {
+            opacity: .6;
+        }
+
+    /* Icon preview line */
+    .loan-type-create .icon-preview {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-top: 8px;
+    }
+
+    /* Default document chips spacing */
+    .loan-type-create .default-docs {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+        .loan-type-create .default-docs .mud-chip {
+            margin: 0;
+        }
+
+    .loan-type-create .crumb-link {
+        color: #1976d2 !important; /* blue */
+        font-weight: 600;
+    }
+
+        .loan-type-create .crumb-link:hover {
+            color: #2e7d32 !important; /* green on hover */
+            text-decoration: underline;
+            cursor: pointer;
+        }
+</style>
+
+<MudContainer MaxWidth="MaxWidth.False" Class="pa-4 loan-type-create">
+
+    <!-- BREADCRUMBS (manual so it actually shows) -->
+    <div class="loan-breadcrumbs">
+        <MudButton Variant="Variant.Text"
+                   Color="Color.Primary"
+                   Class="crumb-btn"
+                   OnClick="@GoToLoanTypeList">
+            Loan Types
+        </MudButton>
+
+        <span class="crumb-sep">/</span>
+
+        <MudText Inline="true" Typo="Typo.body2" Color="Color.Secondary">
+            @((SelectedLoanType is null) ? "Add Loan Type" : "Edit Loan Type")
+        </MudText>
+    </div>
+
+
+    <MudText Typo="Typo.h6">Loan Type</MudText>
+
+    <MudText Typo="Typo.body2" Class="mb-3 mud-text-secondary">
+        Define the loan type basics (name, description, icon), then configure rules.
+    </MudText>
+
+    <!-- Loan Type Details -->
+    <MudPaper Elevation="0" Outlined="true" Class="pa-3 mb-3 loan-type-details">
+        <MudText Typo="Typo.subtitle2" Class="mb-2">Loan Type Details</MudText>
+
+        <MudGrid GutterSize="3">
+            <MudItem xs="12" md="4">
+                <MudTextField T="string"
+                              Label="Name"
+                              Variant="Variant.Outlined"
+                              Immediate="true"
+                              @bind-Value="vm.EditingLoanType.Name" />
+            </MudItem>
+
+            <MudItem xs="12" md="4">
+                <MudTextField T="string"
+                              Label="Description"
+                              Variant="Variant.Outlined"
+                              Immediate="true"
+                              @bind-Value="vm.EditingLoanType.Description" />
+            </MudItem>
+
+            <MudItem xs="12" md="4">
+                <MudSelect T="string"
+                           Label="Icon"
+                           Variant="Variant.Outlined"
+                           Dense="true"
+                           Clearable="true"
+                           @bind-Value="vm.EditingLoanType.IconKey">
+
+                    @foreach (var opt in IconOptions)
+                    {
+                        <MudSelectItem Value="@opt.Key">
+                            <div class="d-flex align-center" style="gap:10px;">
+                                <MudIcon Icon="@opt.Icon" />
+                                <MudText Typo="Typo.body2">@opt.Key</MudText>
+                            </div>
+                        </MudSelectItem>
+                    }
+                </MudSelect>
+
+                @if (!string.IsNullOrWhiteSpace(vm.EditingLoanType.IconKey))
+                {
+                    <div class="icon-preview">
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">Preview:</MudText>
+                        <MudIcon Icon="@GetIconByKey(vm.EditingLoanType.IconKey)" />
+                    </div>
+                }
+            </MudItem>
+        </MudGrid>
+    </MudPaper>
+
+    <MudDivider Class="my-3" />
 
     <MudText Typo="Typo.h6">Loan Type Rules</MudText>
 
@@ -31,7 +172,7 @@
             </div>
         </div>
 
-        <div class="d-flex flex-wrap align-center" style="gap:8px;">
+        <div class="default-docs">
             @foreach (var id in (vm.EditingLoanType.DefaultDocumentIds ?? new List<Guid>()))
             {
                 <MudChip T="string"
@@ -75,6 +216,7 @@
         <MudButton Variant="Variant.Filled"
                    Color="Color.Success"
                    StartIcon="@Icons.Material.Filled.CheckCircle"
+                   Disabled="@SaveDisabled"
                    OnClick="@Complete">
             Save
         </MudButton>
@@ -86,6 +228,10 @@
     [Parameter] public EventCallback<LoanType> OnLoanTypeComplete { get; set; }
     [Parameter] public EventCallback OnLoanTypeCancel { get; set; }
     [Parameter] public LoanTypeListDTO? SelectedLoanType { get; set; }
+
+    private static readonly IReadOnlyList<(string Key, string Icon)> IconOptions = BuildIconOptions();
+
+    private bool SaveDisabled => string.IsNullOrWhiteSpace(vm.EditingLoanType.Name);
 
     protected override void OnParametersSet()
     {
@@ -124,7 +270,16 @@
         vm.EditingLoanType.DefaultDocumentIds.Remove(id);
     }
 
-    private async Task OpenDefaultDocsPicker()
+    private void AddDefaultDoc(Guid id)
+    {
+        if (id == Guid.Empty) return;
+
+        vm.EditingLoanType.DefaultDocumentIds ??= new List<Guid>();
+        if (!vm.EditingLoanType.DefaultDocumentIds.Contains(id))
+            vm.EditingLoanType.DefaultDocumentIds.Add(id);
+    }
+
+    private void OpenDefaultDocsPicker()
     {
         vm.EditingLoanType.DefaultDocumentIds ??= new List<Guid>();
         var selected = new HashSet<Guid>(vm.EditingLoanType.DefaultDocumentIds);
@@ -133,24 +288,16 @@
         {
             ["Title"] = "Select Default Documents",
             ["AllDocuments"] = vm.MasterDocumentDtos,
-            ["SelectedIds"] = selected
+            ["SelectedIds"] = selected,
+            ["OnSelected"] = (Action<Guid>)((id) =>
+            {
+                AddDefaultDoc(id);
+                InvokeAsync(StateHasChanged);
+            })
         };
 
-        var options = new DialogOptions { CloseButton = true, FullWidth = true, MaxWidth = MaxWidth.Medium };
-
-        var dialog = DialogService.Show<DocumentPickerDialog>("Select Documents", parameters, options);
-        var result = await dialog.Result;
-
-        if (!result.Canceled && result.Data is HashSet<Guid> picked)
-        {
-            foreach (var id in picked.Where(x => x != Guid.Empty).Distinct().ToList())
-            {
-                if (!vm.EditingLoanType.DefaultDocumentIds.Contains(id))
-                    vm.EditingLoanType.DefaultDocumentIds.Add(id);
-            }
-           
-        }
-        
+        var options = new DialogOptions { CloseButton = false, FullWidth = true, MaxWidth = MaxWidth.Medium };
+        DialogService.Show<DocumentPickerDialog>("Select Documents", parameters, options);
     }
 
     private Task OnRulesChanged()
@@ -167,6 +314,9 @@
 
     private async Task Complete()
     {
+        if (string.IsNullOrWhiteSpace(vm.EditingLoanType.Name))
+            return;
+
         var saved = vm.EditingLoanType;
         vm.CommitUiToModel();
 
@@ -178,9 +328,10 @@
     {
         if (OnLoanTypeCancel.HasDelegate)
             await OnLoanTypeCancel.InvokeAsync();
+
+        Nav.NavigateTo("/LoanTypeList");
     }
 
-   
     private static Guid? TryGetGuid(object? obj, params string[] propertyNames)
     {
         if (obj is null) return null;
@@ -201,13 +352,55 @@
 
     private string GetDocNameById(Guid id)
     {
-        // FIX: MasterDocuments is non-null; don't use ?? at all.
-        var doc = vm.MasterDocumentDtos.FirstOrDefault(X => X.Id == id);
-
-        string name = doc is not null ? doc.Name : "Unknown Document";  
-
-        return name;
+        var doc = vm.MasterDocumentDtos.FirstOrDefault(x => x.Id == id);
+        return doc is not null ? doc.Name : "Unknown Document";
     }
 
-   
+    private static IReadOnlyList<(string Key, string Icon)> BuildIconOptions()
+    {
+        var t = typeof(Icons.Material.Filled);
+
+        var fields = t.GetFields(BindingFlags.Public | BindingFlags.Static)
+            .Where(f => f.FieldType == typeof(string))
+            .OrderBy(f => f.Name);
+
+        var props = t.GetProperties(BindingFlags.Public | BindingFlags.Static)
+            .Where(p => p.PropertyType == typeof(string))
+            .OrderBy(p => p.Name);
+
+        var list = new List<(string Key, string Icon)>();
+
+        foreach (var f in fields)
+        {
+            var icon = f.GetValue(null) as string;
+            if (!string.IsNullOrWhiteSpace(icon))
+                list.Add((f.Name, icon));
+        }
+
+        foreach (var p in props)
+        {
+            var icon = p.GetValue(null) as string;
+            if (!string.IsNullOrWhiteSpace(icon) && !list.Any(x => x.Key == p.Name))
+                list.Add((p.Name, icon));
+        }
+
+        return list;
+    }
+
+    private string GetIconByKey(string? key)
+    {
+        if (string.IsNullOrWhiteSpace(key))
+            return Icons.Material.Filled.HelpOutline;
+
+        var match = IconOptions.FirstOrDefault(x => string.Equals(x.Key, key, StringComparison.OrdinalIgnoreCase));
+        return string.IsNullOrWhiteSpace(match.Icon) ? Icons.Material.Filled.HelpOutline : match.Icon;
+    }
+
+    private void GoToLoanTypeList()
+    {
+        // Your list page is: @page "/loantypelist"
+        // Force-load ensures navigation even if some UI layer is blocking SPA routing.
+        Nav.NavigateTo("/loantypelist", forceLoad: true);
+    }
+
 }

@@ -1,8 +1,8 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using DocumentManager;
-using DominateDocsSite.Database;
-using DominateDocsSite.Helpers;
+using DominateDocsData.Database;
+using DominateDocsData.Helpers;
 using DominateDocsSite.State;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Options;

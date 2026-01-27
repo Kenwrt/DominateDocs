@@ -2,8 +2,8 @@
 using CommunityToolkit.Mvvm.Input;
 using DominateDocsData.Models;
 using DominateDocsData.Models.DTOs;
-using DominateDocsSite.Database;
-using DominateDocsSite.Helpers;
+using DominateDocsData.Database;
+using DominateDocsData.Helpers;
 using DominateDocsSite.State;
 using MudBlazor;
 using Nextended.Core.Extensions;

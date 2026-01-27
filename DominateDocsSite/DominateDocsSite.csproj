@@ -24,24 +24,30 @@
 	  <Compile Remove="Components\AccountOld\**" />
 	  <Compile Remove="Components\LayoutOld\**" />
 	  <Compile Remove="Components\Pages\FluentValidation\**" />
+	  <Compile Remove="Database\**" />
+	  <Compile Remove="Helpers\**" />
 	  <Content Remove="Components\Accountold2\**" />
 	  <Content Remove="Components\AccountOld\**" />
 	  <Content Remove="Components\LayoutOld\**" />
 	  <Content Remove="Components\Pages\FluentValidation\**" />
+	  <Content Remove="Database\**" />
+	  <Content Remove="Helpers\**" />
 	  <EmbeddedResource Remove="Components\Accountold2\**" />
 	  <EmbeddedResource Remove="Components\AccountOld\**" />
 	  <EmbeddedResource Remove="Components\LayoutOld\**" />
 	  <EmbeddedResource Remove="Components\Pages\FluentValidation\**" />
+	  <EmbeddedResource Remove="Database\**" />
+	  <EmbeddedResource Remove="Helpers\**" />
 	  <None Remove="Components\Accountold2\**" />
 	  <None Remove="Components\AccountOld\**" />
 	  <None Remove="Components\LayoutOld\**" />
 	  <None Remove="Components\Pages\FluentValidation\**" />
+	  <None Remove="Database\**" />
+	  <None Remove="Helpers\**" />
 	</ItemGroup>
 
 	<ItemGroup>
 	  <Compile Remove="Components\Layout\LiquidDocsTheme.cs" />
-	  <Compile Remove="Database\IMongoDatabaseRepoOld.cs" />
-	  <Compile Remove="Database\MongoDatabaseRepoOld.cs" />
 	</ItemGroup>
 
 	<ItemGroup>

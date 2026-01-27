@@ -1,9 +1,8 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using DocumentManager;
-using DocumentManager.Database;
 using DominateDocsData.Models;
-using DominateDocsSite.Database;
+using DominateDocsData.Database;
 using DominateDocsSite.State;
 using Microsoft.Extensions.Options;
 using System.Collections.ObjectModel;
@@ -33,7 +32,7 @@ public partial class DocumentSetViewModel : ObservableObject
     private Session session;
 
     private readonly IOptions<DocumentManagerConfigOptions> options;
-    private readonly IMongoDatabaseRepoDocuments dbDocs;
+    private readonly IMongoDatabaseRepo dbDocs;
     private readonly UserSession userSession;
     private readonly IMongoDatabaseRepo dbApp;
     private IApplicationStateManager appState;

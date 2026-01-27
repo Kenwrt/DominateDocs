@@ -1,6 +1,6 @@
 ﻿using DominateDocsData.Models;
 using DominateDocsSite.Data;
-using DominateDocsSite.Database;
+using DominateDocsData.Database;
 using SixLabors.ImageSharp;
 using System.Collections.Concurrent;
 

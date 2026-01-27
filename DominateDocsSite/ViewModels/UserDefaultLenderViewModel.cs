@@ -1,9 +1,8 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using DocumentManager.Helpers;
+using DominateDocsData.Helpers;
 using DominateDocsData.Enums;
-using DominateDocsSite.Database;
-using DominateDocsSite.Helpers;
+using DominateDocsData.Database;
 using DominateDocsSite.State;
 using System.Collections.ObjectModel;
 
@@ -82,7 +81,7 @@ public partial class UserDefaultLenderViewModel : ObservableObject
 
         if (EditingRecord.LenderCode is null)
         {
-            EditingRecord.LenderCode = $"L-{DominateDocsSite.Helpers.DisplayHelper.GenerateIdCode().ToString()}";
+            EditingRecord.LenderCode = $"L-{DisplayHelper.GenerateIdCode().ToString()}";
         }
 
     await dbApp.UpSertRecordAsync<DominateDocsData.Models.Lender>(EditingRecord);

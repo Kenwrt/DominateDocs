@@ -4,7 +4,7 @@
 
 using DocumentManager.Services;
 using DominateDocsData.Models;
-using DominateDocsSite.Database;
+using DominateDocsData.Database;
 using Newtonsoft.Json;
 
 namespace DominateDocsSite.Endpoints;

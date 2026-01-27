@@ -1,7 +1,7 @@
 ﻿@using MudBlazor
-@using System.Reflection
+@using DominateDocsData.Models.DTOs
 
-<MudDialog>
+<MudDialog Class="doc-picker">
     <DialogContent>
         <MudText Typo="Typo.h6" Class="mb-2">@Title</MudText>
 
@@ -15,140 +15,104 @@
                       AdornmentIcon="@Icons.Material.Filled.Search" />
 
         <MudPaper Outlined="true" Class="pa-2" Style="max-height:420px; overflow:auto;">
-            @foreach (var doc in AllDocuments.Where(x => !SelectedIds.Contains(x.Id)).ToList())
+            @foreach (var doc in FilteredDocs)
             {
-                
-                if (doc.Id == Guid.Empty)
-                    continue;
+                <MudChip T="string"
+                         Clickable="true"
+                         Variant="Variant.Outlined"
+                         Color="Color.Default"
+                         OnClick="@(() => SelectDoc(doc.Id))"
+                         Class="ma-1">
+                    <MudIcon Icon="@Icons.Material.Filled.Add" Size="Size.Small" Class="me-1" />
+                    @doc.Name
+                </MudChip>
+            }
 
-                @* <MudCheckBox T="bool"
-                             Label="@doc.Name"
-                             Value="@SelectedIds.Contains(doc.Id)"
-                             ValueChanged="@((bool isChecked) => OnCheckedChanged(doc.Id, isChecked))" /> *@
-
-                <MudChip T="string" Clickable="true"
-                             Variant="Variant.Outlined"
-                             Color="Color.Default"
-                             OnClick="@(() => SelectDoc(doc.Id))"
-                             Class="ma-1">
-                        <MudIcon Icon="@Icons.Material.Filled.Add" Size="Size.Small" Class="me-1" />
-                        @doc.Name
-                    </MudChip>
-                
+            @if (!FilteredDocs.Any())
+            {
+                <MudText Typo="Typo.caption" Class="pa-2 mud-text-secondary">
+                    No documents match your search.
+                </MudText>
             }
         </MudPaper>
     </DialogContent>
 
     <DialogActions>
-        <MudButton Variant="Variant.Text" OnClick="Cancel">Cancel</MudButton>
-        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Apply">Apply</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Close">
+            Close
+        </MudButton>
     </DialogActions>
 </MudDialog>
 
 @code {
+    // v8-safe dialog instance
+    [CascadingParameter] private IMudDialogInstance Dialog { get; set; } = default!;
+
     [Parameter] public string Title { get; set; } = "Select Documents";
 
-    // ✅ Force the correct Document type (data model)
-    [Parameter] public IReadOnlyList<DominateDocsData.Models.DTOs.DocumentListDTO> AllDocuments { get; set; } = Array.Empty<DominateDocsData.Models.DTOs.DocumentListDTO>();
+    [Parameter] public IReadOnlyList<DocumentListDTO> AllDocuments { get; set; } = Array.Empty<DocumentListDTO>();
 
+    // Used for filtering (so selected docs disappear)
     [Parameter] public HashSet<Guid> SelectedIds { get; set; } = new();
 
-    // ✅ NEW: caller-provided callbacks that actually close the dialog using the IDialogReference
-    [Parameter] public Action<HashSet<Guid>>? OnApply { get; set; }
-    [Parameter] public Action? OnCancel { get; set; }
+    // NEW: immediate select behavior
+    [Parameter] public Action<Guid>? OnSelected { get; set; }
+
+    // LEGACY COMPAT (so older callers don't crash)
+    // They might not be used visually anymore, but they must exist.
+    [Parameter] public EventCallback OnCancel { get; set; }
+    [Parameter] public EventCallback<HashSet<Guid>> OnApply { get; set; }
 
     private string _search = string.Empty;
 
-    private bool docIsChecked; // <-- DON'T do this in a foreach (see note below)
-
-    // private IEnumerable<DominateDocsData.Models.DTOs.DocumentListDTO> FilteredDocs
-    // {
-    //     get
-    //     {
-    //         if (AllDocuments is null || AllDocuments.Count == 0)
-    //             return Enumerable.Empty<DominateDocsData.Models.DTOs.DocumentListDTO>();
-
-    //         if (string.IsNullOrWhiteSpace(_search))
-    //             return AllDocuments;
-
-    //         var term = _search.Trim();
-
-    //         AllDocuments = AllDocuments.Where(x => !SelectedIds.Contains(x.Id)).ToList();
-
-    //         return AllDocuments.Where(d =>
-    //         {
-    //              var name = d.Name;
-    //             //var name = GetDocumentDisplayName(d);
-    //             return !string.IsNullOrWhiteSpace(name) && name.Contains(term, StringComparison.OrdinalIgnoreCase);
-    //         });
-    //     }
-    // }
-
-    private void Toggle(Guid id, bool isChecked)
+    private IEnumerable<DocumentListDTO> FilteredDocs
     {
-        if (isChecked) SelectedIds.Add(id);
-        else SelectedIds.Remove(id);
-    }
+        get
+        {
+            IEnumerable<DocumentListDTO> q =
+                AllDocuments.Where(d => d.Id != Guid.Empty && !SelectedIds.Contains(d.Id));
 
-    private void OnCheckedChanged(Guid id, bool isChecked)
-    {
+            if (!string.IsNullOrWhiteSpace(_search))
+            {
+                var term = _search.Trim();
+                q = q.Where(d => !string.IsNullOrWhiteSpace(d.Name) &&
+                                 d.Name.Contains(term, StringComparison.OrdinalIgnoreCase));
+            }
 
-        if (isChecked) SelectedIds.Add(id);
-        else SelectedIds.Remove(id);
-
+            return q;
+        }
     }
 
     private void SelectDoc(Guid id)
     {
-        // Clicking a chip means "select it" (it will disappear because the list filters SelectedIds out).
-        if (!SelectedIds.Contains(id)) SelectedIds.Add(id);
+        if (id == Guid.Empty)
+            return;
+
+        // Make it disappear from the list
+        if (!SelectedIds.Contains(id))
+            SelectedIds.Add(id);
+
+        // Immediate callback (your desired behavior)
+        OnSelected?.Invoke(id);
+
+        StateHasChanged();
     }
 
-    private void Cancel()
+    private async Task Close()
     {
-        // Caller closes the dialog. We just signal intent.
-        OnCancel?.Invoke();
+        // If old code expects an OnCancel callback, fire it.
+        if (OnCancel.HasDelegate)
+            await OnCancel.InvokeAsync();
+
+        Dialog.Close();
     }
 
-    private EventCallback<bool> CreateCheckedChanged(Guid id) => EventCallback.Factory.Create<bool>(this, isChecked => Toggle(id, isChecked));
-
-    private void Apply()
+    // Not shown in UI, but kept for legacy compatibility if any code calls it directly.
+    private async Task Apply()
     {
-        // Caller closes the dialog and returns data.
-        OnApply?.Invoke(new HashSet<Guid>(SelectedIds));
+        if (OnApply.HasDelegate)
+            await OnApply.InvokeAsync(SelectedIds);
+
+        Dialog.Close();
     }
-
-    // --------- Document model drift helpers ---------
-
-    private static Guid GetDocumentId(DominateDocsData.Models.Document doc)
-    {
-        foreach (var name in new[] { "Id", "DocumentId", "_id" })
-        {
-            var prop = doc.GetType().GetProperty(name, BindingFlags.Public | BindingFlags.Instance);
-            if (prop is null) continue;
-
-            var val = prop.GetValue(doc);
-            if (val is Guid g && g != Guid.Empty) return g;
-
-            if (val is string s && Guid.TryParse(s, out var parsed) && parsed != Guid.Empty)
-                return parsed;
-        }
-
-        return Guid.Empty;
-    }
-
-    // private static string GetDocumentDisplayName(DominateDocsData.Models.Document doc)
-    // {
-    //     foreach (var name in new[] { "Name", "Title", "DisplayName", "DocumentName", "FileName" })
-    //     {
-    //         var prop = doc.GetType().GetProperty(name, BindingFlags.Public | BindingFlags.Instance);
-    //         if (prop is null) continue;
-
-    //         if (prop.GetValue(doc) is string s && !string.IsNullOrWhiteSpace(s))
-    //             return s;
-    //     }
-
-    //     var id = GetDocumentId(doc);
-    //     return id == Guid.Empty ? "(Unnamed Document)" : id.ToString();
-    // }
 }

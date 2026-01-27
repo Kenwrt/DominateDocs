@@ -2,9 +2,9 @@
 
 @using DominateDocsData.Enums
 @using DominateDocsData.Models
-@using DominateDocsSite.Helpers
+@using DominateDocsData.Helpers
 @using DominateDocsSite.ViewModels
-@using DominateDocsSite.Database
+@using DominateDocsData.Database
 @using System.Globalization
 
 @inject NavigationManager Nav
@@ -53,7 +53,7 @@
                 }
             </MudSelect>
 
-            <MudNumericField Immediate="false" Class="ml-4" Style="background-color: white;" HideSpinButtons="true" Adornment="Adornment.Start" AdornmentText="$" Culture="CultureInfo.InvariantCulture"
+            <MudNumericField Immediate="false" Class="ml-4" HideSpinButtons="true" Adornment="Adornment.Start" AdornmentText="$" Culture="CultureInfo.InvariantCulture"
                                     Format="N2" @bind-Value="vm.PrincipalAmount" Label="Principal Amount" Variant="Variant.Outlined" Step=".2M" />
 
             <MudSelect Class="ml-4" Variant="Variant.Outlined" T="Payment.RateTypes" @bind-Value="vm.RateType" Label="Rate Type">
@@ -131,7 +131,7 @@
                 {
                     <MudText Class="ml-4" Typo="Typo.body1">Balloon Due Date: @vm.GetBalloonDate(vm.BalloonTermMonths)</MudText>
 
-                    <MudTable Items="@vm.PayBalloonSchedule.PaymentPeriods" Dense="true" Hover="true" Bordered="true" Striped="true">
+                    <MudTable Items="@vm.PayBalloonSchedule.PaymentPeriods" Style="background-color: var(--mud-palette-background);" Dense="true" Hover="true" Bordered="true" Striped="true">
                         <ToolBarContent>
                             <MudText Typo="Typo.h6">Projected Balloon Payment Schedule</MudText>
                         </ToolBarContent>
@@ -173,7 +173,7 @@
             }
             else
             {
-                    <MudTable Items="@vm.PaySchedule.Periods" Dense="true" Hover="true" Bordered="true" Striped="true">
+                <MudTable Items="@vm.PaySchedule.Periods" Dense="true" Hover="true" Style="background-color: var(--mud-palette-background);" Bordered="true" Striped="true">
                         <ToolBarContent>
                             <MudText Typo="Typo.h6">Projected Payment Schedule</MudText>
                         </ToolBarContent>
@@ -248,9 +248,9 @@
 
             }
 
-            <MudExpansionPanels Class="panel-stack">
+            <MudExpansionPanels Class="panel-stack" Style="background-color: var(--mud-palette-background);">
 
-                <MudExpansionPanel Class="ml-3 mr-3" Text="Preparrer Information" MaxHeight="1500" @bind-IsExpanded="preparrerInfoOpen">
+                <MudExpansionPanel Style="background-color: var(--mud-palette-background);" Class="ml-3 mr-3" Text="Preparrer Information" MaxHeight="1500" @bind-IsExpanded="preparrerInfoOpen">
 
                         <div class="d-flex flex-column gap-1">
 
@@ -262,7 +262,7 @@
 
                 </MudExpansionPanel>
 
-                <MudExpansionPanel Class="ml-3 mr-3" Text="Additional Options" MaxHeight="1000" @bind-IsExpanded="additionalOptionsInfoOpen">
+                <MudExpansionPanel Style="background-color: var(--mud-palette-background);" Class="ml-3 mr-3" Text="Additional Options" MaxHeight="1000" @bind-IsExpanded="additionalOptionsInfoOpen">
 
                     <div class="d-flex flex-column gap-1">
                         <MudSwitch Class="ml-2" T="bool" Color="Color.Primary" Label="Tax Insurance or Other Impounds" @bind-Value="vm.EditingAgreement.IsTaxInsuranceOtherImpounds" />
@@ -279,7 +279,7 @@
 
                 </MudExpansionPanel>
 
-                <MudExpansionPanel Class="ml-3 mr-3" Text="Payments" MaxHeight="500" Expanded="false">
+                <MudExpansionPanel Style="background-color: var(--mud-palette-background);" Class="ml-3 mr-3" Text="Payments" MaxHeight="500" Expanded="false">
 
                     <div class="d-flex flex-column gap-1">
                         <MudSelect Class="ml-2" Variant="Variant.Outlined" T="Payment.Schedules" @bind-Value="vm.EditingAgreement.RepaymentSchedule" Label="Repayment Schedule">
@@ -302,7 +302,7 @@
 
                 </MudExpansionPanel>
 
-                <MudExpansionPanel Class="ml-3 mr-3" Text="Additional Fees" MaxHeight="500">
+                <MudExpansionPanel Style="background-color: var(--mud-palette-background);" Class="ml-3 mr-3" Text="Additional Fees" MaxHeight="500">
 
                     <div class="d-flex flex-column gap-1">
 

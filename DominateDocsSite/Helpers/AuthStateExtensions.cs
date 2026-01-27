@@ -3,7 +3,7 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Components.Authorization;
 
-namespace DominateDocsSite.Helpers;
+namespace DominateDocsData.Helpers;
 
 public static class AuthStateExtensions
 {

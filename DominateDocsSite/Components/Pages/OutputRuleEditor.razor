@@ -97,23 +97,22 @@
 
         var parameters = new DialogParameters
         {
-            ["Title"] = "Select Documents to Generate",
+            ["Title"] = "Select Then Generate Documents",
             ["AllDocuments"] = MasterDocumentDTOs,
             ["SelectedIds"] = selected,
-
-            // ✅ Caller controls close behavior (works even when no MudDialogInstance exists)
-            ["OnCancel"] = (Action)(() =>
+            ["OnSelected"] = (Action<Guid>)(id =>
             {
-                if (dialogRef is not null)
-                    dialogRef.Close(DialogResult.Cancel());
-            }),
+                Rule.ThenGenerateDocumentIds ??= new List<Guid>();
+                if (!Rule.ThenGenerateDocumentIds.Contains(id))
+                    Rule.ThenGenerateDocumentIds.Add(id);
 
-            ["OnApply"] = (Action<HashSet<Guid>>)((HashSet<Guid> picked) =>
-            {
-                if (dialogRef is not null)
-                    dialogRef.Close(DialogResult.Ok(picked));
+                // keep the filter list in sync so it disappears
+                selected.Add(id);
+
+                InvokeAsync(StateHasChanged);
             })
         };
+
 
         var options = new DialogOptions { CloseButton = true, FullWidth = true, MaxWidth = MaxWidth.Medium };
 

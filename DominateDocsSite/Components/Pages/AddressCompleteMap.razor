@@ -13,7 +13,7 @@
                                   Variant="Variant.Outlined"
                                  Label="Address"
                                  @bind-Value="currentAddress"
-                                 SearchFunc="@SearchAddresses"
+                                 SearchFunc="@SearchForAddress"
                                  ToStringFunc="@(x => x)"
                                  MinCharacters="3"
                                  Margin="Margin.Normal"
@@ -100,7 +100,7 @@ else
                                      Value="currentAddress"
                                      ValueChanged="OnAutocompleteSelectedAsync"
                                      ValueExpression="(() => currentAddress)"
-                                     SearchFunc="@SearchAddresses"
+                                     SearchFunc="@SearchForAddress"
                                      ToStringFunc="@(x => x)"
                                      MinCharacters="3"
                                      Margin="Margin.Normal"
@@ -420,4 +420,26 @@ else
             StateHasChanged();
         }
     }
+
+    private async Task<IEnumerable<string>> SearchForAddress(string value, CancellationToken token)
+    {
+        if (string.IsNullOrWhiteSpace(value) || value.Length < 3)
+            return Array.Empty<string>();
+
+        try
+        {
+            var results = await JSRuntime.InvokeAsync<string[]>("AppMaps.getAddressPredictions", value);
+
+            // Treat empty results like failure so the UI doesn't look broken
+            if (results == null || results.Length == 0)
+                return GetMockAddresses(value);
+
+            return results;
+        }
+        catch
+        {
+            return GetMockAddresses(value);
+        }
+    }
+
 }

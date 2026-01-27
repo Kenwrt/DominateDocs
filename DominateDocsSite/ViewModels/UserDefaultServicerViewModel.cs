@@ -1,8 +1,8 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using DominateDocsData.Enums;
-using DominateDocsSite.Database;
-using DominateDocsSite.Helpers;
+using DominateDocsData.Database;
+using DominateDocsData.Helpers;
 using DominateDocsSite.State;
 using System.Collections.ObjectModel;
 
@@ -82,7 +82,7 @@ public partial class UserDefaultServicerViewModel : ObservableObject
 
         if (EditingRecord.ServicerCode is null)
         {
-            EditingRecord.ServicerCode = $"S-{DominateDocsSite.Helpers.DisplayHelper.GenerateIdCode().ToString()}";
+            EditingRecord.ServicerCode = $"S-{DisplayHelper.GenerateIdCode().ToString()}";
         }
 
         await dbApp.UpSertRecordAsync<DominateDocsData.Models.Servicer>(EditingRecord);

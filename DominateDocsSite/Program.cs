@@ -6,9 +6,9 @@ using DominateDocsNotify;
 using DominateDocsSite.Components;
 using DominateDocsSite.Components.Account;
 using DominateDocsSite.Data;
-using DominateDocsSite.Database;
+using DominateDocsData.Database;
 using DominateDocsSite.Endpoints;
-using DominateDocsSite.Helpers;
+using DominateDocsData.Helpers;
 using DominateDocsSite.OpenAI;
 using DominateDocsSite.State;
 using DominateDocsSite.ViewModels;
@@ -26,6 +26,7 @@ using Serilog;
 using Serilog.Events;
 using StripeBillingManager;
 using System.Runtime.InteropServices;
+using DominateDocsData.Helpers;
 
 var builder = WebApplication.CreateBuilder(args);
 

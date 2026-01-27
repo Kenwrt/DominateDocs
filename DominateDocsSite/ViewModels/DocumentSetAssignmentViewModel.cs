@@ -1,5 +1,5 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
-using DominateDocsSite.Database;
+using DominateDocsData.Database;
 using System.Collections.ObjectModel;
 
 namespace DominateDocsSite.ViewModels;

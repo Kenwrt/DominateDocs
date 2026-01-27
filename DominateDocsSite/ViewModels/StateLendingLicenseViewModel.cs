@@ -1,6 +1,6 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using DominateDocsSite.Helpers;
+using DominateDocsData.Helpers;
 using System.Collections.ObjectModel;
 
 namespace DominateDocsSite.ViewModels;
