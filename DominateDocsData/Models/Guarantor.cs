@@ -17,6 +17,8 @@ public class Guarantor : IPartyNames
 
     public Guid UserId { get; set; }
 
+    public string GuarantorCode { get; set; }
+
     [JsonConverter(typeof(StringEnumConverter))]
     [BsonRepresentation(BsonType.String)]
     [DataType(DataType.Text)]

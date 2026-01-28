@@ -25,25 +25,21 @@
 	  <Compile Remove="Components\LayoutOld\**" />
 	  <Compile Remove="Components\Pages\FluentValidation\**" />
 	  <Compile Remove="Database\**" />
-	  <Compile Remove="Helpers\**" />
 	  <Content Remove="Components\Accountold2\**" />
 	  <Content Remove="Components\AccountOld\**" />
 	  <Content Remove="Components\LayoutOld\**" />
 	  <Content Remove="Components\Pages\FluentValidation\**" />
 	  <Content Remove="Database\**" />
-	  <Content Remove="Helpers\**" />
 	  <EmbeddedResource Remove="Components\Accountold2\**" />
 	  <EmbeddedResource Remove="Components\AccountOld\**" />
 	  <EmbeddedResource Remove="Components\LayoutOld\**" />
 	  <EmbeddedResource Remove="Components\Pages\FluentValidation\**" />
 	  <EmbeddedResource Remove="Database\**" />
-	  <EmbeddedResource Remove="Helpers\**" />
 	  <None Remove="Components\Accountold2\**" />
 	  <None Remove="Components\AccountOld\**" />
 	  <None Remove="Components\LayoutOld\**" />
 	  <None Remove="Components\Pages\FluentValidation\**" />
 	  <None Remove="Database\**" />
-	  <None Remove="Helpers\**" />
 	</ItemGroup>
 
 	<ItemGroup>
@@ -130,10 +126,14 @@
  
 
   <ItemGroup>
-    <ProjectReference Include="..\..\Kenwrt\DominateDocs\DocumentManager\DocumentManager.csproj" />
-    <ProjectReference Include="..\..\Kenwrt\DominateDocs\DominateDocsData\DominateDocsData.csproj" />
-    <ProjectReference Include="..\..\Kenwrt\DominateDocs\DominateDocsNotifier\DominateDocsNotify.csproj" />
-    <ProjectReference Include="..\..\Kenwrt\DominateDocs\StripeBillingManager\StripeBillingManager.csproj" />
+    <ProjectReference Include="..\DocumentManager\DocumentManager.csproj" />
+    <ProjectReference Include="..\DominateDocsData\DominateDocsData.csproj" />
+    <ProjectReference Include="..\DominateDocsNotifier\DominateDocsNotify.csproj" />
+    <ProjectReference Include="..\StripeBillingManager\StripeBillingManager.csproj" />
   </ItemGroup>
+
+ 
+
+ 
 
 </Project>

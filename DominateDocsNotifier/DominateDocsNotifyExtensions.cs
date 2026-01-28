@@ -32,8 +32,7 @@ public static class DominateDocsNotifyExtensions
             TwilioClient.Init(configOptions.TwilioAccountSid, configOptions.TwilioAuthToken);
 
             services.TryAddSingleton<INotifyState, NotifyState>();
-            services.TryAddSingleton<IEmailBackgroundService, EmailBackgroundService>();
-            services.TryAddSingleton<ITextBackgroundService, TextBackgroundService>();
+           
 
             services.Configure<HostOptions>(x =>
             {
@@ -41,8 +40,7 @@ public static class DominateDocsNotifyExtensions
                 x.ServicesStopConcurrently = true;
             });
 
-            services.AddHostedService<EmailBackgroundService>();
-            services.AddHostedService<TextBackgroundService>();
+          
 
             //Coravel Registration Services go Here!
             services.AddScheduler();

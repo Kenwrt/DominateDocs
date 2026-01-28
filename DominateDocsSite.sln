@@ -5,13 +5,13 @@ VisualStudioVersion = 17.14.36811.4
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DominateDocsSite", "DominateDocsSite\DominateDocsSite.csproj", "{0E5F44CA-265B-AB79-E37F-DB2EB909D005}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DocumentManager", "..\Kenwrt\DominateDocs\DocumentManager\DocumentManager.csproj", "{8105928F-96B0-AD55-AA55-CA770808446C}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DocumentManager", "DocumentManager\DocumentManager.csproj", "{C5276947-A7E7-A367-984A-A7A2A7BD93B7}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DominateDocsData", "..\Kenwrt\DominateDocs\DominateDocsData\DominateDocsData.csproj", "{9951E5C6-A40A-3412-ACB9-547EB02E5818}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DominateDocsData", "DominateDocsData\DominateDocsData.csproj", "{0AB65E72-ACE2-3B38-DC90-E7715E7E8865}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DominateDocsNotify", "..\Kenwrt\DominateDocs\DominateDocsNotifier\DominateDocsNotify.csproj", "{45B69927-8D88-CE12-2165-FD6A17E7A40E}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "StripeBillingManager", "StripeBillingManager\StripeBillingManager.csproj", "{91165219-9091-C412-D393-3E35E07ADBC5}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "StripeBillingManager", "..\Kenwrt\DominateDocs\StripeBillingManager\StripeBillingManager.csproj", "{6A0F65DA-9F20-CFCC-0BA0-7A4F580A071D}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DominateDocsNotify", "DominateDocsNotifier\DominateDocsNotify.csproj", "{3064F210-103D-4AB1-44EF-7B87957D6015}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -23,22 +23,22 @@ Global
 		{0E5F44CA-265B-AB79-E37F-DB2EB909D005}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{0E5F44CA-265B-AB79-E37F-DB2EB909D005}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{0E5F44CA-265B-AB79-E37F-DB2EB909D005}.Release|Any CPU.Build.0 = Release|Any CPU
-		{8105928F-96B0-AD55-AA55-CA770808446C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{8105928F-96B0-AD55-AA55-CA770808446C}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{8105928F-96B0-AD55-AA55-CA770808446C}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{8105928F-96B0-AD55-AA55-CA770808446C}.Release|Any CPU.Build.0 = Release|Any CPU
-		{9951E5C6-A40A-3412-ACB9-547EB02E5818}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{9951E5C6-A40A-3412-ACB9-547EB02E5818}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{9951E5C6-A40A-3412-ACB9-547EB02E5818}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{9951E5C6-A40A-3412-ACB9-547EB02E5818}.Release|Any CPU.Build.0 = Release|Any CPU
-		{45B69927-8D88-CE12-2165-FD6A17E7A40E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{45B69927-8D88-CE12-2165-FD6A17E7A40E}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{45B69927-8D88-CE12-2165-FD6A17E7A40E}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{45B69927-8D88-CE12-2165-FD6A17E7A40E}.Release|Any CPU.Build.0 = Release|Any CPU
-		{6A0F65DA-9F20-CFCC-0BA0-7A4F580A071D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{6A0F65DA-9F20-CFCC-0BA0-7A4F580A071D}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{6A0F65DA-9F20-CFCC-0BA0-7A4F580A071D}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{6A0F65DA-9F20-CFCC-0BA0-7A4F580A071D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C5276947-A7E7-A367-984A-A7A2A7BD93B7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C5276947-A7E7-A367-984A-A7A2A7BD93B7}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C5276947-A7E7-A367-984A-A7A2A7BD93B7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C5276947-A7E7-A367-984A-A7A2A7BD93B7}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0AB65E72-ACE2-3B38-DC90-E7715E7E8865}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0AB65E72-ACE2-3B38-DC90-E7715E7E8865}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0AB65E72-ACE2-3B38-DC90-E7715E7E8865}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0AB65E72-ACE2-3B38-DC90-E7715E7E8865}.Release|Any CPU.Build.0 = Release|Any CPU
+		{91165219-9091-C412-D393-3E35E07ADBC5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{91165219-9091-C412-D393-3E35E07ADBC5}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{91165219-9091-C412-D393-3E35E07ADBC5}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{91165219-9091-C412-D393-3E35E07ADBC5}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3064F210-103D-4AB1-44EF-7B87957D6015}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3064F210-103D-4AB1-44EF-7B87957D6015}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3064F210-103D-4AB1-44EF-7B87957D6015}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3064F210-103D-4AB1-44EF-7B87957D6015}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

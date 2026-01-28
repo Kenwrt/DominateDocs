@@ -1,12 +1,14 @@
 ﻿
-namespace LiquidDocsSite.Database;
+namespace DominateDocsData.Database;
 
 public interface IMongoDatabaseRepo
 {
     void DeleteRecord<T>(T record) where T : class;
+    void DeleteRecordById<T>(Guid id) where T : class;
     void DropCollection<T>(T record) where T : class;
     Task DropCollectionAsync<T>();
     T GetRecordById<T>(Guid id) where T : class;
+    T GetRecordByUserId<T>(Guid id) where T : class;
     Task<T> GetRecordByUserNameAsync<T>(string userName) where T : class;
     IEnumerable<T> GetRecords<T>() where T : class;
     Task<IEnumerable<T>> GetRecordsAsync<T>() where T : class;

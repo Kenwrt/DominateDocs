@@ -87,6 +87,8 @@ public class PropertyRecord : IPropertyAddresses
 
     public bool IsReduceTitleCoverAmount { get; set; } = false;
 
+    public bool IsPropertyOwnerDisplay { get; set; } = false;
+
     public List<EntityOwner> EntityOwners { get; set; } = new();
     public string EntityOwnersFormatted { get; set; }
 

@@ -35,9 +35,9 @@ public class UserProfile
 
     [JsonConverter(typeof(StringEnumConverter))]
     [BsonRepresentation(BsonType.String)]
-    public UserEnums.Roles UserRole { get; set; }
+    public UserEnums.Roles? UserRole { get; set; }
 
-    public UserDefaultProfile UserDefaultProfile { get; set; } = new();
+    public LoanDefaults LoanDefaults { get; set; } = new();
 
     public List<Guid> LoanAgreementGuids { get; set; } = new();
 

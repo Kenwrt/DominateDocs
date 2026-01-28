@@ -17,6 +17,8 @@ public class UserEnums
         Support
     }
 
+   
+
     public enum Status
     {
         [System.ComponentModel.Description("Active")]
@@ -41,4 +43,25 @@ public class UserEnums
         [System.ComponentModel.Description("Other")]
         Other
     }
+
+    public enum QuickLoanUserTypes
+    {
+        [System.ComponentModel.Description("Lender")]
+        Lender,
+
+        [System.ComponentModel.Description("Broker")]
+        Broker,
+
+        [System.ComponentModel.Description("Guarantor")]
+        Guarantor,
+
+        [System.ComponentModel.Description("Property")]
+        Property,
+
+
+        [System.ComponentModel.Description("Servicer")]
+        Servicer
+    }
+
+
 }

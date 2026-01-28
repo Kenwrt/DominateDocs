@@ -1,6 +1,4 @@
-﻿namespace DominateDocsData.Models;
-
-using DominateDocsData.Enums;
+﻿using DominateDocsData.Enums;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
 using Newtonsoft.Json;
@@ -8,6 +6,8 @@ using Newtonsoft.Json.Converters;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+
+namespace DominateDocsData.Models;
 
 [BsonIgnoreExtraElements]
 public class Servicer : IPartyNames
@@ -21,7 +21,7 @@ public class Servicer : IPartyNames
 
     public Guid UserDefaultProfileId { get; set; }
 
-    public int BrokerCode { get; set; }
+    public string? ServicerCode { get; set; } = null;
 
     public string EntityName { get; set; }
 

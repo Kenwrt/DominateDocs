@@ -18,6 +18,11 @@ public class LoanAgreement
 
     public Guid UserId { get; set; }
 
+    [JsonConverter(typeof(StringEnumConverter))]
+    [BsonRepresentation(BsonType.String)]
+    [DataType(DataType.Text)]
+    public UserEnums.UserTypes? UserType { get; set; }
+
     public UserProfile UserProfile { get; set; }
 
     public string? ReferenceName { get; set; }
@@ -25,6 +30,8 @@ public class LoanAgreement
     public string LoanNumber { get; set; }
 
     public Guid LoanTypeId { get; set; } = Guid.Empty;
+
+    public string LoanTypeName { get; set; }
 
     public decimal PrincipalAmount { get; set; } = 0;
 
@@ -195,6 +202,8 @@ public class LoanAgreement
     public string LenderNames { get; set; }
 
     public List<Borrower> Borrowers { get; set; } = new();
+
+    public List<Servicer> Servicers { get; set; } = new();
 
     public string BorrowerNames { get; set; }
 

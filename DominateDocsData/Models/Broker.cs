@@ -21,8 +21,8 @@ public class Broker : IPartyNames
 
     public Guid UserDefaultProfileId { get; set; }
 
-    public int BrokerCode { get; set; }
-
+    public string? BrokerCode { get; set; } = null;
+    
     public string EntityName { get; set; }
 
     [JsonConverter(typeof(StringEnumConverter))]
@@ -111,4 +111,6 @@ public class Broker : IPartyNames
     public string EntityOwnersFormatted { get; set; }
 
     public string SignatureLinesFormatted { get; set; }
+
+    //string test = DominateDocsData.Enums.QuickLoanKen.FormSections.Lender.ToString();
 }

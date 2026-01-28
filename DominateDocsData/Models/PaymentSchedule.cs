@@ -7,7 +7,7 @@ public class PaymentSchedule
     public decimal TotalInterest { get; set; }
     public decimal FinancedPrincipal { get; set; }
     public int PeriodCount { get; set; }
-    public int MyProperty { get; set; }
+   
 
     public List<RateChange> RateChangeList { get; set; }
 }

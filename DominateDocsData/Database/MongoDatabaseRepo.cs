@@ -1,12 +1,12 @@
-﻿using DocumentFormat.OpenXml.Office2010.Excel;
-using LiquidDocsSite.Helpers;
+﻿using DominateDocsData.Helpers;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization;
 using MongoDB.Bson.Serialization.Serializers;
 using MongoDB.Driver;
-using System.Reflection;
 
-namespace LiquidDocsSite.Database;
+namespace DominateDocsData.Database;
 
 public class MongoDatabaseRepo : IMongoDatabaseRepo
 {
@@ -23,7 +23,8 @@ public class MongoDatabaseRepo : IMongoDatabaseRepo
         this.aes = aes;
         this.client = client;
 
-        mongoConn = client.GetDatabase("LiquidDocsSite");
+        mongoConn = client.GetDatabase("DominateDocsSite");
+        GetConnection();
     }
 
     private void GetConnection()
@@ -31,30 +32,26 @@ public class MongoDatabaseRepo : IMongoDatabaseRepo
         try
         {
             var atlas = aes.Decrypt(config.GetConnectionString("AtlasMongoConnection"));
-            var app = aes.Decrypt(config.GetConnectionString("ApplicationMongoConnection"));
+            var app = aes.Decrypt(config.GetConnectionString("AtlasMongoConnection"));
 
             var connString = !string.IsNullOrWhiteSpace(atlas) ? atlas : app;
 
             if (string.IsNullOrWhiteSpace(connString))
-                throw new InvalidOperationException("No Mongo connection string found. Set AtlasMongoConnection or ApplicationMongoConnection.");
+                throw new InvalidOperationException("No Mongo connection string found. Set AtlasMongoConnection or AtlasMongoConnection.");
 
-            const string databaseName = "LiquidDocsSite";
+            const string databaseName = "DominateDocsSite";
 
-            BsonSerializer.RegisterSerializer(new GuidSerializer(GuidRepresentation.Standard));
+            //BsonSerializer.RegisterSerializer(new GuidSerializer(GuidRepresentation.Standard));
 
             var client = new MongoClient(connString);
             mongoConn = client.GetDatabase(databaseName);
 
             logger.LogInformation("Connected to Mongo database {db}", databaseName);
-
         }
         catch (Exception ex)
         {
-
             logger.LogError(ex.Message);
         }
-
-
     }
 
     public T GetRecordById<T>(Guid id) where T : class
@@ -67,9 +64,7 @@ public class MongoDatabaseRepo : IMongoDatabaseRepo
 
             var collection = mongoConn.GetCollection<T>(table);
 
-            var filter = Builders<T>.Filter.Eq(
-            "_id",
-            new MongoDB.Bson.BsonBinaryData(id, GuidRepresentation.Standard));
+            var filter = Builders<T>.Filter.Eq("_id", new MongoDB.Bson.BsonBinaryData(id, GuidRepresentation.Standard));
             var doc = collection.Find(filter).FirstOrDefault();
 
             if (doc == null)
@@ -82,7 +77,7 @@ public class MongoDatabaseRepo : IMongoDatabaseRepo
                 doc = collection.Find(filter).FirstOrDefault();
             }
 
-            record = collection.Find(filter).FirstOrDefault();
+            record = doc;
         }
         catch (Exception ex)
         {
@@ -105,6 +100,37 @@ public class MongoDatabaseRepo : IMongoDatabaseRepo
             var filter = Builders<T>.Filter.Or(Builders<T>.Filter.Eq("UserName", userName), Builders<T>.Filter.Eq("userName", userName));
 
             record = collection.Find(filter).FirstOrDefault();
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex.Message);
+        }
+
+        return record;
+    }
+
+
+    public T GetRecordByUserId<T>(Guid id) where T : class
+    {
+        T record = default(T);
+
+        try
+        {
+            string table = typeof(T).Name;
+
+            var collection = mongoConn.GetCollection<T>(table);
+
+            var filter = Builders<T>.Filter.Eq("UserId", new MongoDB.Bson.BsonBinaryData(id, GuidRepresentation.Standard));
+            var doc = collection.Find(filter).FirstOrDefault();
+
+            if (doc == null)
+            {
+                // fall back to "Id" for old docs
+                filter = Builders<T>.Filter.Eq("UserId", new MongoDB.Bson.BsonBinaryData(id, GuidRepresentation.Standard));
+                doc = collection.Find(filter).FirstOrDefault();
+            }
+
+            record = doc;
         }
         catch (Exception ex)
         {
@@ -277,6 +303,40 @@ public class MongoDatabaseRepo : IMongoDatabaseRepo
             await mongoConn.DropCollectionAsync(collectionName);
         }
         catch (SystemException ex)
+        {
+            logger.LogError(ex.Message);
+        }
+    }
+
+    public void DeleteRecordById<T>(Guid id) where T : class
+    {
+        Guid guidId = Guid.Empty;
+
+        try
+        {
+            string table = typeof(T).Name;
+            Type objType = typeof(T);
+
+            var collection = mongoConn.GetCollection<T>(table);
+
+            var filter = Builders<T>.Filter.Eq(
+            "_id",
+            new MongoDB.Bson.BsonBinaryData(id, GuidRepresentation.Standard));
+            var doc = collection.Find(filter).FirstOrDefault();
+
+            if (doc == null)
+            {
+                // fall back to "Id" for old docs
+                filter = Builders<T>.Filter.Eq(
+                    "Id",
+                    new MongoDB.Bson.BsonBinaryData(id, GuidRepresentation.Standard)
+                );
+                doc = collection.Find(filter).FirstOrDefault();
+            }
+
+            collection.DeleteOne(filter);
+        }
+        catch (Exception ex)
         {
             logger.LogError(ex.Message);
         }

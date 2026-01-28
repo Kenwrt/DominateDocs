@@ -67,7 +67,7 @@ public class DocumentTypes
         [System.ComponentModel.Description("Document")]
         Document,
 
-        [System.ComponentModel.Description("Document Set")]
+        [System.ComponentModel.Description("Loan Types")]
         DocumentSet
     }
 }
