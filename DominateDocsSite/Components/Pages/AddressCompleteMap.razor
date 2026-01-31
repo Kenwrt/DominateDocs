@@ -250,13 +250,13 @@ else
         currentAddress = selected;
 
         // Reuse your existing logic that parses + updates markers + fires OnAddressChange
-        //await AddAddressAsync();
+        await AddAddressAsync();
 
-        if (!MultipleAddress)
-        {
-            await AddAddressAsync();
-            return;
-        }
+        // if (!MultipleAddress)
+        // {
+        //     await AddAddressAsync();
+        //     return;
+        // }
     }
 
     private async Task<IEnumerable<string>> SearchAddresses(string value, CancellationToken token)
@@ -379,6 +379,7 @@ else
 
     private async Task OnAddressEntryHasCompletedAsync()
     {
+       
         await OnAddressChange.InvokeAsync(AddressList);
     }
 

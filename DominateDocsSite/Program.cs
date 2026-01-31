@@ -265,7 +265,7 @@ builder.Services.TryAddScoped<CreditCardViewModel>();
 builder.Services.TryAddScoped<StateLendingLicenseViewModel>();
 builder.Services.TryAddScoped<SigningAuthorityViewModel>();
 builder.Services.TryAddScoped<LoanAgreementViewModel>();
-builder.Services.TryAddScoped<TestMergeViewModel>();
+builder.Services.TryAddScoped<AdminBenchViewModel>();
 builder.Services.TryAddScoped<ContactUsViewModel>();
 builder.Services.TryAddScoped<LoanTypeViewModel>();
 builder.Services.TryAddScoped<LoanTypeListViewModel>();
@@ -301,6 +301,7 @@ builder.Services.AddSingleton<IMongoDatabaseRepo, MongoDatabaseRepo>();
 builder.Services.AddNotifyServices(options =>
 {
     options.EmailAccountDomain = builder.Configuration.GetValue<string>("NotifyServices:EmailAccountDomain")?.Trim();
+    options.EmailAccount = builder.Configuration.GetValue<string>("NotifyServices:EmailAccount")?.Trim();
     options.EmailAccount = builder.Configuration.GetValue<string>("NotifyServices:EmailAccount")?.Trim();
     options.EmailAccountDisplay = builder.Configuration.GetValue<string>("NotifyServices:EmailAccountDisplay")?.Trim();
     options.EmailAccountPassword = builder.Configuration.GetValue<string>("NotifyServices:EmailAccountPassword")?.Trim();
@@ -353,6 +354,10 @@ builder.Services.AddDocumentManagerServices(options =>
     options.MaxDocumentMergeThreads = builder.Configuration.GetValue<int>("DocumentManager:MaxDocumentMergeThreads");
     options.MaxLoanApplicationThreads = builder.Configuration.GetValue<int>("DocumentManager:MaxLoanApplicationThreads");
     options.IsHousekeeperActive = builder.Configuration.GetValue<bool>("DocumentManager:IsHousekeeperActive");
+    options.PostMarkApiKey = builder.Configuration.GetValue<string>("DocumentManager:PostMarkApiKey")?.Trim();
+    options.FromEmail = builder.Configuration.GetValue<string>("DocumentManager:FromEmail")?.Trim();
+    options.FromName = builder.Configuration.GetValue<string>("DocumentManager:FromName")?.Trim();
+    options.MessageStream = builder.Configuration.GetValue<string>("DocumentManager:MessageStream")?.Trim();
     options.IsActive = builder.Configuration.GetValue<bool>("DocumentManager:IsActive");
 
     var names = builder.Configuration
@@ -378,6 +383,7 @@ builder.Services.AddOpenAiServices(builder.Configuration, options =>
     options.KeyValue = encrypt.Decrypt(builder.Configuration.GetValue<string>("OpenAI:KeyValue", "")?.Trim());
 });
 
+//PDF License
 ComponentInfo.SetLicense("DN-2025Dec15-ndx5IcVcdUwVQvvKLJ8dvUE4VUx4EN6GXcLPtyuMMwjgV90qZ11gmGRM80jomcm3LRNW7gQHSlOKa2QUusaVE9HOdVQ==A");
 
 var app = builder.Build();

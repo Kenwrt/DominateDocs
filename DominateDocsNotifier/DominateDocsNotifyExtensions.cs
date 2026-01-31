@@ -33,7 +33,6 @@ public static class DominateDocsNotifyExtensions
 
             services.TryAddSingleton<INotifyState, NotifyState>();
            
-
             services.Configure<HostOptions>(x =>
             {
                 x.ServicesStartConcurrently = true;
@@ -61,6 +60,7 @@ public static class DominateDocsNotifyExtensions
     {
         public string SMTPServerHost { get; set; }
         public int SMTPServerPort { get; set; } = 25;
+        public string PostMarkApiKey { get; set; }
         public string SmtpUser { get; set; }
         public string SmtpPassword { get; set; }
         public string EmailAccountDisplay { get; set; }

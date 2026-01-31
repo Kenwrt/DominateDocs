@@ -106,40 +106,71 @@ public sealed class DocumentOutputService : IDocumentOutputService
     /// </summary>
     public Dictionary<string, object?> BuildEvalData(DominateDocsData.Models.LoanAgreement loan)
     {
-        // Keep this intentionally dumb/simple: add keys as your rules expand.
+        // This is the rule "key bag". If the UI lets you pick a field name,
+        // then this method is the contract that provides it.
         var data = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
 
-        var lenderState = TryGetNestedString(loan, "Lenders", 0, "State")
-                       ?? TryGetNestedString(loan, "Lender", "State")
-                       ?? TryGetNestedString(loan, "LenderState");
+        var lender0 = loan.Lenders?.FirstOrDefault();
+        var borrower0 = loan.Borrowers?.FirstOrDefault();
+        var broker0 = loan.Brokers?.FirstOrDefault();
 
+        // States
+        var lenderState = GetState(lender0);
         if (!string.IsNullOrWhiteSpace(lenderState))
             data["LenderState"] = lenderState;
 
-        var borrowerState = TryGetNestedString(loan, "Borrowers", 0, "State")
-                         ?? TryGetNestedString(loan, "Borrower", "State")
-                         ?? TryGetNestedString(loan, "BorrowerState");
-
+        var borrowerState = GetState(borrower0);
         if (!string.IsNullOrWhiteSpace(borrowerState))
             data["BorrowerState"] = borrowerState;
 
-        // Example placeholders you asked about:
-        var lenderCode = TryGetNestedString(loan, "Lenders", 0, "Code")
-                      ?? TryGetNestedString(loan, "Lender", "Code")
-                      ?? TryGetNestedString(loan, "LenderCode");
+        var brokerState = GetState(broker0);
+        if (!string.IsNullOrWhiteSpace(brokerState))
+            data["BrokerState"] = brokerState;
 
+        // Codes
+        var lenderCode = loan.LenderCode ?? GetString(lender0, "LenderCode") ?? GetString(lender0, "Code");
         if (!string.IsNullOrWhiteSpace(lenderCode))
             data["LenderCode"] = lenderCode;
 
-        var brokerCode = TryGetNestedString(loan, "Brokers", 0, "Code")
-                      ?? TryGetNestedString(loan, "Broker", "Code")
-                      ?? TryGetNestedString(loan, "BrokerCode");
+        var borrowerCode = loan.BorrowerCode ?? GetString(borrower0, "BorrowerCode") ?? GetString(borrower0, "Code");
+        if (!string.IsNullOrWhiteSpace(borrowerCode))
+            data["BorrowerCode"] = borrowerCode;
 
+        var brokerCode = loan.BrokerCode ?? GetString(broker0, "BrokerCode") ?? GetString(broker0, "Code");
         if (!string.IsNullOrWhiteSpace(brokerCode))
             data["BrokerCode"] = brokerCode;
 
+        // Property
+        if (!string.IsNullOrWhiteSpace(loan.PropertyState))
+            data["PropertyState"] = loan.PropertyState;
+
         return data;
+
+        static string? GetState(object? party)
+        {
+            if (party is null) return null;
+
+            // Try common names across your models (you change these, because humans)
+            var raw =
+                GetString(party, "State") ??
+                GetString(party, "PreferredStateVenue") ??
+                GetString(party, "StateOfIncorporation");
+
+            return string.IsNullOrWhiteSpace(raw) ? null : raw.Trim();
+        }
+
+        static string? GetString(object? obj, string propName)
+        {
+            if (obj is null) return null;
+            try
+            {
+                var pi = obj.GetType().GetProperty(propName, System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance);
+                return pi?.GetValue(obj)?.ToString();
+            }
+            catch { return null; }
+        }
     }
+
 
     // -------------------------
     // Merge + Email

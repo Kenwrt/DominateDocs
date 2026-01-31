@@ -70,4 +70,19 @@ public class DocumentTypes
         [System.ComponentModel.Description("Loan Types")]
         DocumentSet
     }
+
+    public enum DelieveryTypes
+    {
+        [System.ComponentModel.Description("Email")]
+        Email,
+
+        [System.ComponentModel.Description("Cloud")]
+        Cloud,
+
+        [System.ComponentModel.Description("FTP")]
+        FTP,
+
+        [System.ComponentModel.Description("FileSystem")]
+        FileSystem
+    }
 }

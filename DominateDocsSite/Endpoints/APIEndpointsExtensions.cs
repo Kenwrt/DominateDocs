@@ -3,8 +3,9 @@
 //using Azure.Security.KeyVault.Secrets;
 
 using DocumentManager.Services;
-using DominateDocsData.Models;
+using DocumentManager.State;
 using DominateDocsData.Database;
+using DominateDocsData.Models;
 using Newtonsoft.Json;
 
 namespace DominateDocsSite.Endpoints;
@@ -114,6 +115,20 @@ public static class ApiEndpointsExtensions
         .Produces(200)
         .Produces(404);
         //.AddEndpointFilter<ApiEndpointFilter>();
+
+        app.MapGet("/adminbench/merge/{id:guid}", (Guid id, IDocumentManagerState state) =>
+        {
+            if (!state.DocumentList.TryGetValue(id, out var merge) || merge.MergedDocumentBytes is null)
+                return Results.NotFound();
+
+            var fileName = merge.Document?.Name ?? "document.bin";
+            var contentType = fileName.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase)
+                ? "application/pdf"
+                : "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+
+            return Results.File(merge.MergedDocumentBytes, contentType, fileName);
+        });
+
     }
 
     internal static async Task<IResult> DominateDocsServiceControlAsync(string action)

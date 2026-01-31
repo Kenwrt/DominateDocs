@@ -222,4 +222,79 @@ public class LoanAgreement
     public List<FeeToBePaid> FeesToBePaid { get; set; } = new();
 
     public PaymentSchedule FixedPaymentSchedule { get; set; } = new();
+
+    public List<DocumentDelivery> DocumentDeliverys { get; set; } = new();
+
+    // ============================
+    // Admin Bench Overrides (optional)
+    // ============================
+
+    /// <summary>
+    /// When true, this loan is being run from the Admin Bench and worker(s) should apply overrides + produce trace.
+    /// </summary>
+    public AdminBenchOverrides AdminBench { get; set; } = new();
+
+    public sealed class AdminBenchOverrides
+    {
+        /// <summary>Enable Admin Bench mode (overrides + trace).</summary>
+        public bool Enabled { get; set; } = false;
+
+        /// <summary>
+        /// If true, evaluate ThenGenerate only and DO NOT enqueue MergeJobs.
+        /// </summary>
+        public bool SuppressMerge { get; set; } = false;
+
+        /// <summary>
+        /// Optional: override output type (PDF/DOCX) for bench runs.
+        /// </summary>
+        [JsonConverter(typeof(StringEnumConverter))]
+        [BsonRepresentation(BsonType.String)]
+        [DataType(DataType.Text)]
+        public DocumentTypes.OutputTypes? OutputTypeOverride { get; set; }
+
+        /// <summary>
+        /// Optional: override email recipient for bench runs.
+        /// </summary>
+        public string? EmailToOverride { get; set; }
+
+        /// <summary>
+        /// Optional: arbitrary key/value overrides injected into rule evaluation.
+        /// </summary>
+        public Dictionary<string, string> KeyOverrides { get; set; } = new(StringComparer.OrdinalIgnoreCase);
+
+        /// <summary>
+        /// Trace lines captured during evaluation (rules matched, docs added, missing tokens, etc.).
+        /// </summary>
+        public List<string> Trace { get; set; } = new();
+    }
+
+    // =================================
+    // Common rule keys (explicit, not reflection)
+    // =================================
+    public string? LenderCode { get; set; }
+    public string? BrokerCode { get; set; }
+    public string? BorrowerCode { get; set; }
+    public string? PropertyState { get; set; }
+
+    // ============================
+    // Output/Delivery overrides
+    // ============================
+
+    /// <summary>
+    /// Optional Doc Library override used by Admin Bench.
+    /// </summary>
+    public Guid DocLibId { get; set; } = Guid.Empty;
+
+    /// <summary>
+    /// Default output type for this run (bench can override per-run via AdminBench.OutputTypeOverride).
+    /// </summary>
+    [JsonConverter(typeof(StringEnumConverter))]
+    [BsonRepresentation(BsonType.String)]
+    [DataType(DataType.Text)]
+    public DocumentTypes.OutputTypes OutputType { get; set; } = DocumentTypes.OutputTypes.PDF;
+
+    /// <summary>
+    /// Default email target for delivery (bench can override per-run via AdminBench.EmailToOverride).
+    /// </summary>
+    public string? EmailTo { get; set; }
 }

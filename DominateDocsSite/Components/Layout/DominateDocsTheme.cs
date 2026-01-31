@@ -7,108 +7,54 @@ namespace DominateDocsSite.Components.Layout;
 public static class DominateDocsTheme
 {
     // Brand tokens (keep these in one place)
-    private const string Navy = "#0D1C2E";         // Deep Finance Navy
-    private const string Slate = "#253F59";        // Slate Navy Blue
-    private const string DeepSlate = "#223447";    // Deep Slate Blue
-    private const string HoverSteel = "#3E566E";   // Muted Steel Hover
+    //private const string Navy = "#0D1C2E";         // Deep Finance Navy
+    //private const string Slate = "#253F59";        // Slate Navy Blue
+    //private const string DeepSlate = "#223447";    // Deep Slate Blue
+    //private const string HoverSteel = "#3E566E";   // Muted Steel Hover
 
-    private const string SlateBlack = "#1E1E1E";
-    private const string Charcoal = "#333333";
-    private const string Carbon = "#5C5C5C";
-    private const string MidGray = "#B0B0B0";
-    private const string LightGray = "#E6E6E6";
-    private const string White = "#FFFFFF";
+    //private const string SlateBlack = "#1E1E1E";
+    //private const string Charcoal = "#333333";
+    //private const string Carbon = "#5C5C5C";
+    //private const string MidGray = "#B0B0B0";
+    //private const string LightGray = "#E6E6E6";
+    //private const string White = "#FFFFFF";
 
     public static readonly MudTheme Light = new()
     {
         PaletteLight = new PaletteLight
         {
             // Brand
-            Primary = Slate,
-            Secondary = Navy,
-            Tertiary = DeepSlate,
+            Primary = "#2FB6B8",          // Turquoise / Teal
+            Secondary = "#1C2F6E",        // Navy Blue
+            Tertiary = "#7ADDD8",         // Aqua / Light Teal
 
-            // Layout
-            Background = LightGray,        // app background
-            Surface = White,               // cards/papers
-            AppbarBackground = Navy,
-            DrawerBackground = White,
+            // Neutrals / surfaces
+            Background = "#FFFFFF",
+            Surface = "#FFFFFF",
 
             // Text
-            TextPrimary = SlateBlack,
-            TextSecondary = Charcoal,
-            TextDisabled = MidGray,
+            TextPrimary = "#1C2F6E",
+            TextSecondary = "#5E6778",
 
-            // Borders/dividers
-            Divider = MidGray,
-            LinesDefault = LightGray,
-            LinesInputs = MidGray,
+            // Lines / subtle UI
+            Divider = "rgba(28,47,110,0.18)",
 
-            // States (Mud uses these widely)
-            ActionDefault = Slate,
-            ActionDisabled = MidGray,
-            ActionDisabledBackground = LightGray,
+            // Optional accents from kit
+            Info = "#2FB6B8",
+            Success = "#2FB6B8",
+            Warning = "#C6B8A2",          // Warm Tan / Sand
+            Error = "#B00020",
 
-            // Feedback colors (not in the brand kit; keep muted and consistent)
-            Success = "#2E7D32",
-            Warning = "#ED6C02",
-            Error = "#D32F2F",
-            Info = Slate,
+            // AppBar / Drawer vibes
+            AppbarBackground = "#FFFFFF",
+            AppbarText = "#1C2F6E",
+            DrawerBackground = "#FFFFFF",
+            DrawerText = "#1C2F6E"
         },
-
-
-        Typography = new Typography
-        {
-            Default = new DefaultTypography
-            {
-                FontFamily = new[] { "Poppins", "Segoe UI", "Arial", "sans-serif" },
-                FontSize = ".95rem",
-                FontWeight = "400",
-                LineHeight = "1.45"
-            },
-
-            H1 = new H1Typography
-            {
-                FontFamily = new[] { "Allrounder Monument Test", "Poppins", "serif" },
-                FontWeight = "600",
-                FontSize = "2.25rem",
-                LineHeight = "1.10"
-            },
-
-            H2 = new H2Typography
-            {
-                FontFamily = new[] { "Allrounder Monument Test", "Poppins", "serif" },
-                FontWeight = "600",
-                FontSize = "1.85rem",
-                LineHeight = "1.12"
-            },
-
-            H3 = new H3Typography
-            {
-                FontFamily = new[] { "Poppins", "sans-serif" },
-                FontWeight = "600",
-                FontSize = "1.35rem"
-            },
-
-            Body1 = new Body1Typography
-            {
-                FontFamily = new[] { "Poppins", "sans-serif" },
-                FontWeight = "400"
-            },
-
-            Button = new ButtonTypography
-            {
-                FontFamily = new[] { "Poppins", "sans-serif" },
-                FontWeight = "600",
-                TextTransform = "none"
-            }
-        },
-
-
 
         LayoutProperties = new LayoutProperties
         {
-            DefaultBorderRadius = "14px"
+            DefaultBorderRadius = "12px"
         }
     };
 
@@ -116,33 +62,26 @@ public static class DominateDocsTheme
     {
         PaletteDark = new PaletteDark
         {
-            Primary = HoverSteel,       // reads better on dark
-            Secondary = Slate,
-            Tertiary = DeepSlate,
+            Primary = "#2FB6B8",
+            Secondary = "#7ADDD8",
+            Tertiary = "#C6B8A2",
 
-            Background = SlateBlack,
-            Surface = DeepSlate,
-            AppbarBackground = Navy,
-            DrawerBackground = Navy,
+            Background = "#0F172A",
+            Surface = "#111C33",
 
-            TextPrimary = White,
-            TextSecondary = LightGray,
-            TextDisabled = Carbon,
+            TextPrimary = "#FFFFFF",
+            TextSecondary = "rgba(255,255,255,0.75)",
+            Divider = "rgba(255,255,255,0.12)",
 
-            Divider = Carbon,
-            LinesDefault = Carbon,
-            LinesInputs = Carbon,
-
-            ActionDefault = LightGray,
-            ActionDisabled = Carbon,
-            ActionDisabledBackground = Charcoal,
-
-            Success = "#2E7D32",
-            Warning = "#ED6C02",
-            Error = "#D32F2F",
-            Info = Slate,
+            AppbarBackground = "#111C33",
+            AppbarText = "#FFFFFF",
+            DrawerBackground = "#111C33",
+            DrawerText = "#FFFFFF"
         },
-        Typography = Light.Typography,
-        LayoutProperties = Light.LayoutProperties
+
+        LayoutProperties = new LayoutProperties
+        {
+            DefaultBorderRadius = "12px"
+        }
     };
 }

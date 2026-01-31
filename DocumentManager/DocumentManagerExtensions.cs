@@ -32,6 +32,11 @@ public static class DocumentManagerExtensions
         services.TryAddSingleton<ILoanScheduler, LoanScheduler>();
         services.TryAddSingleton<IBalloonPaymentCalculater, BalloonPaymentCalculater>();
         services.TryAddSingleton<IRazorLiteService, RazorLiteService>();
+        services.AddScoped<ILoanThenGenerateEvaluator, DebugThenGenerateEvaluator>();
+                
+        // Typed client so PostmarkEmailSender gets HttpClient + options
+        services.AddHttpClient<IEmailSender, PostmarkEmailSender>();
+
 
         services.TryAddSingleton<IMongoDatabaseRepo, MongoDatabaseRepo>();
 
@@ -102,6 +107,11 @@ public class DocumentManagerConfigOptions
 
     public int HouseKeepingIntervalMin { get; set; } = 1;
     public bool IsHousekeeperActive { get; set; } = false;
+
+    public string PostMarkApiKey { get; set; } = "";
+    public string FromEmail { get; set; } = "";
+    public string? FromName { get; set; }
+    public string? MessageStream { get; set; } = "outbound";
 
     public List<string> TestDocumentNames { get; set; } = new();
     public bool IsActive { get; set; } = false;

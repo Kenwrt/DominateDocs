@@ -1,372 +1,681 @@
 ﻿using DominateDocsData.Models;
 using DominateDocsData.Models.RulesEngine;
-using DominateDocsData.Models.RulesEngine.Fields;
-using System.Globalization;
+using FluentEmail.Core.Models;
+using System;
+using Microsoft.Extensions.Logging;
+using System.Reflection;
 using static DominateDocsData.Models.RulesEngine.Enums.RulesEnums;
 
 namespace DocumentManager.Services;
 
+/// <summary>
+/// Evaluates LoanType DefaultDocuments + OutputRules (ThenGenerate) into a final ordered, de-duped list of DocumentIds.
+/// Supports the strongly-typed RulesEngine model (ConditionGroup/ConditionTerm/ConditionLeaf) and a small
+/// reflection-based fallback for older shapes.
+/// </summary>
 public static class DocumentOutputEvaluator
 {
-    /// <summary>
-    /// Fastest: returns only the ordered, de-duped document IDs to generate.
-    /// No DTOs, no DB calls, no lookups. Caller decides how to fetch docs.
-    /// </summary>
+    // =========================
+    // Public API
+    // =========================
+
+    public static IReadOnlyList<Guid> BuildFinalDocumentIdsWithTrace(
+        LoanType loanType,
+        IReadOnlyDictionary<string, object?> data,
+        out List<string> trace)
+    {
+        var traceLocal = new List<string>();
+        var orderedIds = new List<Guid>();
+        var seen = new HashSet<Guid>();
+
+        var startedUtc = DateTime.UtcNow;
+        traceLocal.Add($"=== ThenGenerate Trace @ {startedUtc:O} UTC ===");
+        traceLocal.Add($"LoanType: {(string.IsNullOrWhiteSpace(loanType?.Name) ? loanType?.Id.ToString() : loanType.Name)}");
+        traceLocal.Add($"EvalData: keyCount={(data?.Count ?? 0)} | keys={FormatAvailableKeys(data ?? new Dictionary<string, object?>(), maxKeys: 50)}");
+        traceLocal.Add($"KeyCheck: LenderState={(TryGetValueLoose(data, "LenderState", out var ls) ? (ls?.ToString() ?? "<null>") : "<missing>")} (len={(TryGetValueLoose(data, "LenderState", out var ls2) ? (ls2?.ToString() ?? "").Trim().Length : -1)})");
+        traceLocal.Add($"KeyCheck: BorrowerState={(TryGetValueLoose(data, "BorrowerState", out var bs) ? (bs?.ToString() ?? "<null>") : "<missing>")}");
+        traceLocal.Add($"KeyCheck: BrokerState={(TryGetValueLoose(data, "BrokerState", out var brs) ? (brs?.ToString() ?? "<null>") : "<missing>")}");
+        traceLocal.Add("");
+
+        void addId(Guid id, string reason)
+        {
+            if (id == Guid.Empty) return;
+
+            if (!seen.Add(id))
+            {
+                traceLocal.Add($"+ skip duplicate docId={id} ({reason})");
+                return;
+            }
+
+            orderedIds.Add(id);
+            traceLocal.Add($"+ add docId={id} ({reason})");
+        }
+
+        EvaluateInternal(loanType, data, addId, traceLocal);
+
+        trace = traceLocal;
+        return orderedIds;
+    }
+
     public static IReadOnlyList<Guid> BuildFinalDocumentIds(
         LoanType loanType,
-        IReadOnlyDictionary<string, object?> data)
+        IReadOnlyDictionary<string, object?> evalData)
     {
         var orderedIds = new List<Guid>();
         var seen = new HashSet<Guid>();
 
-        void addId(Guid id)
+        void addId(Guid id, string _)
         {
             if (id == Guid.Empty) return;
-            if (!seen.Add(id)) return;
-            orderedIds.Add(id);
+            if (seen.Add(id)) orderedIds.Add(id);
         }
 
-        // 1) Defaults first
-        if (loanType.DefaultDocumentIds is not null)
-        {
-            foreach (var id in loanType.DefaultDocumentIds)
-                addId(id);
-        }
-
-        // 2) Then rule-driven docs
-        if (loanType.OutputRules is not null)
-        {
-            foreach (var rule in loanType.OutputRules)
-            {
-                if (!MatchesGroup(rule.If, data))
-                    continue;
-
-                if (rule.ThenGenerateDocumentIds is null)
-                    continue;
-
-                foreach (var id in rule.ThenGenerateDocumentIds)
-                    addId(id);
-            }
-        }
-
+        EvaluateInternal(loanType, evalData, addId, trace: null);
         return orderedIds;
     }
 
-    /// <summary>
-    /// Returns ordered DTOs by resolving IDs through the provided resolver.
-    /// This keeps the evaluator independent from Mongo/DB concerns.
-    /// </summary>
-    public static IReadOnlyList<DominateDocsData.Models.DTOs.DocumentListDTO> BuildFinalDocumentSet(
+    // Convenience overload (your call sites often use Dictionary)
+    public static IReadOnlyList<Guid> BuildFinalDocumentIds(
+        LoanType loanType,
+        Dictionary<string, object?> evalData)
+        => BuildFinalDocumentIds(loanType, (IReadOnlyDictionary<string, object?>)evalData);
+
+    // =========================
+    // Internal evaluation
+    // =========================
+
+    private static void EvaluateInternal(
         LoanType loanType,
         IReadOnlyDictionary<string, object?> data,
-        Func<Guid, DominateDocsData.Models.DTOs.DocumentListDTO?> resolveDtoById)
+        Action<Guid, string> addId,
+        List<string>? trace)
     {
-        if (resolveDtoById is null)
-            throw new ArgumentNullException(nameof(resolveDtoById));
-
-        var ids = BuildFinalDocumentIds(loanType, data);
-
-        var result = new List<DominateDocsData.Models.DTOs.DocumentListDTO>(ids.Count);
-        foreach (var id in ids)
+        if (loanType == null)
         {
-            var dto = resolveDtoById(id);
-            if (dto is not null)
-                result.Add(dto);
+            trace?.Add("! loanType is null");
+            return;
         }
 
-        return result;
+        // 1) Default documents
+        foreach (var id in ExtractGuidList(loanType, "DefaultDocuments", "DefaultDocumentIds", "DefaultDocIds"))
+            addId(id, "default");
+
+        // 2) Output rules (ThenGenerate)
+        foreach (var ruleObj in ExtractRuleList(loanType))
+        {
+            // Strongly-typed path (your current model)
+            if (ruleObj is OutputRule rule)
+            {
+                var ruleName = !string.IsNullOrWhiteSpace(rule.Name) ? rule.Name : rule.Id.ToString();
+
+                trace?.Add($"--- Evaluate Rule: {ruleName} ---");
+
+                var matched = EvaluateRule(rule, data, out var why, trace);
+                if (matched)
+                {
+                    trace?.Add($"= rule matched: {ruleName} ({why})");
+
+                    if (rule.ThenGenerateDocumentIds != null)
+                    {
+                        foreach (var id in rule.ThenGenerateDocumentIds)
+                            addId(id, $"thenGenerate:{ruleName}");
+                    }
+                }
+                else
+                {
+                    trace?.Add($"- rule did not match: {ruleName} ({why})");
+                }
+
+                continue;
+            }
+
+            // Reflection fallback (older shapes)
+            var name = GetString(ruleObj, "Name") ?? GetString(ruleObj, "Title") ?? GetString(ruleObj, "Id") ?? "rule";
+
+            if (EvaluateRuleReflection(ruleObj, data, out var why2))
+            {
+                trace?.Add($"= rule matched: {name} ({why2})");
+
+                foreach (var id in ExtractGuidList(ruleObj, "ThenGenerateDocumentIds", "ThenGenerateDocIds", "DocumentIds", "ThenGenerateIds"))
+                    addId(id, $"thenGenerate:{name}");
+            }
+            else
+            {
+                trace?.Add($"- rule did not match: {name} ({why2})");
+            }
+        }
     }
 
-    // ---------------------------
-    // Your existing rule evaluator
-    // ---------------------------
-
-    private static bool MatchesGroup(ConditionGroup group, IReadOnlyDictionary<string, object?> data)
+    private static IEnumerable<object> ExtractRuleList(LoanType loanType)
     {
-        if (group.Terms.Count == 0) return true;
-
-        bool evalNode(ConditionNode node) => node switch
+        // Prefer strongly typed property if present
+        if (loanType.OutputRules != null)
         {
-            ConditionLeaf leaf => EvaluateCondition(leaf.Condition, data),
-            ConditionGroupNode gn => MatchesGroup(gn.Group, data),
-            _ => false
-        };
+            foreach (var r in loanType.OutputRules)
+                if (r != null) yield return r;
+            yield break;
+        }
 
-        bool acc = evalNode(group.Terms[0].Node);
+        // Fallback to reflection for older shapes
+        var rulesObj =
+            GetObject(loanType, "OutputRules") ??
+            GetObject(loanType, "Rules") ??
+            GetObject(loanType, "ThenGenerateRules");
+
+        if (rulesObj is System.Collections.IEnumerable ie && rulesObj is not string)
+        {
+            foreach (var r in ie)
+                if (r != null) yield return r;
+        }
+    }
+
+    // =========================
+    // Strongly typed rules evaluation
+    // =========================
+
+    private static bool EvaluateRule(
+        OutputRule rule,
+        IReadOnlyDictionary<string, object?> data,
+        out string why,
+        List<string>? trace)
+    {
+        if (rule.If == null)
+        {
+            why = "no conditions";
+            return true;
+        }
+
+        var ok = EvaluateConditionGroup(rule.If, data, out why, trace);
+        return ok;
+    }
+
+    private static bool EvaluateConditionGroup(
+        ConditionGroup group,
+        IReadOnlyDictionary<string, object?> data,
+        out string why,
+        List<string>? trace)
+    {
+        if (group.Terms == null || group.Terms.Count == 0)
+        {
+            why = "empty group";
+            return true; // empty group matches
+        }
+
+        // Each ConditionTerm stores JoinToNext (LogicalOperator) which indicates how THIS term joins to the NEXT term.
+        // Fold:
+        //  - acc = term[0]
+        //  - for i=1..n-1 apply term[i-1].JoinToNext between acc and term[i]
+        bool acc = EvaluateNode(group.Terms[0].Node, data, out var why0, trace);
+        var reasons = new List<string> { why0 };
 
         for (int i = 1; i < group.Terms.Count; i++)
         {
             var prevJoin = group.Terms[i - 1].JoinToNext;
-            var nextVal = evalNode(group.Terms[i].Node);
+            bool next = EvaluateNode(group.Terms[i].Node, data, out var whyn, trace);
+            reasons.Add($"{prevJoin}: {whyn}");
 
+            // prevJoin is a VALUE (LogicalOperator), not a type.
             acc = prevJoin switch
             {
-                LogicalOperator.And => acc && nextVal,
-                LogicalOperator.Or => acc || nextVal,
-                _ => acc
+                LogicalOperator.Or => acc || next,
+                LogicalOperator.And => acc && next,
+                _ => acc && next
             };
         }
 
+        why = string.Join(" | ", reasons);
         return acc;
     }
 
-    private static bool EvaluateCondition(Condition c, IReadOnlyDictionary<string, object?> data)
+    private static bool EvaluateConditionGroupNode(
+        ConditionGroupNode group,
+        IReadOnlyDictionary<string, object?> data,
+        out string why,
+        List<string>? trace)
     {
-        data.TryGetValue(c.FieldKey, out var raw);
-
-        var field = RuleFieldRegistry.Get(c.FieldKey);
-
-        // Operator validity (fail closed)
-        if (!field.AllowedOperators.Contains(c.Operator))
-            return false;
-
-        // Presence checks
-        if (c.Operator == ConditionalOperator.IsAnswered)
-            return raw is not null && !string.IsNullOrWhiteSpace(raw.ToString());
-
-        if (c.Operator == ConditionalOperator.IsUnanswered)
-            return raw is null || string.IsNullOrWhiteSpace(raw.ToString());
-
-        // Boolean checks
-        if (c.Operator == ConditionalOperator.IsTrue || c.Operator == ConditionalOperator.IsFalse)
+        // ConditionGroupNode should have Terms like ConditionGroup.
+        // Use reflection access to avoid coupling to internal implementation details.
+        var termsObj = GetObject(group, "Terms");
+        if (termsObj is not System.Collections.IEnumerable ie || termsObj is string)
         {
-            if (!TryCoerceBool(raw, out var b))
-                return false;
-
-            return c.Operator == ConditionalOperator.IsTrue ? b : !b;
+            why = "group node missing Terms";
+            return false;
         }
 
-        var values = (c.Values ?? new List<string>())
-            .Where(v => !string.IsNullOrWhiteSpace(v))
-            .Select(v => v.Trim())
-            .ToList();
-
-        // Map legacy operators to modern equivalents
-        var op = c.Operator switch
+        var terms = new List<ConditionTerm>();
+        foreach (var t in ie)
         {
-            ConditionalOperator.AnyOf => ConditionalOperator.In,
-            ConditionalOperator.NoneOf => ConditionalOperator.NotIn,
-            _ => c.Operator
-        };
+            if (t is ConditionTerm ct)
+                terms.Add(ct);
+        }
 
-        // Multi-value runtime
-        if (raw is IEnumerable<string> list)
+        if (terms.Count == 0)
         {
-            var set = new HashSet<string>(list.Where(s => !string.IsNullOrWhiteSpace(s)), StringComparer.OrdinalIgnoreCase);
+            why = "empty group node";
+            return true;
+        }
 
-            return op switch
+        bool acc = EvaluateNode(terms[0].Node, data, out var why0, trace);
+        var reasons = new List<string> { why0 };
+
+        for (int i = 1; i < terms.Count; i++)
+        {
+            var prevJoin = terms[i - 1].JoinToNext;
+            bool next = EvaluateNode(terms[i].Node, data, out var whyn, trace);
+            reasons.Add($"{prevJoin}: {whyn}");
+
+            acc = prevJoin switch
             {
-                ConditionalOperator.In => values.Any(set.Contains),
-                ConditionalOperator.NotIn => !values.Any(set.Contains),
-                ConditionalOperator.AllOf => values.All(set.Contains),
-                ConditionalOperator.Equals => values.Count == 1 && set.Contains(values[0]),
-                ConditionalOperator.NotEquals => values.Count == 1 && !set.Contains(values[0]),
-                _ => false
+                LogicalOperator.Or => acc || next,
+                LogicalOperator.And => acc && next,
+                _ => acc && next
             };
         }
 
-        // Enum comparison (ex: UsState)
-        if (field.DataType.IsEnum)
-            return EvaluateEnum(field.DataType, raw, op, values);
+        why = string.Join(" | ", reasons);
+        return acc;
+    }
 
-        // Scalar runtime
-        var rawStr = raw?.ToString();
-
-        // IN / NOT IN (string membership)
-        if (op is ConditionalOperator.In or ConditionalOperator.NotIn)
+    private static bool EvaluateNode(
+        object? node,
+        IReadOnlyDictionary<string, object?> data,
+        out string why,
+        List<string>? trace)
+    {
+        if (node is null)
         {
-            if (rawStr is null) return op == ConditionalOperator.NotIn;
-            var hit = values.Any(v => string.Equals(v, rawStr, StringComparison.OrdinalIgnoreCase));
-            return op == ConditionalOperator.In ? hit : !hit;
-        }
-
-        // Equals / NotEquals
-        if (op is ConditionalOperator.Equals or ConditionalOperator.NotEquals)
-        {
-            var equals = EqualsTyped(raw, values);
-            return op == ConditionalOperator.Equals ? equals : !equals;
-        }
-
-        // Comparisons (<, >, <=, >=)
-        if (op is ConditionalOperator.GreaterThan or ConditionalOperator.GreaterThanOrEqual
-            or ConditionalOperator.LessThan or ConditionalOperator.LessThanOrEqual)
-        {
-            var rhs = values.FirstOrDefault();
-            if (rhs is null) return false;
-
-            if (TryCoerceDecimal(raw, out var leftDec) && TryCoerceDecimal(rhs, out var rightDec))
-            {
-                return op switch
-                {
-                    ConditionalOperator.GreaterThan => leftDec > rightDec,
-                    ConditionalOperator.GreaterThanOrEqual => leftDec >= rightDec,
-                    ConditionalOperator.LessThan => leftDec < rightDec,
-                    ConditionalOperator.LessThanOrEqual => leftDec <= rightDec,
-                    _ => false
-                };
-            }
-
-            if (TryCoerceDateTime(raw, out var leftDt) && TryCoerceDateTime(rhs, out var rightDt))
-            {
-                return op switch
-                {
-                    ConditionalOperator.GreaterThan => leftDt > rightDt,
-                    ConditionalOperator.GreaterThanOrEqual => leftDt >= rightDt,
-                    ConditionalOperator.LessThan => leftDt < rightDt,
-                    ConditionalOperator.LessThanOrEqual => leftDt <= rightDt,
-                    _ => false
-                };
-            }
-
+            why = "null node";
             return false;
         }
 
-        // Legacy fallback
-        if (op == ConditionalOperator.AllOf)
-            return rawStr != null && values.All(v => string.Equals(v, rawStr, StringComparison.OrdinalIgnoreCase));
+        if (node is ConditionLeaf leaf)
+            return EvaluateLeaf(leaf, data, out why, trace);
 
-        return false;
+        if (node is ConditionGroup group)
+            return EvaluateConditionGroup(group, data, out why, trace);
+
+        // Some persisted shapes use a polymorphic node type ConditionGroupNode.
+        if (node is ConditionGroupNode groupNode)
+            return EvaluateConditionGroupNode(groupNode, data, out why, trace);
+
+        // Defensive: unknown node shape -> reflection fallback
+        return EvaluateConditionReflection(node, data, out why);
     }
 
-    private static bool EvaluateEnum(Type enumType, object? raw, ConditionalOperator op, List<string> values)
+    private static bool EvaluateLeaf(
+        ConditionLeaf leaf,
+        IReadOnlyDictionary<string, object?> data,
+        out string why,
+        List<string>? trace)
     {
-        if (raw is null)
-            return op == ConditionalOperator.NotIn || op == ConditionalOperator.IsUnanswered;
-
-        var rawStr = raw.ToString();
-        if (string.IsNullOrWhiteSpace(rawStr))
-            return op == ConditionalOperator.NotIn || op == ConditionalOperator.IsUnanswered;
-
-        if (!TryParseEnum(enumType, rawStr!, out var rawEnum))
-            return false;
-
-        var rhsEnums = new List<object>();
-        foreach (var v in values)
+        var cond = leaf.Condition;
+        if (cond == null)
         {
-            if (!TryParseEnum(enumType, v, out var rhs))
-                return false;
-            rhsEnums.Add(rhs!);
+            why = "leaf missing Condition";
+            return false;
         }
 
-        return op switch
+        var field = (cond.FieldKey ?? "").Trim();
+        if (string.IsNullOrWhiteSpace(field))
         {
-            ConditionalOperator.Equals => rhsEnums.Count == 1 && rawEnum!.Equals(rhsEnums[0]),
-            ConditionalOperator.NotEquals => rhsEnums.Count == 1 && !rawEnum!.Equals(rhsEnums[0]),
-            ConditionalOperator.In => rhsEnums.Any(x => rawEnum!.Equals(x)),
-            ConditionalOperator.NotIn => !rhsEnums.Any(x => rawEnum!.Equals(x)),
-            _ => false
-        };
+            why = $"missing field key (Condition.FieldKey is empty). Available data keys: {FormatAvailableKeys(data)}";
+            trace?.Add($"! missing field key on leaf. Available data keys: {FormatAvailableKeys(data)}");
+            return false;
+        }
+
+        // Operator can come through as named enum value or numeric code.
+        var opRaw = cond.Operator.ToString();
+        if (string.IsNullOrWhiteSpace(opRaw)) opRaw = "Equals";
+        var op = NormalizeOperator(opRaw);
+
+        var values = new List<string>();
+        if (cond.Values != null)
+        {
+            foreach (var v in cond.Values)
+                values.Add(v?.ToString() ?? "");
+        }
+
+        if (!TryGetValueLoose(data, field, out var actualObj))
+        {
+            why = $"missing data key '{field}' (Available data keys: {FormatAvailableKeys(data)})";
+            trace?.Add($"! missing data key '{field}'. Available data keys: {FormatAvailableKeys(data)}");
+            trace?.Add($"! debug fieldKey=[{field}] len={field.Length}");
+            return false;
+        }
+
+        var actual = actualObj?.ToString();
+
+        var ok = Compare(actual, values, op, out why, field);
+
+        trace?.Add($"  • fieldKey=[{field}] len={field.Length} opRaw='{opRaw}' opNorm='{op}' values=[{string.Join(", ", NormalizeValues(values))}] actual='{actual?.Trim()}' => {ok} | {why}");
+
+        return ok;
     }
 
-    private static bool TryParseEnum(Type enumType, string value, out object? parsed)
+    // =========================
+    // Reflection fallback evaluation
+    // =========================
+
+    private static bool EvaluateRuleReflection(
+        object rule,
+        IReadOnlyDictionary<string, object?> data,
+        out string why)
     {
-        parsed = null;
+        var conditionsObj =
+            GetObject(rule, "Conditions") ??
+            GetObject(rule, "FieldConditions") ??
+            GetObject(rule, "If") ??
+            GetObject(rule, "When");
+
+        if (conditionsObj is null)
+        {
+            why = "no conditions";
+            return true;
+        }
+
+        if (conditionsObj is ConditionGroup cg)
+            return EvaluateConditionGroup(cg, data, out why, trace: null);
+
+        if (conditionsObj is not System.Collections.IEnumerable ie || conditionsObj is string)
+            return EvaluateConditionReflection(conditionsObj, data, out why);
+
+        var allOk = true;
+        var reasons = new List<string>();
+
+        foreach (var cond in ie)
+        {
+            if (cond is null) continue;
+
+            var ok = EvaluateConditionReflection(cond, data, out var r);
+            reasons.Add(r);
+
+            if (!ok)
+                allOk = false;
+        }
+
+        why = string.Join("; ", reasons);
+        return allOk;
+    }
+
+    private static bool EvaluateConditionReflection(
+        object condition,
+        IReadOnlyDictionary<string, object?> data,
+        out string why)
+    {
+        var field = GetString(condition, "Field") ?? GetString(condition, "FieldKey") ?? GetString(condition, "Key") ?? GetString(condition, "Name");
+        field = field?.Trim();
+
+        if (string.IsNullOrWhiteSpace(field))
+        {
+            why = "missing field";
+            return false;
+        }
+
+        var op = (GetString(condition, "Operator") ?? GetString(condition, "Op") ?? "Equals").Trim();
+        op = NormalizeOperator(op);
+
+        var values = ExtractStringList(condition, "Values", "Value", "AllowedValues");
+
+        TryGetValueLoose(data, field, out var actualObj);
+        var actual = actualObj?.ToString();
+
+        return Compare(actual, values, op, out why, field);
+    }
+
+    // =========================
+    // Comparison
+    // =========================
+
+    private static bool Compare(
+        string? actual,
+        List<string> values,
+        string opRaw,
+        out string why,
+        string field)
+    {
+        var op = (opRaw ?? "Equals").Trim();
+
+        var normalizedValues = NormalizeValues(values);
+        var actualTrim = actual?.Trim();
+
+        switch (op.ToLowerInvariant())
+        {
+            case "equals":
+            case "eq":
+            case "==":
+                {
+                    var target = normalizedValues.FirstOrDefault();
+                    var ok = string.Equals(actualTrim, target, StringComparison.OrdinalIgnoreCase);
+                    why = $"{field} == {target} (actual='{actualTrim}')";
+                    return ok;
+                }
+
+            case "notequals":
+            case "neq":
+            case "!=":
+                {
+                    var target = normalizedValues.FirstOrDefault();
+                    var ok = !string.Equals(actualTrim, target, StringComparison.OrdinalIgnoreCase);
+                    why = $"{field} != {target} (actual='{actualTrim}')";
+                    return ok;
+                }
+
+            case "in":
+                {
+                    var set = normalizedValues.ToHashSet(StringComparer.OrdinalIgnoreCase);
+                    var ok = actualTrim != null && set.Contains(actualTrim);
+                    why = $"{field} in [{string.Join(", ", normalizedValues)}] (actual='{actualTrim}')";
+                    return ok;
+                }
+
+            case "notin":
+                {
+                    var set = normalizedValues.ToHashSet(StringComparer.OrdinalIgnoreCase);
+                    var ok = actualTrim == null || !set.Contains(actualTrim);
+                    why = $"{field} not in [{string.Join(", ", normalizedValues)}] (actual='{actualTrim}')";
+                    return ok;
+                }
+
+            case "contains":
+                {
+                    var target = normalizedValues.FirstOrDefault() ?? "";
+                    var ok = actualTrim != null && actualTrim.Contains(target, StringComparison.OrdinalIgnoreCase);
+                    why = $"{field} contains '{target}' (actual='{actualTrim}')";
+                    return ok;
+                }
+
+            case "startswith":
+                {
+                    var target = normalizedValues.FirstOrDefault() ?? "";
+                    var ok = actualTrim != null && actualTrim.StartsWith(target, StringComparison.OrdinalIgnoreCase);
+                    why = $"{field} startsWith '{target}' (actual='{actualTrim}')";
+                    return ok;
+                }
+
+            case "endswith":
+                {
+                    var target = normalizedValues.FirstOrDefault() ?? "";
+                    var ok = actualTrim != null && actualTrim.EndsWith(target, StringComparison.OrdinalIgnoreCase);
+                    why = $"{field} endsWith '{target}' (actual='{actualTrim}')";
+                    return ok;
+                }
+
+            default:
+                {
+                    var target = normalizedValues.FirstOrDefault();
+                    var ok = string.Equals(actualTrim, target, StringComparison.OrdinalIgnoreCase);
+                    why = $"{field} == {target} (fallback op='{op}', actual='{actualTrim}')";
+                    return ok;
+                }
+        }
+    }
+
+    private static List<string> NormalizeValues(List<string> values)
+    {
+        return values
+            .SelectMany(v => (v ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries))
+            .Select(v => v.Trim())
+            .Where(v => !string.IsNullOrWhiteSpace(v))
+            .ToList();
+    }
+
+    private static string FormatAvailableKeys(IReadOnlyDictionary<string, object?> data, int maxKeys = 25)
+    {
         try
         {
-            parsed = Enum.Parse(enumType, value, ignoreCase: true);
-            return true;
+            var keys = data.Keys
+                .Where(k => !string.IsNullOrWhiteSpace(k))
+                .OrderBy(k => k, StringComparer.OrdinalIgnoreCase)
+                .Take(maxKeys)
+                .ToList();
+
+            var total = data.Keys.Count();
+            var suffix = total > keys.Count ? $"…(+{total - keys.Count} more)" : string.Empty;
+
+            return keys.Count == 0 ? "<none>" : string.Join(", ", keys) + suffix;
         }
         catch
         {
-            return false;
+            return "<unavailable>";
         }
     }
 
-    private static bool EqualsTyped(object? raw, List<string> values)
-    {
-        if (values.Count == 0) return raw is null;
+    // =========================
+    // Debug helpers (Admin Bench)
+    // =========================
 
-        if (values.Count > 1)
+    private static bool TryGetValueLoose(IReadOnlyDictionary<string, object?> data, string key, out object? value)
+    {
+        value = null;
+
+        if (data is null) return false;
+
+        key = (key ?? string.Empty).Trim();
+        if (key.Length == 0) return false;
+
+        // Exact first
+        if (data.TryGetValue(key, out value))
+            return true;
+
+        // Loose: trim + ignore case
+        foreach (var k in data.Keys)
         {
-            var rawStr = raw?.ToString();
-            if (rawStr is null) return false;
-            return values.Any(v => string.Equals(v, rawStr, StringComparison.OrdinalIgnoreCase));
+            if (string.Equals((k ?? string.Empty).Trim(), key, StringComparison.OrdinalIgnoreCase))
+            {
+                value = data[k];
+                return true;
+            }
         }
-
-        var rhs = values[0];
-
-        if (TryCoerceBool(raw, out var lb) && TryCoerceBool(rhs, out var rb))
-            return lb == rb;
-
-        if (TryCoerceDecimal(raw, out var ld) && TryCoerceDecimal(rhs, out var rd))
-            return ld == rd;
-
-        if (TryCoerceDateTime(raw, out var ldt) && TryCoerceDateTime(rhs, out var rdt))
-            return ldt == rdt;
-
-        if (TryCoerceGuid(raw, out var lg) && TryCoerceGuid(rhs, out var rg))
-            return lg == rg;
-
-        var rawStr2 = raw?.ToString();
-        return string.Equals(rawStr2, rhs, StringComparison.OrdinalIgnoreCase);
-    }
-
-    private static bool TryCoerceBool(object? v, out bool b)
-    {
-        b = default;
-
-        if (v is bool bb) { b = bb; return true; }
-
-        var s = v?.ToString();
-        if (string.IsNullOrWhiteSpace(s)) return false;
-
-        s = s.Trim();
-        if (bool.TryParse(s, out b)) return true;
-
-        if (string.Equals(s, "1", StringComparison.OrdinalIgnoreCase) ||
-            string.Equals(s, "yes", StringComparison.OrdinalIgnoreCase) ||
-            string.Equals(s, "y", StringComparison.OrdinalIgnoreCase) ||
-            string.Equals(s, "on", StringComparison.OrdinalIgnoreCase))
-        { b = true; return true; }
-
-        if (string.Equals(s, "0", StringComparison.OrdinalIgnoreCase) ||
-            string.Equals(s, "no", StringComparison.OrdinalIgnoreCase) ||
-            string.Equals(s, "n", StringComparison.OrdinalIgnoreCase) ||
-            string.Equals(s, "off", StringComparison.OrdinalIgnoreCase))
-        { b = false; return true; }
 
         return false;
     }
 
-    private static bool TryCoerceDecimal(object? v, out decimal d)
+    private static string NormalizeOperator(string opRaw)
     {
-        d = default;
+        var raw = (opRaw ?? string.Empty).Trim();
 
-        if (v is decimal dd) { d = dd; return true; }
-        if (v is int i) { d = i; return true; }
-        if (v is long l) { d = l; return true; }
-        if (v is double db) { d = (decimal)db; return true; }
-        if (v is float f) { d = (decimal)f; return true; }
+        // If it comes through numeric, map the known ConditionalOperator codes
+        if (int.TryParse(raw, out var code))
+        {
+            return code switch
+            {
+                0 => "AnyOf",
+                1 => "NoneOf",
+                2 => "AllOf",
+                3 => "IsAnswered",
+                4 => "IsUnanswered",
+                5 => "Equals",
+                6 => "NotEquals",
+                7 => "GreaterThan",
+                8 => "GreaterThanOrEqual",
+                9 => "LessThan",
+                10 => "LessThanOrEqual",
+                11 => "In",
+                12 => "NotIn",
+                13 => "IsTrue",
+                14 => "IsFalse",
+                _ => raw
+            };
+        }
 
-        var s = v?.ToString();
-        if (string.IsNullOrWhiteSpace(s)) return false;
-
-        return decimal.TryParse(s, NumberStyles.Any, CultureInfo.InvariantCulture, out d)
-               || decimal.TryParse(s, NumberStyles.Any, CultureInfo.CurrentCulture, out d);
+        return raw;
     }
 
-    private static bool TryCoerceDateTime(object? v, out DateTime dt)
+    // =========================
+    // Extraction helpers (reflection)
+    // =========================
+
+    private static IEnumerable<Guid> ExtractGuidList(object obj, params string[] propNames)
     {
-        dt = default;
+        foreach (var prop in propNames)
+        {
+            var v = GetObject(obj, prop);
+            if (v is null) continue;
 
-        if (v is DateTime dtt) { dt = dtt; return true; }
+            if (v is Guid g)
+                yield return g;
+            else if (v is System.Collections.IEnumerable ie && v is not string)
+            {
+                foreach (var item in ie)
+                {
+                    if (item is null) continue;
+                    if (item is Guid ig) yield return ig;
 
-        var s = v?.ToString();
-        if (string.IsNullOrWhiteSpace(s)) return false;
+                    var gid =
+                        GetGuid(item, "DocumentId") ??
+                        GetGuid(item, "DocId") ??
+                        GetGuid(item, "Id");
 
-        return DateTime.TryParse(s, CultureInfo.InvariantCulture, DateTimeStyles.AssumeLocal, out dt)
-               || DateTime.TryParse(s, CultureInfo.CurrentCulture, DateTimeStyles.AssumeLocal, out dt);
+                    if (gid.HasValue) yield return gid.Value;
+                }
+            }
+        }
     }
 
-    private static bool TryCoerceGuid(object? v, out Guid g)
+    private static List<string> ExtractStringList(object obj, params string[] propNames)
     {
-        g = default;
+        foreach (var prop in propNames)
+        {
+            var v = GetObject(obj, prop);
 
-        if (v is Guid gg) { g = gg; return true; }
+            if (v is null) continue;
 
-        var s = v?.ToString();
-        if (string.IsNullOrWhiteSpace(s)) return false;
+            if (v is string s)
+                return new List<string> { s };
 
-        return Guid.TryParse(s, out g);
+            if (v is System.Collections.IEnumerable ie && v is not string)
+            {
+                var list = new List<string>();
+                foreach (var item in ie)
+                    list.Add(item?.ToString() ?? "");
+                return list;
+            }
+        }
+
+        return new List<string>();
+    }
+
+    private static object? GetObject(object obj, string propName)
+    {
+        try
+        {
+            var pi = obj.GetType().GetProperty(propName);
+            return pi?.GetValue(obj);
+        }
+        catch { return null; }
+    }
+
+    private static string? GetString(object obj, string propName)
+        => GetObject(obj, propName)?.ToString();
+
+    private static Guid? GetGuid(object obj, string propName)
+    {
+        var v = GetObject(obj, propName);
+        if (v is null) return null;
+
+        if (v is Guid g) return g;
+        if (Guid.TryParse(v.ToString(), out var parsed)) return parsed;
+
+        return null;
     }
 }

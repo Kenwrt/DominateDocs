@@ -8,8 +8,8 @@ namespace DocumentManager.Workers;
 
 public sealed class EmailWorker : WorkerPoolBackgroundService<EmailJob>
 {
-    private readonly ILogger<EmailWorker> _logger;
-    private readonly IEmailSender _sender;
+    private readonly ILogger<EmailWorker> logger;
+    private readonly IEmailSender sender;
 
     public EmailWorker(
         IJobQueue<EmailJob> queue,
@@ -17,24 +17,36 @@ public sealed class EmailWorker : WorkerPoolBackgroundService<EmailJob>
         IEmailSender sender)
         : base(queue, logger, workers: 2)
     {
-        _logger = logger;
-        _sender = sender;
+        this.logger = logger;
+        this.sender = sender;
     }
 
     protected override async Task HandleAsync(EmailJob job, CancellationToken ct)
     {
+        // You can expand this later to include template IDs, HTML bodies, attachments, etc.
         var msg = new EmailMsg
         {
             To = job.ToEmail,
             Subject = job.Subject,
-            MessageBody = $"Your documents for loan {job.LoanId} are ready."
+            MessageBody = $"""
+                Your documents for loan {job.LoanId} are ready.
+
+                If you didn't request this, someone is doing something weird.
+                """
         };
 
-        _logger.LogInformation(
-            "EmailWorker sending email for LoanId={LoanId} To={To}",
+        logger.LogInformation(
+            "📧 EmailWorker sending email for LoanId={LoanId} To={To} Subject={Subject}",
             job.LoanId,
-            job.ToEmail);
+            job.ToEmail,
+            job.Subject);
 
-        await _sender.SendAsync(msg, ct);
+        await sender.SendAsync(msg, ct);
+    }
+
+    public override Task StartAsync(CancellationToken cancellationToken)
+    {
+        logger.LogInformation("✅ EmailWorker STARTED (Workers={Workers})", 2);
+        return base.StartAsync(cancellationToken);
     }
 }

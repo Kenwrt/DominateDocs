@@ -50,10 +50,14 @@ public sealed class MergeWorker : WorkerPoolBackgroundService<MergeJob>
         if (!options.Value.IsActive || !docState.IsRunBackgroundDocumentMergeService)
             return;
 
+
         var documentMerge = job.Merge;
 
         try
         {
+            logger.LogInformation("📥 MergeWorker got MergeJob for MergeId={MergeId}, Doc={Doc}", job.Merge?.Id, job.Merge?.Document?.Name);
+
+
             docState.DocumentList.TryAdd(documentMerge.Id, documentMerge);
 
             using var ms = new MemoryStream(
@@ -123,4 +127,11 @@ public sealed class MergeWorker : WorkerPoolBackgroundService<MergeJob>
             // docState.DocumentList.TryRemove(documentMerge.Id, out _);
         }
     }
+
+    public override Task StartAsync(CancellationToken cancellationToken)
+    {
+        logger.LogInformation("✅ MergeWorker STARTED (MaxThreads={MaxThreads})", options.Value.MaxDocumentMergeThreads);
+        return base.StartAsync(cancellationToken);
+    }
+
 }
