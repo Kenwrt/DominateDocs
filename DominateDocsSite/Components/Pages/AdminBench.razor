@@ -5,20 +5,16 @@
 @using DominateDocsSite.ViewModels
 @using DominateDocsData.Enums
 @using DominateDocsData.Models
+@using DocumentManager.Email
 
 @namespace DominateDocsSite.ViewModels
 
-@inject IDocumentManagerState DocState
 @inject AdminBenchViewModel vm
 
 <MudContainer MaxWidth="MaxWidth.Large" Class="py-6">
     <MudPaper Class="pa-4" Elevation="1">
 
-        <MudText Typo="Typo.h6">Admin Bench: Test Merge (Workers)</MudText>
-        <MudText Typo="Typo.body2" Color="Color.Secondary">
-            Queues jobs to LoanWorker / MergeWorker. No direct merge calls from the UI.
-            ThenGenerate runs automatically when LoanType changes.
-        </MudText>
+        <MudText Typo="Typo.h6">Admin Bench</MudText>
 
         <MudDivider Class="my-4" />
 
@@ -29,7 +25,7 @@
                            Label="Doc Library"
                            Variant="Variant.Outlined"
                            @bind-Value="vm.SelectedDocLibId"
-                           @bind-Value:after="OnDocLibChanged">
+                           @bind-Value:after="vm.OnDocLibChangedAsync">
                     @foreach (var id in vm.DocLibIds)
                     {
                         <MudSelectItem Value="id">@id</MudSelectItem>
@@ -39,7 +35,7 @@
 
             <MudItem xs="12" md="6">
                 <MudSelect T="DocumentTypes.OutputTypes"
-                           Label="Output Type"
+                           Label="Output Type (bench override)"
                            Variant="Variant.Outlined"
                            @bind-Value="vm.OutputType">
                     <MudSelectItem Value="DocumentTypes.OutputTypes.PDF">PDF</MudSelectItem>
@@ -52,7 +48,7 @@
                            Label="Loan Agreement"
                            Variant="Variant.Outlined"
                            @bind-Value="vm.SelectedLoanAgreement"
-                           @bind-Value:after="OnLoanChanged"
+                           @bind-Value:after="vm.OnLoanAgreementChangedAsync"
                            ToStringFunc="@(l => l is null ? "" : vm.GetLoanLabel(l))">
                     @foreach (var loan in vm.LoanAgreements)
                     {
@@ -67,49 +63,38 @@
                               @bind-Value="vm.EmailTo" />
             </MudItem>
 
-            <MudItem xs="12" md="12">
+            <MudItem xs="12" md="6">
+                <MudSelect T="EmailEnums.AttachmentOutput"
+                           Label="Email Attachment Mode"
+                           Variant="Variant.Outlined"
+                           @bind-Value="vm.EmailAttachmentOutput">
+                    <MudSelectItem Value="EmailEnums.AttachmentOutput.IndividualDocument">Individual Documents</MudSelectItem>
+                    <MudSelectItem Value="EmailEnums.AttachmentOutput.ZipFile">Single ZIP File</MudSelectItem>
+                </MudSelect>
+            </MudItem>
+
+            <MudItem xs="12" md="6">
                 <MudSelect T="LoanType"
                            Label="Loan Type"
                            Variant="Variant.Outlined"
                            @bind-Value="vm.SelectedLoanType"
-                           @bind-Value:after="OnLoanTypeChanged"
+                           @bind-Value:after="vm.OnLoanTypeChangedAsync"
                            ToStringFunc="@(lt => lt?.Name ?? "")">
                     @foreach (var lt in vm.LoanTypes)
                     {
                         <MudSelectItem Value="lt">@lt.Name</MudSelectItem>
                     }
                 </MudSelect>
-
-                <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mt-1">
-                    Auto-queues ThenGenerate when changed.
-                </MudText>
             </MudItem>
 
             <MudItem xs="12">
                 <MudDivider Class="my-2" />
                 <div class="d-flex flex-wrap gap-2">
-                    <MudButton Variant="Variant.Outlined"
-                               Disabled="vm.IsBusy"
-                               OnClick="vm.ReloadAsync">
-                        Reload Lists
-                    </MudButton>
-
-                    <MudButton Variant="Variant.Outlined"
-                               Disabled="vm.IsBusy"
-                               OnClick="vm.RefreshSelectedLoanAsync">
-                        Refresh Results
-                    </MudButton>
-
                     <MudButton Variant="Variant.Filled"
-                               Disabled="@(vm.IsBusy || !vm.CanMergeFromDeliveries)"
-                               OnClick="vm.QueueMergeFromDeliveriesAsync">
-                        Queue Merge From Deliveries
-                    </MudButton>
-
-                    <MudButton Variant="Variant.Outlined"
-                               Disabled="vm.IsBusy"
-                               OnClick="@(() => vm.Clear())">
-                        Clear
+                               Color="Color.Secondary"
+                               Disabled="@(vm.IsBusy || !vm.CanRunOneButton)"
+                               OnClick="vm.RunMergeAndEmailAsync">
+                        Run Merge + Email
                     </MudButton>
                 </div>
             </MudItem>
@@ -123,7 +108,7 @@
 
             <MudItem xs="12">
                 <MudDivider Class="my-4" />
-                <MudText Typo="Typo.subtitle1">ThenGenerate Results (Persisted Deliveries)</MudText>
+                <MudText Typo="Typo.subtitle1">Persisted Deliveries</MudText>
 
                 @if (vm.SelectedLoanAgreement is null)
                 {
@@ -132,7 +117,7 @@
                 else if (vm.SelectedLoanDeliveries.Count == 0)
                 {
                     <MudText Typo="Typo.body2" Color="Color.Secondary">
-                        No deliveries saved on this loan yet. Change LoanType to auto-run ThenGenerate, then results will appear here.
+                        No deliveries saved on this loan (yet). The Run button will generate them first.
                     </MudText>
                 }
                 else
@@ -156,36 +141,19 @@
                         </RowTemplate>
                     </MudTable>
                 }
-
-                @if (vm.SelectedLoanAgreement?.AdminBench?.Trace is not null && vm.SelectedLoanAgreement.AdminBench.Trace.Count > 0)
-                {
-                    <MudExpansionPanels Class="mt-3">
-                        <MudExpansionPanel Text="ThenGenerate Trace (Rules)" Expanded="false">
-                            <MudList T="string" Dense="true">
-                                @foreach (var line in vm.SelectedLoanAgreement.AdminBench.Trace)
-                                {
-                                    <MudListItem>
-                                        <MudText Typo="Typo.caption">@line</MudText>
-                                    </MudListItem>
-                                }
-                            </MudList>
-                        </MudExpansionPanel>
-                    </MudExpansionPanels>
-                }
             </MudItem>
 
             <MudItem xs="12">
                 <MudDivider Class="my-4" />
-                <MudText Typo="Typo.subtitle1">Live Output (Merge Results)</MudText>
+                <MudText Typo="Typo.subtitle1">Live Merge Results</MudText>
 
-                @if (DocState.DocumentList.Count == 0)
+                @if (vm.LiveMergeRows.Count == 0)
                 {
                     <MudText Typo="Typo.body2" Color="Color.Secondary">No merges yet.</MudText>
                 }
                 else
                 {
-                    <MudTable Items="DocState.DocumentList.Values.OrderByDescending(x => x.MergeCompleteAt ?? DateTime.MinValue)"
-                              Dense="true" Hover="true">
+                    <MudTable Items="vm.LiveMergeRows" Dense="true" Hover="true">
                         <HeaderContent>
                             <MudTh>Status</MudTh>
                             <MudTh>Document</MudTh>
@@ -194,9 +162,9 @@
                         </HeaderContent>
                         <RowTemplate>
                             <MudTd>@context.Status</MudTd>
-                            <MudTd>@(context.Document?.Name ?? "(no name)")</MudTd>
-                            <MudTd>@(context.MergeCompleteAt?.ToLocalTime().ToString("g") ?? "")</MudTd>
-                            <MudTd>@(context.MergedDocumentBytes?.Length ?? 0)</MudTd>
+                            <MudTd>@context.DocumentName</MudTd>
+                            <MudTd>@context.CompletedLocal</MudTd>
+                            <MudTd>@context.Bytes</MudTd>
                         </RowTemplate>
                     </MudTable>
                 }
@@ -210,20 +178,5 @@
     protected override async Task OnInitializedAsync()
     {
         await vm.InitializeAsync();
-    }
-
-    private async Task OnDocLibChanged()
-    {
-        await vm.ReloadAsync();
-    }
-
-    private async Task OnLoanChanged()
-    {
-        await vm.OnLoanAgreementChangedAsync();
-    }
-
-    private async Task OnLoanTypeChanged()
-    {
-        await vm.OnLoanTypeChangedAsync();
     }
 }

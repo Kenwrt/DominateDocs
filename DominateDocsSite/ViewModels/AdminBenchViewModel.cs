@@ -1,6 +1,8 @@
-﻿using DocumentManager.Infrastructure;
+﻿using DocumentManager.Email;
+using DocumentManager.Infrastructure;
 using DocumentManager.Jobs;
 using DocumentManager.Services;
+using DocumentManager.State;
 using DominateDocsData.Enums;
 using DominateDocsData.Models;
 using Microsoft.Extensions.Logging;
@@ -8,57 +10,71 @@ using System.Reflection;
 
 namespace DominateDocsSite.ViewModels;
 
-/// <summary>
-/// Admin Bench driver for queuing worker-based jobs + displaying non-content results.
-/// The UI should never render document bytes; only decisions (deliveries) + status.
-/// </summary>
 public sealed class AdminBenchViewModel
 {
     public bool IsBusy { get; private set; }
-
     public string? Status { get; private set; }
 
     public List<Guid> DocLibIds { get; private set; } = new();
-
     public Guid SelectedDocLibId { get; set; }
 
     public string EmailTo { get; set; } = "";
 
+    public EmailEnums.AttachmentOutput EmailAttachmentOutput { get; set; } =
+        EmailEnums.AttachmentOutput.IndividualDocument;
+
+    // Bench override (global for this run)
     public DocumentTypes.OutputTypes OutputType { get; set; } = DocumentTypes.OutputTypes.PDF;
 
     public List<Document> Documents { get; private set; } = new();
-
     public List<LoanType> LoanTypes { get; private set; } = new();
-
     public List<LoanAgreement> LoanAgreements { get; private set; } = new();
 
     public LoanAgreement? SelectedLoanAgreement { get; set; }
-
     public LoanType? SelectedLoanType { get; set; }
 
-    /// <summary>
-    /// Snapshot of persisted ThenGenerate decisions (non-content) for the selected loan.
-    /// </summary>
     public IReadOnlyList<DocumentDelivery> SelectedLoanDeliveries
         => (SelectedLoanAgreement?.DocumentDeliverys as IReadOnlyList<DocumentDelivery>)
            ?? Array.Empty<DocumentDelivery>();
 
+    public List<MergeRow> LiveMergeRows { get; private set; } = new();
+
+    public sealed class MergeRow
+    {
+        public string Status { get; set; } = "";
+        public string DocumentName { get; set; } = "";
+        public string CompletedLocal { get; set; } = "";
+        public int Bytes { get; set; }
+    }
+
     private readonly IDocumentOutputService outputService;
     private readonly IJobQueue<LoanJob> loanQueue;
     private readonly IJobQueue<MergeJob> mergeQueue;
+    private readonly IJobQueue<EmailJob> emailQueue;
+    private readonly IDocumentManagerState docState;
     private readonly ILogger<AdminBenchViewModel> logger;
 
     public AdminBenchViewModel(
         IDocumentOutputService outputService,
         IJobQueue<LoanJob> loanQueue,
         IJobQueue<MergeJob> mergeQueue,
+        IJobQueue<EmailJob> emailQueue,
+        IDocumentManagerState docState,
         ILogger<AdminBenchViewModel> logger)
     {
         this.outputService = outputService;
         this.loanQueue = loanQueue;
         this.mergeQueue = mergeQueue;
+        this.emailQueue = emailQueue;
+        this.docState = docState;
         this.logger = logger;
     }
+
+    public bool CanRunOneButton
+        => SelectedDocLibId != Guid.Empty
+           && SelectedLoanAgreement is not null
+           && SelectedLoanType is not null
+           && !string.IsNullOrWhiteSpace(ResolveEmailTo());
 
     public async Task InitializeAsync()
     {
@@ -67,11 +83,12 @@ public sealed class AdminBenchViewModel
             Status = "Loading admin bench…";
 
             DocLibIds = outputService.GetDocLibIds();
-
             if (SelectedDocLibId == Guid.Empty && DocLibIds.Count > 0)
                 SelectedDocLibId = DocLibIds[0];
 
-            await ReloadAsync().ConfigureAwait(false);
+            LoanAgreements = outputService.GetLoanAgreements();
+
+            await OnDocLibChangedAsync().ConfigureAwait(false);
 
             Status = "Ready.";
         }
@@ -82,51 +99,37 @@ public sealed class AdminBenchViewModel
         }
     }
 
-    public bool CanMergeFromDeliveries =>
-        SelectedDocLibId != Guid.Empty &&
-        SelectedLoanAgreement != null &&
-        (SelectedLoanAgreement?.DocumentDeliverys?.Count ?? 0) > 0;
-
-    public async Task ReloadAsync()
+    public async Task OnDocLibChangedAsync()
     {
         try
         {
-            Status = "Reloading lists…";
+            Status = "Loading Doc Library assets…";
 
             Documents = outputService.GetDocuments(SelectedDocLibId);
             LoanTypes = outputService.GetLoanTypes(SelectedDocLibId);
-            LoanAgreements = outputService.GetLoanAgreements();
 
-            // Rebind selected loan to the fresh instance (by Id)
-            if (SelectedLoanAgreement != null)
-            {
-                var id = SelectedLoanAgreement.Id;
-                SelectedLoanAgreement = LoanAgreements.FirstOrDefault(l => l.Id == id) ?? SelectedLoanAgreement;
-            }
+            if (SelectedLoanType is null || LoanTypes.All(x => x.Id != SelectedLoanType.Id))
+                SelectedLoanType = LoanTypes.FirstOrDefault();
 
-            // If we have a loan selected but no LoanType selected, default to the loan's stored type.
             await EnsureLoanTypeSelectionFromLoanAsync().ConfigureAwait(false);
 
-            Status = $"Loaded: {Documents.Count} docs, {LoanTypes.Count} loan types. Agreements: {LoanAgreements.Count}.";
+            RebuildLiveMergeRows();
+
+            Status = $"Loaded: {Documents.Count} docs, {LoanTypes.Count} loan types.";
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "ReloadAsync failed");
-            Status = "Reload failed. Check logs.";
+            logger.LogError(ex, "OnDocLibChangedAsync failed");
+            Status = "Doc Library reload failed. Check logs.";
         }
     }
 
-    /// <summary>
-    /// Called by the UI when the user picks a different LoanAgreement.
-    /// Defaults LoanType to what is stored on the loan and refreshes persisted results.
-    /// </summary>
     public async Task OnLoanAgreementChangedAsync()
     {
         try
         {
             await EnsureLoanTypeSelectionFromLoanAsync().ConfigureAwait(false);
 
-            // Reasonable UX defaults
             if (SelectedLoanAgreement != null)
             {
                 if (string.IsNullOrWhiteSpace(EmailTo))
@@ -136,9 +139,12 @@ public sealed class AdminBenchViewModel
                     OutputType = SelectedLoanAgreement.OutputType;
             }
 
-            await RefreshSelectedLoanAsync().ConfigureAwait(false);
+            RebuildLiveMergeRows();
 
-            Status = "Loan selected.";
+            var deliveries = SelectedLoanAgreement?.DocumentDeliverys?.Count ?? 0;
+            Status = deliveries > 0
+                ? $"Loan selected. Persisted deliveries: {deliveries}."
+                : "Loan selected. No persisted deliveries yet.";
         }
         catch (Exception ex)
         {
@@ -147,191 +153,251 @@ public sealed class AdminBenchViewModel
         }
     }
 
-    /// <summary>
-    /// Called by the UI when LoanType changes.
-    /// Automatically queues ThenGenerate (evaluation only) so results update without a button click.
-    /// </summary>
-    public async Task OnLoanTypeChangedAsync()
+    public Task OnLoanTypeChangedAsync()
     {
-        if (SelectedLoanAgreement is null || SelectedLoanType is null)
-            return;
-
-        await QueueThenGeneratePipelineAutoAsync().ConfigureAwait(false);
-    }
-
-    /// <summary>
-    /// Reload ONLY the selected loan agreement from DB (via GetLoanAgreements) so the Admin Bench can
-    /// show persisted ThenGenerate results without needing document content.
-    /// </summary>
-    public Task RefreshSelectedLoanAsync()
-    {
-        try
-        {
-            if (SelectedLoanAgreement is null)
-                return Task.CompletedTask;
-
-            var id = SelectedLoanAgreement.Id;
-
-            LoanAgreements = outputService.GetLoanAgreements();
-
-            var fresh = LoanAgreements.FirstOrDefault(l => l.Id == id);
-            if (fresh != null)
-            {
-                SelectedLoanAgreement = fresh;
-                Status = $"Refreshed loan. Deliveries: {fresh.DocumentDeliverys?.Count ?? 0}.";
-            }
-            else
-            {
-                Status = "Refresh did not find selected loan. Check filters / DB.";
-            }
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "RefreshSelectedLoanAsync failed");
-            Status = "Refresh failed. Check logs.";
-        }
-
+        // Single button does the work. Selection changes should be harmless.
         return Task.CompletedTask;
     }
 
-    public void Clear()
-    {
-        SelectedLoanAgreement = null;
-        SelectedLoanType = null;
-        Status = null;
-    }
-
     /// <summary>
-    /// Auto pipeline: persist loan context + enqueue LoanJob.
-    /// We force AdminBench.Enabled=true and AdminBench.SuppressMerge=true so the worker ONLY evaluates
-    /// ThenGenerate, persists DocumentDeliverys + Trace, and stops before merging.
+    /// ONE BUTTON:
+    /// 1) Ensure deliveries exist (queue ThenGenerate pipeline if needed)
+    /// 2) Queue merges from deliveries (but prevent any auto-email-per-doc behavior)
+    /// 3) Wait for merges
+    /// 4) Queue ONE EmailJob (zip/individual)
     /// </summary>
-    private async Task QueueThenGeneratePipelineAutoAsync()
+    public async Task RunMergeAndEmailAsync()
     {
-        IsBusy = true;
-        try
+        if (!CanRunOneButton)
         {
-            Status = "Queueing ThenGenerate pipeline (auto)…";
-
-            // Fresh loan instance to avoid stale persisted deliveries confusing the UI
-            var loan = outputService.GetLoanAgreements()
-                .FirstOrDefault(l => l.Id == SelectedLoanAgreement!.Id);
-
-            if (loan is null)
-            {
-                Status = "Loan not found.";
-                return;
-            }
-
-            // Keep UI selection in sync
-            var loanType = SelectedLoanType!;
-            loan.LoanTypeId = loanType.Id;
-            loan.LoanTypeName = loanType.Name;
-
-            // Keep output + email in sync
-            SetIfExists(loan, "OutputType", OutputType);
-            SetIfExists(loan, "EmailTo", EmailTo);
-
-            // Configure AdminBench flags WITHOUT compile-time dependency on the AdminBenchConfig type.
-            EnsureAdminBenchConfig(loan);
-            SetNestedIfExists(loan, "AdminBench", "Enabled", true);
-            SetNestedIfExists(loan, "AdminBench", "SuppressMerge", true);
-            SetNestedIfExists(loan, "AdminBench", "OutputTypeOverride", OutputType);
-            SetNestedIfExists(loan, "AdminBench", "EmailToOverride", EmailTo);
-
-            // Helpful when reading logs
-            SetNestedIfExists(loan, "AdminBench", "LastRunReason", $"Auto run for LoanType '{loanType.Name}'");
-
-            await loanQueue.EnqueueAsync(new LoanJob(loan), CancellationToken.None).ConfigureAwait(false);
-
-            // Poll refresh so the UI updates itself without the user smashing buttons like a lab rat.
-            await PollRefreshResultsAsync(expectedMinCount: 0).ConfigureAwait(false);
-
-            Status = "Auto ThenGenerate queued. Results refreshed.";
+            Status = "Select Doc Library, Loan Agreement, Loan Type, and provide an email address.";
+            return;
         }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "QueueThenGeneratePipelineAutoAsync failed");
-            Status = "Auto queue failed. Check logs.";
-        }
-        finally
-        {
-            IsBusy = false;
-        }
-    }
-
-    private async Task PollRefreshResultsAsync(int expectedMinCount)
-    {
-        // Workers run async. We poll a few times so the Admin Bench looks "live".
-        const int attempts = 12;
-        const int delayMs = 250;
-
-        for (int i = 0; i < attempts; i++)
-        {
-            await Task.Delay(delayMs).ConfigureAwait(false);
-            await RefreshSelectedLoanAsync().ConfigureAwait(false);
-
-            var count = SelectedLoanAgreement?.DocumentDeliverys?.Count ?? 0;
-            if (count >= expectedMinCount)
-                return;
-        }
-    }
-
-    /// <summary>
-    /// Debug-only: queue merges from the persisted ThenGenerate delivery list.
-    /// This does NOT rerun rules. It consumes the saved decisions.
-    /// </summary>
-    public async Task QueueMergeFromDeliveriesAsync()
-    {
-        if (!CanMergeFromDeliveries) return;
 
         IsBusy = true;
+
         try
         {
-            await RefreshSelectedLoanAsync().ConfigureAwait(false);
+            var loanId = SelectedLoanAgreement!.Id;
+            var to = ResolveEmailTo().Trim();
 
-            var loan = SelectedLoanAgreement!;
-            var deliveries = loan.DocumentDeliverys ?? new List<DocumentDelivery>();
+            // Refresh selected loan
+            SelectedLoanAgreement = outputService.GetLoanAgreements()
+                .FirstOrDefault(l => l.Id == loanId) ?? SelectedLoanAgreement;
 
-            // Refresh docs list for the doc library (so name lookup works)
-            Documents = outputService.GetDocuments(SelectedDocLibId);
-            var docsById = Documents.GroupBy(d => d.Id).ToDictionary(g => g.Key, g => g.First());
-
-            var queued = 0;
-            foreach (var d in deliveries)
+            // 1) Ensure deliveries exist (persisted on loan)
+            if ((SelectedLoanAgreement!.DocumentDeliverys?.Count ?? 0) == 0)
             {
-                if (!docsById.TryGetValue(d.DocId, out var doc))
-                    continue;
+                Status = "No deliveries found. Running ThenGenerate evaluation to create deliveries…";
 
-                doc.OutputType = d.OutputType;
+                await QueueThenGeneratePipelineAsync(to).ConfigureAwait(false);
 
-                var merge = new DocumentMerge
+                var gotDeliveries = await WaitForDeliveriesAsync(loanId, timeoutSeconds: 30).ConfigureAwait(false);
+                if (!gotDeliveries)
                 {
-                    LoanAgreement = loan,
-                    Document = doc,
-                    Status = DocumentMergeState.Status.Queued
-                };
+                    Status = "Timed out waiting for deliveries. Check LoanWorker logs and ThenGenerate rules.";
+                    return;
+                }
 
-                SetIfExists(merge, "EmailTo", d.DeliveryLoaction ?? EmailTo);
-                SetIfExists(merge, "EmailSubject", $"Bench Merge From Deliveries ({doc.Name})");
-                SetIfExists(merge, "Subject", $"Bench Merge From Deliveries ({doc.Name})");
-                SetIfExists(merge, "OutputType", d.OutputType);
-
-                await mergeQueue.EnqueueAsync(new MergeJob(merge), CancellationToken.None).ConfigureAwait(false);
-                queued++;
+                SelectedLoanAgreement = outputService.GetLoanAgreements()
+                    .FirstOrDefault(l => l.Id == loanId) ?? SelectedLoanAgreement;
             }
 
-            Status = $"Queued {queued} merge job(s) from persisted deliveries.";
+            var deliveryCount = SelectedLoanAgreement!.DocumentDeliverys?.Count ?? 0;
+            Status = $"Proposed deliveries: {deliveryCount}. Queueing merges…";
+
+            // 2) Queue merges from deliveries, but DO NOT allow auto-email-per-doc
+            var queued = await QueueMergesFromDeliveriesAsync(loanId).ConfigureAwait(false);
+            if (queued == 0)
+            {
+                Status = "No merge jobs queued. Likely missing documents in the selected Doc Library.";
+                return;
+            }
+
+            // 3) Wait for merges
+            Status = $"Queued {queued} merge job(s). Waiting for completion…";
+            var completed = await WaitForMergesCompleteAsync(loanId, expectedCount: queued, timeoutSeconds: 90)
+                .ConfigureAwait(false);
+
+            RebuildLiveMergeRows();
+
+            if (!completed)
+            {
+                Status = "Timed out waiting for merges to complete. Check MergeWorker logs / background service status.";
+                return;
+            }
+
+            // 4) Queue ONE email job (this is the ONLY intended email path)
+            var traceCount = SelectedLoanAgreement?.AdminBench?.Trace?.Count ?? 0;
+            var subject = $"Admin Bench Results: {SelectedLoanAgreement?.LoanTypeName ?? "Loan"} | Deliveries={deliveryCount} | Trace={traceCount}";
+
+            var emailJob = new EmailJob(
+                loanId,
+                to,
+                subject,
+                EmailAttachmentOutput,
+                ZipMaxWaitSeconds: 10
+            );
+
+            await emailQueue.EnqueueAsync(emailJob, CancellationToken.None).ConfigureAwait(false);
+
+            Status = EmailAttachmentOutput == EmailEnums.AttachmentOutput.ZipFile
+                ? $"✅ Done. Merges complete. Queued ZIP email to {to}."
+                : $"✅ Done. Merges complete. Queued email to {to}.";
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "QueueMergeFromDeliveriesAsync failed");
-            Status = "Queue merge-from-deliveries failed. Check logs.";
+            logger.LogError(ex, "RunMergeAndEmailAsync failed");
+            Status = "Run failed. Check logs.";
         }
         finally
         {
             IsBusy = false;
         }
+    }
+
+    private async Task QueueThenGeneratePipelineAsync(string emailTo)
+    {
+        var loan = outputService.GetLoanAgreements()
+            .FirstOrDefault(l => l.Id == SelectedLoanAgreement!.Id);
+
+        if (loan is null)
+            throw new InvalidOperationException("Loan not found.");
+
+        var lt = SelectedLoanType!;
+        loan.LoanTypeId = lt.Id;
+        loan.LoanTypeName = lt.Name;
+
+        // Bench selections written to the loan for evaluation/trace
+        SetIfExists(loan, "OutputType", OutputType);
+
+        // IMPORTANT:
+        // Do NOT set loan.EmailTo here.
+        // Setting loan.EmailTo triggers other parts of your pipeline to auto-email per merged doc.
+        // We only want the single EmailJob at the end.
+        //
+        // If your LoanWorker uses AdminBench overrides, set those instead (safe).
+        if (loan.AdminBench is not null)
+        {
+            loan.AdminBench.Enabled = true;
+            loan.AdminBench.SuppressMerge = true; // We control merges from the bench
+            loan.AdminBench.OutputTypeOverride = OutputType;
+            loan.AdminBench.EmailToOverride = emailTo;
+        }
+
+        await loanQueue.EnqueueAsync(new LoanJob(loan), CancellationToken.None).ConfigureAwait(false);
+    }
+
+    private async Task<bool> WaitForDeliveriesAsync(Guid loanId, int timeoutSeconds)
+    {
+        var stopAt = DateTime.UtcNow.AddSeconds(timeoutSeconds);
+
+        while (DateTime.UtcNow < stopAt)
+        {
+            var fresh = outputService.GetLoanAgreements().FirstOrDefault(l => l.Id == loanId);
+            var count = fresh?.DocumentDeliverys?.Count ?? 0;
+            if (count > 0)
+            {
+                SelectedLoanAgreement = fresh;
+                return true;
+            }
+
+            await Task.Delay(250).ConfigureAwait(false);
+        }
+
+        return false;
+    }
+
+    private async Task<int> QueueMergesFromDeliveriesAsync(Guid loanId)
+    {
+        Documents = outputService.GetDocuments(SelectedDocLibId);
+        var docsById = Documents.GroupBy(d => d.Id).ToDictionary(g => g.Key, g => g.First());
+
+        var loanFromDb = outputService.GetLoanAgreements().FirstOrDefault(l => l.Id == loanId);
+        var loan = loanFromDb ?? SelectedLoanAgreement!;
+        var deliveries = loan.DocumentDeliverys ?? new List<DocumentDelivery>();
+
+        // CRITICAL:
+        // Create a loan object for merge jobs that has EmailTo cleared.
+        // This prevents any “auto-email each doc when merge completes” behavior.
+        var loanForMerges = CloneLoanForMerge(loan);
+        loanForMerges.EmailTo = null;
+
+        var queued = 0;
+
+        foreach (var delivery in deliveries)
+        {
+            if (!docsById.TryGetValue(delivery.DocId, out var doc))
+                continue;
+
+            // Bench override applies to output type for this run
+            doc.OutputType = OutputType;
+
+            var merge = new DocumentMerge
+            {
+                LoanAgreement = loanForMerges,
+                Document = doc,
+                Status = DocumentMergeState.Status.Queued
+            };
+
+            await mergeQueue.EnqueueAsync(new MergeJob(merge), CancellationToken.None).ConfigureAwait(false);
+            queued++;
+        }
+
+        return queued;
+    }
+
+    private static LoanAgreement CloneLoanForMerge(LoanAgreement source)
+    {
+        // Shallow clone is enough: we want same IDs & metadata, but we control EmailTo.
+        // Keep AdminBench + Delivery list references intact.
+        return new LoanAgreement
+        {
+            Id = source.Id,
+            UserId = source.UserId,
+            UserType = source.UserType,
+            UserProfile = source.UserProfile,
+            ReferenceName = source.ReferenceName,
+            LoanNumber = source.LoanNumber,
+            LoanTypeId = source.LoanTypeId,
+            LoanTypeName = source.LoanTypeName,
+            DocLibId = source.DocLibId,
+            OutputType = source.OutputType,
+            EmailTo = source.EmailTo,
+            AdminBench = source.AdminBench,
+            DocumentDeliverys = source.DocumentDeliverys,
+            LenderNames = source.LenderNames,
+            BorrowerNames = source.BorrowerNames,
+            BrokerNames = source.BrokerNames,
+            LenderCode = source.LenderCode,
+            BrokerCode = source.BrokerCode,
+            BorrowerCode = source.BorrowerCode,
+            PropertyState = source.PropertyState
+        };
+    }
+
+    private async Task<bool> WaitForMergesCompleteAsync(Guid loanId, int expectedCount, int timeoutSeconds)
+    {
+        var stopAt = DateTime.UtcNow.AddSeconds(timeoutSeconds);
+
+        while (DateTime.UtcNow < stopAt)
+        {
+            var completed = docState.DocumentList.Values.Count(m =>
+                m is not null
+                && m.LoanAgreement is not null
+                && m.LoanAgreement.Id == loanId
+                && m.Status == DocumentMergeState.Status.Complete
+                && m.MergedDocumentBytes is not null
+                && m.MergedDocumentBytes.Length > 0);
+
+            if (completed >= expectedCount)
+                return true;
+
+            RebuildLiveMergeRows();
+            await Task.Delay(300).ConfigureAwait(false);
+        }
+
+        return false;
     }
 
     public string GetLoanLabel(LoanAgreement loan) => outputService.GetLoanLabel(loan);
@@ -339,76 +405,52 @@ public sealed class AdminBenchViewModel
     public string GetDocName(Guid docId)
         => Documents.FirstOrDefault(d => d.Id == docId)?.Name ?? docId.ToString();
 
+    private string ResolveEmailTo()
+    {
+        if (!string.IsNullOrWhiteSpace(EmailTo))
+            return EmailTo;
+
+        return SelectedLoanAgreement?.EmailTo ?? "";
+    }
+
     private Task EnsureLoanTypeSelectionFromLoanAsync()
     {
         if (SelectedLoanAgreement is null)
             return Task.CompletedTask;
 
-        // If the loan has a stored LoanTypeId, default to it
         var storedId = SelectedLoanAgreement.LoanTypeId;
 
         if (storedId != Guid.Empty)
-        {
             SelectedLoanType = LoanTypes.FirstOrDefault(x => x.Id == storedId) ?? SelectedLoanType;
-        }
 
-        // If still null, pick the first available type as a sane default
-        if (SelectedLoanType is null && LoanTypes.Count > 0)
-            SelectedLoanType = LoanTypes[0];
+        if (SelectedLoanType is null)
+            SelectedLoanType = LoanTypes.FirstOrDefault();
 
         return Task.CompletedTask;
     }
 
-    // =========================
-    // Reflection helpers (keep UI decoupled from model churn)
-    // =========================
-
-    private static void EnsureAdminBenchConfig(LoanAgreement loan)
+    private void RebuildLiveMergeRows()
     {
-        try
-        {
-            var prop = loan.GetType().GetProperty("AdminBench",
-                BindingFlags.Instance | BindingFlags.Public | BindingFlags.IgnoreCase);
+        LiveMergeRows.Clear();
 
-            if (prop is null || !prop.CanWrite)
-                return;
-
-            var existing = prop.GetValue(loan);
-            if (existing != null)
-                return;
-
-            var propType = prop.PropertyType;
-            if (propType.IsInterface || propType.IsAbstract)
-                return;
-
-            var created = Activator.CreateInstance(propType);
-            prop.SetValue(loan, created);
-        }
-        catch
-        {
-            // optional: don't fail the bench if this can't be created
-        }
-    }
-
-    private static void SetNestedIfExists(object target, string parentProperty, string childProperty, object? value)
-    {
-        var parent = GetPropertyValue(target, parentProperty);
-        if (parent is null)
+        if (SelectedLoanAgreement is null)
             return;
 
-        SetIfExists(parent, childProperty, value);
-    }
+        var loanId = SelectedLoanAgreement.Id;
 
-    private static object? GetPropertyValue(object target, string propertyName)
-    {
-        try
-        {
-            var prop = target.GetType().GetProperty(propertyName,
-                BindingFlags.Instance | BindingFlags.Public | BindingFlags.IgnoreCase);
+        var rows = docState.DocumentList.Values
+            .Where(x => x?.LoanAgreement?.Id == loanId)
+            .OrderByDescending(x => x.MergeCompleteAt ?? DateTime.MinValue)
+            .Select(x => new MergeRow
+            {
+                Status = x.Status.ToString(),
+                DocumentName = x.Document?.Name ?? "(no name)",
+                CompletedLocal = x.MergeCompleteAt?.ToLocalTime().ToString("g") ?? "",
+                Bytes = x.MergedDocumentBytes?.Length ?? 0
+            })
+            .ToList();
 
-            return prop?.GetValue(target);
-        }
-        catch { return null; }
+        LiveMergeRows.AddRange(rows);
     }
 
     private static void SetIfExists(object target, string propertyName, object? value)
@@ -436,12 +478,6 @@ public sealed class AdminBenchViewModel
                 return;
             }
 
-            if (propType == typeof(Guid) && value is Guid g)
-            {
-                prop.SetValue(target, g);
-                return;
-            }
-
             if (propType.IsEnum && value is Enum e)
             {
                 prop.SetValue(target, e);
@@ -459,7 +495,7 @@ public sealed class AdminBenchViewModel
         }
         catch
         {
-            // intentionally swallow: optional metadata, not critical path
+            // bench tool should never crash the UI due to optional properties
         }
     }
 }

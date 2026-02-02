@@ -1,12 +1,13 @@
-﻿using DominateDocsData.Models;
+﻿using DocumentManager.Email;
+using DominateDocsData.Models;
 using System.Collections.Concurrent;
 
 namespace DocumentManager.State;
-
 public interface IDocumentManagerState
 {
     ConcurrentDictionary<Guid, DocumentMerge> DocumentList { get; set; }
     ConcurrentQueue<DocumentMerge> DocumentProcessingQueue { get; set; }
+    ConcurrentQueue<EmailMsg> EmailMsgProcessingQueue { get; set; }
     DateTime HousekeeperLastRunTime { get; set; }
     bool IsActive { get; set; }
     bool IsHousekeeperActive { get; set; }
@@ -18,19 +19,13 @@ public interface IDocumentManagerState
     ConcurrentQueue<LoanAgreement> LoanProcessQueue { get; set; }
     DateTime ServiceLastRunTime { get; set; }
 
-    event EventHandler<bool> IsRunBackgroundDocumentMergeServiceChanged;
-
-    event EventHandler<bool> IsRunBackgroundHousekeeperServiceChanged;
-
-    event EventHandler<bool> IsRunBackgroundLoanApplicationServiceChanged;
-
+    event EventHandler<bool>? IsRunBackgroundDocumentMergeServiceChanged;
+    event EventHandler<bool>? IsRunBackgroundHousekeeperServiceChanged;
+    event EventHandler<bool>? IsRunBackgroundLoanApplicationServiceChanged;
     event EventHandler StateChanged;
 
     Task IsHousekeeperActiveHasChanged(bool val);
-
     Task IsRunBackgroundDocumentMergeServiceHasChanged(bool val);
-
     Task IsRunBackgroundLoanApplicationServiceHasChanged(bool val);
-
     void StateHasChanged();
 }

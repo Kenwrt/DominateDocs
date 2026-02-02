@@ -3,5 +3,5 @@
 public interface IOwnershipNames
 {
     string Name { get; }
-    decimal PercentOfOwnership { get; }
+    int PercentOfOwnership { get; }
 }

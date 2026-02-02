@@ -1,5 +1,4 @@
-﻿using DominateDocsNotify.Models;
-
+﻿
 namespace DocumentManager.Email;
 
 public interface IEmailSender

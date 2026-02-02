@@ -45,5 +45,5 @@ public class EntityOwner : IOwnershipNames
     [DataType(DataType.Text)]
     public Entity.ContactRoles EntityRole { get; set; } = Entity.ContactRoles.Manager;
 
-    public decimal PercentOfOwnership { get; set; }
+    public int PercentOfOwnership { get; set; }
 }

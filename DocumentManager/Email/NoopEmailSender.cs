@@ -1,4 +1,4 @@
-﻿using DominateDocsNotify.Models;
+﻿
 using Microsoft.Extensions.Logging;
 
 namespace DocumentManager.Email;

@@ -23,6 +23,6 @@ public class DocumentDelivery
     [DataType(DataType.Text)]
     public DocumentTypes.DelieveryTypes DelieveryTypes { get; set; } = DocumentTypes.DelieveryTypes.Email;
 
-    // keeping your spelling to avoid breaking stored data / other code
+    // Keeping your spelling to avoid breaking stored data / other code
     public string DeliveryLoaction { get; set; } = "";
 }

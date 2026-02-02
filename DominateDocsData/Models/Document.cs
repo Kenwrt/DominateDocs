@@ -28,15 +28,14 @@ public class Document
 
     public string MasterTemplateDocumentUsedName { get; set; }
 
-    public byte[] TemplateDocumentBytes { get; set; } // Will delete this Later after data migration to Azure
-    
-    public byte[] MergedDocumentBytes { get; set; } // Will delete this Later after data migration to Azure
-    
+    public byte[] TemplateDocumentBytes { get; set; } // Will delete later after data migration to Azure
+    public byte[] MergedDocumentBytes { get; set; }   // Will delete later after data migration to Azure
+
     public string HiddenTagName { get; set; } = "DominateDocsTag";
-    
+
     public string HiddenTagValue { get; set; }
-    
-    public DateTime? UpdatedAt { get; set; } //will delete later after data migration to Azure
+
+    public DateTime? UpdatedAt { get; set; } // Will delete later after data migration to Azure
 
     [JsonConverter(typeof(StringEnumConverter))]
     [BsonRepresentation(BsonType.String)]
@@ -48,20 +47,15 @@ public class Document
     [DataType(DataType.Text)]
     public DocumentTypes.OutputTypes OutputType { get; set; } = DocumentTypes.OutputTypes.PDF;
 
-    // Convenience flags (optional)
+    /// <summary>
+    /// How many copies are required for this document by default.
+    /// This gets propagated into LoanAgreement.DocumentDeliverys[*].Copies when building deliveries.
+    /// </summary>
+    public int Copies { get; set; } = 1;
+
     [BsonIgnore]
     public bool HasTemplate => TemplateRef is not null && !TemplateRef.IsEmpty;
 
     [BsonIgnore]
     public bool HasMerged => MergedRef is not null && !MergedRef.IsEmpty;
 }
-
-
-
-  
-
-   
-
-   
-
-   

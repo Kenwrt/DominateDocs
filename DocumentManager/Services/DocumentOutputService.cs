@@ -2,7 +2,6 @@
 using DocumentManager.State;
 using DominateDocsData.Enums;
 using DominateDocsData.Models;
-using DominateDocsNotify.State;
 using DominateDocsData.Database;
 using Microsoft.Extensions.Logging;
 using System.Reflection;
@@ -13,18 +12,18 @@ public sealed class DocumentOutputService : IDocumentOutputService
 {
     private readonly IMongoDatabaseRepo db;
     private readonly IDocumentManagerState docState;
-    private readonly INotifyState notifyState;
+
     private readonly ILogger<DocumentOutputService> logger;
 
     public DocumentOutputService(
         IMongoDatabaseRepo db,
         IDocumentManagerState docState,
-        INotifyState notifyState,
+
         ILogger<DocumentOutputService> logger)
     {
         this.db = db;
         this.docState = docState;
-        this.notifyState = notifyState;
+
         this.logger = logger;
     }
 
@@ -186,7 +185,7 @@ public sealed class DocumentOutputService : IDocumentOutputService
         if (docs.Count == 0) return;
 
         docState.IsRunBackgroundDocumentMergeService = true;
-        notifyState.IsRunBackgroundEmailService = true;
+      
 
         var merges = new List<DocumentMerge>();
 
@@ -311,7 +310,7 @@ public sealed class DocumentOutputService : IDocumentOutputService
             TryAddAttachments(msg, completed);
 
             // Queue it
-            var q = notifyState.EmailMsgProcessingQueue;
+            var q = docState.EmailMsgProcessingQueue;
             var enqueue = q.GetType().GetMethod("Enqueue");
             enqueue?.Invoke(q, new[] { msg });
         }

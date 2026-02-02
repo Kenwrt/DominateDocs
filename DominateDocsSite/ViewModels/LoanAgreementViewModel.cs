@@ -1,17 +1,22 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using DocumentManager.CalculatorsSchedulers;
+using DocumentManager.Email;
+using DocumentManager.Infrastructure;
+using DocumentManager.Jobs;
 using DocumentManager.Services;
 using DocumentManager.State;
+using DominateDocsData.Database;
 using DominateDocsData.Enums;
+using DominateDocsData.Helpers;
 using DominateDocsData.Models;
 using DominateDocsData.Models.DTOs;
-using DominateDocsData.Database;
-using DominateDocsData.Helpers;
 using DominateDocsSite.State;
+using LiquidDocsData.Models;
 using Nextended.Core.Extensions;
 using System.Collections.ObjectModel;
 using System.Globalization;
+using System.Windows.Forms.VisualStyles;
 
 namespace DominateDocsSite.ViewModels;
 
@@ -31,7 +36,10 @@ public partial class LoanAgreementViewModel : ObservableObject
 
     [ObservableProperty]
     private DominateDocsData.Models.Guarantor selectedGuarantor = null;
-      
+
+    [ObservableProperty]
+    private string? lastPipelineStatus;
+
     [ObservableProperty]
     private DominateDocsData.Models.Lender selectedLender = null;
 
@@ -45,10 +53,10 @@ public partial class LoanAgreementViewModel : ObservableObject
     private DominateDocsData.Models.LoanAgreement selectedAgreement = null;
 
     [ObservableProperty]
-    private PaymentSchedule? currentSchedule = new();
+    private DominateDocsData.Models.PaymentSchedule? currentSchedule = new();
 
     [ObservableProperty]
-    private BalloonPayments currentBalloonSchedule = new();
+    private DominateDocsData.Models.BalloonPayments currentBalloonSchedule = new();
 
     // Mirror fields bound by the UI (keep names obvious)
     [ObservableProperty] private decimal principalAmount;
@@ -67,13 +75,13 @@ public partial class LoanAgreementViewModel : ObservableObject
     [ObservableProperty] private DominateDocsData.Enums.Payment.IndexPaths assumedIndexPath;
     [ObservableProperty] private DominateDocsData.Enums.Payment.RateIndexes rateIndex;
     [ObservableProperty] private DateTime? maturityDate;
-    [ObservableProperty] private PaymentSchedule paySchedule;
-    [ObservableProperty] private BalloonPayments payBalloonSchedule;
-    [ObservableProperty] private PaymentSchedule fixedPaymentSchedule;
+    [ObservableProperty] private DominateDocsData.Models.PaymentSchedule paySchedule;
+    [ObservableProperty] private DominateDocsData.Models.BalloonPayments payBalloonSchedule;
+    [ObservableProperty] private DominateDocsData.Models.PaymentSchedule fixedPaymentSchedule;
 
     private Guid userId;
 
-    
+
 
     private UserSession session;
 
@@ -83,13 +91,16 @@ public partial class LoanAgreementViewModel : ObservableObject
     private IApplicationStateManager appState;
     private DashboardViewModel dvm;
     private IDocumentManagerState docState;
+    private IJobQueue<LoanJob> loanQueue;
+    private IJobQueue<EmailJob> emailQueue;
     private ILoanScheduler loanScheduler;
     private IBalloonPaymentCalculater balloonPaymentCalculater;
     private IFetchCurrentIndexRatesAndSchedulesService indexRates;
 
     private int nextLoanNumber = 0;
 
-    public LoanAgreementViewModel(IMongoDatabaseRepo dbApp, ILogger<LoanAgreementViewModel> logger, UserSession userSession, IApplicationStateManager appState, DashboardViewModel dvm, IDocumentManagerState docState, ILoanScheduler loanScheduler, IBalloonPaymentCalculater balloonPaymentCalculater, IFetchCurrentIndexRatesAndSchedulesService indexRates)
+    public LoanAgreementViewModel(IMongoDatabaseRepo dbApp, ILogger<LoanAgreementViewModel> logger, UserSession userSession, IApplicationStateManager appState, DashboardViewModel dvm, IDocumentManagerState docState, ILoanScheduler loanScheduler, IBalloonPaymentCalculater balloonPaymentCalculater, IFetchCurrentIndexRatesAndSchedulesService indexRates, IJobQueue<LoanJob> loanQueue,
+        IJobQueue<EmailJob> emailQueue)
     {
         this.dbApp = dbApp;
         this.logger = logger;
@@ -100,6 +111,8 @@ public partial class LoanAgreementViewModel : ObservableObject
         this.loanScheduler = loanScheduler;
         this.balloonPaymentCalculater = balloonPaymentCalculater;
         this.indexRates = indexRates;
+        this.loanQueue = loanQueue;
+        this.emailQueue = emailQueue;
 
         userId = userSession.UserId;
 
@@ -148,7 +161,7 @@ public partial class LoanAgreementViewModel : ObservableObject
         }
 
         GetLoanMaturityDate(EditingAgreement.TermInMonths);
-               
+
     }
 
     [RelayCommand]
@@ -374,6 +387,211 @@ public partial class LoanAgreementViewModel : ObservableObject
         UpsertAgreement();
     }
 
+    // ============================================================
+    // ✅ NEW: One-call pipeline from LoanSummary button
+    // ============================================================
+    public async Task ProcessDocsMergeEmailAsync()
+    {
+        if (EditingAgreement is null || EditingAgreement.Id == Guid.Empty)
+        {
+            LastPipelineStatus = "No loan loaded.";
+            return;
+        }
+
+        var loanId = EditingAgreement.Id;
+
+        DominateDocsData.Models.LoanAgreement? freshLoan = null;
+        string? to = null;
+        string? originalEmailTo = null;
+
+        try
+        {
+            // Always reload from DB so this button runs with the same truth the Admin Bench sees.
+            freshLoan = dbApp.GetRecordById<DominateDocsData.Models.LoanAgreement>(loanId);
+            if (freshLoan is null)
+            {
+                LastPipelineStatus = "Loan not found in DB.";
+                return;
+            }
+
+            // Avoid AdminBench-mode suppression in LoanWorker.
+            if (freshLoan.AdminBench != null)
+            {
+                var enabledProp = freshLoan.AdminBench.GetType().GetProperty("Enabled");
+                if (enabledProp?.CanWrite == true && enabledProp.PropertyType == typeof(bool))
+                    enabledProp.SetValue(freshLoan.AdminBench, false);
+
+                // Strongest option: remove AdminBench block entirely so LoanWorker cannot suppress merges.
+                freshLoan.AdminBench = null;
+            }
+
+            // Preserve any LoanType selection already stored on the in-memory agreement (if you changed it in the UI).
+            if (EditingAgreement.LoanTypeId != Guid.Empty)
+            {
+                freshLoan.LoanTypeId = EditingAgreement.LoanTypeId;
+                freshLoan.LoanTypeName = EditingAgreement.LoanTypeName;
+            }
+
+            // Resolve destination email (we will send exactly ONE explicit EmailJob).
+            to = ResolveEmailTo(freshLoan);
+            if (string.IsNullOrWhiteSpace(to))
+            {
+                LastPipelineStatus = "No email address found on the loan (EmailTo).";
+                return;
+            }
+
+            // Prevent any background auto-email path from firing (per-doc/per-merge) during this run.
+            // IMPORTANT: LoanWorker/MergeWorker may re-load from DB by Id. So we must persist the temporary suppression.
+            originalEmailTo = freshLoan.EmailTo;
+            freshLoan.EmailTo = null;
+
+            await dbApp.UpSertRecordAsync<DominateDocsData.Models.LoanAgreement>(freshLoan).ConfigureAwait(false);
+
+            LastPipelineStatus = "Queued evaluation + merge pipeline…";
+            await loanQueue.EnqueueAsync(new DocumentManager.Jobs.LoanJob(freshLoan), CancellationToken.None).ConfigureAwait(false);
+
+            // Wait for deliveries so we know how many documents are expected.
+            var expectedCount = await WaitForDeliveriesCountAsync(loanId, timeoutSeconds: 25).ConfigureAwait(false);
+
+            if (expectedCount > 0)
+                LastPipelineStatus = $"Waiting for merges to finish… (expected {expectedCount})";
+            else
+                LastPipelineStatus = "Waiting for merges to finish… (delivery count not yet visible)";
+
+            // Wait for ALL merges to complete (not just the first one), but do NOT hard-fail the whole pipeline if timing is off.
+            var mergesOk = expectedCount > 0
+                ? await WaitForMergesCompleteAsync(loanId, expectedCount, timeoutSeconds: 150).ConfigureAwait(false)
+                : await WaitForMergesCompleteAsync(loanId, expectedCount: 1, timeoutSeconds: 150).ConfigureAwait(false);
+
+            if (!mergesOk)
+                logger.LogWarning("ProcessDocsMergeEmailAsync: merge wait timed out. LoanId={LoanId} ExpectedDeliveries={Expected}", loanId, expectedCount);
+
+            // Force ZIP output for this button (single email, single zip, all docs).
+            var mode = DocumentManager.Email.EmailEnums.AttachmentOutput.ZipFile;
+            var subject = $"Loan Documents: {freshLoan.ReferenceName ?? "Loan"} | Deliveries={expectedCount}";
+
+            await emailQueue.EnqueueAsync(
+                    new DocumentManager.Jobs.EmailJob(loanId, to, subject, mode, ZipMaxWaitSeconds: 45),
+                    CancellationToken.None)
+                .ConfigureAwait(false);
+
+            LastPipelineStatus = mergesOk
+                ? $"Queued ZIP email to {to} with {expectedCount} document(s)."
+                : $"Queued ZIP email to {to}. (Merge wait timed out; ZIP may be incomplete. Check logs.)";
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "ProcessDocsMergeEmailAsync failed for LoanId={LoanId}", loanId);
+            LastPipelineStatus = "Pipeline failed. Check logs.";
+        }
+        finally
+        {
+            // Always restore EmailTo so normal app flows are not impacted.
+            if (freshLoan is not null)
+            {
+                try
+                {
+                    freshLoan.EmailTo = originalEmailTo;
+                    await dbApp.UpSertRecordAsync<DominateDocsData.Models.LoanAgreement>(freshLoan).ConfigureAwait(false);
+                }
+                catch (Exception restoreEx)
+                {
+                    logger.LogWarning(restoreEx, "Failed to restore EmailTo on LoanId={LoanId}", loanId);
+                }
+            }
+        }
+    }
+
+    private async Task<bool> WaitForMergesCompleteAsync(Guid loanId, int expectedCount, int timeoutSeconds)
+    {
+        var stopAt = DateTime.UtcNow.AddSeconds(timeoutSeconds);
+
+        while (DateTime.UtcNow < stopAt)
+        {
+            var merges = docState.DocumentList.Values
+                .Where(m => m?.LoanAgreement?.Id == loanId)
+                .ToList();
+
+            if (merges.Count == 0)
+            {
+                await Task.Delay(300).ConfigureAwait(false);
+                continue;
+            }
+
+            var anyRunning = merges.Any(m =>
+                m is not null &&
+                (m.Status == DocumentMergeState.Status.Queued ||
+                 m.Status == DocumentMergeState.Status.Submittied));
+
+            var completedWithBytes = merges.Count(m =>
+                m is not null &&
+                m.Status == DocumentMergeState.Status.Complete &&
+                m.MergedDocumentBytes is not null &&
+                m.MergedDocumentBytes.Length > 0);
+
+            // ✅ wait for ALL expected docs
+            if (!anyRunning && completedWithBytes >= expectedCount)
+                return true;
+
+            await Task.Delay(400).ConfigureAwait(false);
+        }
+
+        return false;
+    }
+
+    private async Task<int> WaitForDeliveriesCountAsync(Guid loanId, int timeoutSeconds)
+    {
+        var stopAt = DateTime.UtcNow.AddSeconds(timeoutSeconds);
+
+        while (DateTime.UtcNow < stopAt)
+        {
+            try
+            {
+                var fresh = dbApp.GetRecordById<DominateDocsData.Models.LoanAgreement>(loanId);
+                var count = fresh?.DocumentDeliverys?.Count ?? 0;
+                if (count > 0)
+                    return count;
+            }
+            catch
+            {
+                // ignore + retry
+            }
+
+            await Task.Delay(250).ConfigureAwait(false);
+        }
+
+        return 0;
+    }
+
+    private string ResolveEmailTo(DominateDocsData.Models.LoanAgreement loan)
+    {
+        if (!string.IsNullOrWhiteSpace(loan.EmailTo))
+            return loan.EmailTo.Trim();
+
+        // fallback: if your session holds a user email
+        var sessionEmail = userSession?.Email;
+        return sessionEmail?.Trim() ?? "";
+    }
+
+    private static EmailEnums.AttachmentOutput? TryGetEmailAttachmentMode(DominateDocsData.Models.LoanAgreement loan)
+    {
+        try
+        {
+            // If you later add loan.EmailAttachmentOutput, this will pick it up without breaking older loans.
+            var prop = loan.GetType().GetProperty("EmailAttachmentOutput");
+            if (prop?.CanRead == true && prop.PropertyType == typeof(EmailEnums.AttachmentOutput))
+            {
+                return (EmailEnums.AttachmentOutput?)prop.GetValue(loan);
+            }
+        }
+        catch
+        {
+            // ignore
+        }
+
+        return null;
+    }
+
     [RelayCommand]
     private async Task DeleteLender(DominateDocsData.Models.Lender r)
     {
@@ -405,7 +623,7 @@ public partial class LoanAgreementViewModel : ObservableObject
 
         UpsertAgreement();
     }
-      
+
     public async Task<string> GenerateNewLoanNumberAsync()
     {
         nextLoanNumber++;
@@ -548,7 +766,7 @@ public partial class LoanAgreementViewModel : ObservableObject
         }
     }
 
-    partial void OnPayBalloonScheduleChanged(BalloonPayments value)
+    partial void OnPayBalloonScheduleChanged(DominateDocsData.Models.BalloonPayments value)
     {
         if (EditingAgreement is null) return;
         EditingAgreement.BalloonPayments = value;
@@ -556,14 +774,14 @@ public partial class LoanAgreementViewModel : ObservableObject
         // RecomputeSchedule(EditingAgreement.VariableInterestProperties.TermInMonths, EditingAgreement.VariableInterestProperties.InterestRate, EditingAgreement.VariableInterestProperties.RepaymentSchedule, EditingAgreement.VariableInterestProperties.AmorizationType);
     }
 
-    partial void OnPayScheduleChanged(PaymentSchedule value)
+    partial void OnPayScheduleChanged(DominateDocsData.Models.PaymentSchedule value)
     {
         if (EditingAgreement is null) return;
 
         EditingAgreement.VariableInterestProperties.PaymentSchedule = value;
     }
 
-    partial void OnFixedPaymentScheduleChanged(PaymentSchedule value)
+    partial void OnFixedPaymentScheduleChanged(DominateDocsData.Models.PaymentSchedule value)
     {
         if (EditingAgreement is null) return;
 
@@ -735,7 +953,7 @@ public partial class LoanAgreementViewModel : ObservableObject
     }
 
     // Single place that decides schedule creation with full null-safety
-    private void RecomputeSchedule(int termsInMoths, decimal interestRate, Payment.Schedules paymentSchedule, Payment.AmortizationTypes amortizationType, List<RateChange>? rateChangeList = null)
+    private void RecomputeSchedule(int termsInMoths, decimal interestRate, Payment.Schedules paymentSchedule, Payment.AmortizationTypes amortizationType, List<DominateDocsData.Models.RateChange>? rateChangeList = null)
     {
         try
         {
@@ -769,7 +987,7 @@ public partial class LoanAgreementViewModel : ObservableObject
                     return;
                 }
 
-                PaymentSchedule schedule = null;
+                DominateDocsData.Models.PaymentSchedule schedule = null;
 
                 if (EditingAgreement.RateType == DominateDocsData.Enums.Payment.RateTypes.Fixed)
                 {
@@ -813,7 +1031,7 @@ public partial class LoanAgreementViewModel : ObservableObject
         {
             if (EditingAgreement is null)
             {
-                CurrentBalloonSchedule = new BalloonPayments();
+                CurrentBalloonSchedule = new DominateDocsData.Models.BalloonPayments();
                 return;
             }
 
@@ -830,7 +1048,7 @@ public partial class LoanAgreementViewModel : ObservableObject
                     return;
                 }
 
-                BalloonPayments schedule = null;
+                DominateDocsData.Models.BalloonPayments schedule = null;
 
                 DateTime firstPayment = EditingAgreement.SignedDate ?? DateTime.Today;
 
