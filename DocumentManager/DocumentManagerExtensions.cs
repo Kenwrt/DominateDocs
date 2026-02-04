@@ -113,6 +113,10 @@ public class DocumentManagerConfigOptions
     public string? FromName { get; set; }
     public string? MessageStream { get; set; } = "outbound";
 
+    public string? StripeAPIKey { get; set; }
+    public string? StripeSecretKey { get; set; }
+    public string? StripeWebhook { get; set; }
+     
     public List<string> TestDocumentNames { get; set; } = new();
     public bool IsActive { get; set; } = false;
 }

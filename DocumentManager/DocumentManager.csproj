@@ -87,6 +87,7 @@
 
   <ItemGroup>
     <Folder Include="DocumentTemplates\" />
+    <Folder Include="NewFolder\" />
   </ItemGroup>
 
   <Target Name="NugetPackAutoVersioning" AfterTargets="Build">

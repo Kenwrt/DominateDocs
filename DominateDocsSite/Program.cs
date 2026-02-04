@@ -24,9 +24,8 @@ using MongoDB.Driver;
 using MudBlazor.Services;
 using Serilog;
 using Serilog.Events;
-using StripeBillingManager;
 using System.Runtime.InteropServices;
-using DominateDocsData.Helpers;
+
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -324,16 +323,16 @@ builder.Services.AddSingleton<IMongoDatabaseRepo, MongoDatabaseRepo>();
 //    options.HouseKeepingIntervalMin = builder.Configuration.GetValue<int>("NotifyServices:HouseKeepingIntervalMin");
 //});
 
-builder.Services.AddStripeBillingManagerServices(options =>
-{
-    options.APIKey = builder.Configuration.GetValue<string>("StripeBillingManager:APIKey")?.Trim();
-    options.WebhookSigning = builder.Configuration.GetValue<string>("StripeBillingManager:WebhookSigning")?.Trim();
-    options.IsRunBackgroundBillingService = builder.Configuration.GetValue<bool>("StripeBillingManager:IsRunBackgroundEmailService");
-    options.MaxBillingThreads = builder.Configuration.GetValue<int>("StripeBillingManager:MaxBillingThreads");
-    options.IsHousekeeperActive = builder.Configuration.GetValue<bool>("StripeBillingManager:IsHousekeeperActive");
-    options.IsActive = builder.Configuration.GetValue<bool>("StripeBillingManager:IsActive");
-    options.HouseKeepingIntervalMin = builder.Configuration.GetValue<int>("StripeBillingManager:HouseKeepingIntervalMin");
-});
+//builder.Services.AddStripeBillingManagerServices(options =>
+//{
+//    options.APIKey = builder.Configuration.GetValue<string>("StripeBillingManager:APIKey")?.Trim();
+//    options.WebhookSigning = builder.Configuration.GetValue<string>("StripeBillingManager:WebhookSigning")?.Trim();
+//    options.IsRunBackgroundBillingService = builder.Configuration.GetValue<bool>("StripeBillingManager:IsRunBackgroundEmailService");
+//    options.MaxBillingThreads = builder.Configuration.GetValue<int>("StripeBillingManager:MaxBillingThreads");
+//    options.IsHousekeeperActive = builder.Configuration.GetValue<bool>("StripeBillingManager:IsHousekeeperActive");
+//    options.IsActive = builder.Configuration.GetValue<bool>("StripeBillingManager:IsActive");
+//    options.HouseKeepingIntervalMin = builder.Configuration.GetValue<int>("StripeBillingManager:HouseKeepingIntervalMin");
+//});
 
 var aes = new EncryptAes();
 
@@ -358,6 +357,9 @@ builder.Services.AddDocumentManagerServices(options =>
     options.FromEmail = builder.Configuration.GetValue<string>("DocumentManager:FromEmail")?.Trim();
     options.FromName = builder.Configuration.GetValue<string>("DocumentManager:FromName")?.Trim();
     options.MessageStream = builder.Configuration.GetValue<string>("DocumentManager:MessageStream")?.Trim();
+    options.StripeAPIKey = builder.Configuration.GetValue<string>("DocumentManager:StripeAPIKey")?.Trim();
+    options.StripeSecretKey = builder.Configuration.GetValue<string>("DocumentManager:StripeSecretKey")?.Trim();
+    options.StripeWebhook = builder.Configuration.GetValue<string>("DocumentManager:StripeWebhook")?.Trim();
     options.IsActive = builder.Configuration.GetValue<bool>("DocumentManager:IsActive");
 
     var names = builder.Configuration
