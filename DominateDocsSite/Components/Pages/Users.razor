@@ -15,7 +15,7 @@
 @inject UserSession Session
 
 
-<MudText class="pl-4 mt-5" Typo="Typo.h4">Borrower Add/Edit</MudText>
+<MudText class="pl-4 mt-5" Typo="Typo.h4">User Add/Edit</MudText>
 
     @if (!String.IsNullOrEmpty(searchString))
     {
@@ -171,8 +171,8 @@
 
 @code
 {
-    [Parameter] public EventCallback<DominateDocsSite.Data.ApplicationUser> OnUserProfileComplete { get; set; }
-    [Parameter] public EventCallback OnUserProfileCanceled { get; set; }
+    [Parameter] public EventCallback<DominateDocsSite.Data.ApplicationUser> OnUserComplete { get; set; }
+    [Parameter] public EventCallback OnUserCanceled { get; set; }
     [Parameter] public bool AllowRecordEdit { get; set; } = false;
     [Parameter] public DominateDocsSite.Data.ApplicationUser SelectedUser { get; set; }
 
@@ -264,7 +264,7 @@
 
             vm.UpdateApplicationUserCommand.Execute(null);
 
-            await OnUserProfileComplete.InvokeAsync(vm.EditingUser);
+            await OnUserComplete.InvokeAsync(vm.EditingUser);
                        
             AddButtonDisabled = false;
 

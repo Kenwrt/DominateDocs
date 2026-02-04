@@ -1,6 +1,5 @@
 ﻿using System.Net.Http.Headers;
 using System.Net.Http.Json;
-using DominateDocsNotify.Models;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -10,18 +9,18 @@ public sealed class PostmarkEmailSender : IEmailSender
 {
     private readonly HttpClient http;
     private readonly ILogger<PostmarkEmailSender> logger;
-    private readonly PostmarkOptions options;
+    private readonly DocumentManagerConfigOptions options;
 
     public PostmarkEmailSender(
         HttpClient http,
-        IOptions<PostmarkOptions> options,
+        IOptions<DocumentManagerConfigOptions> options,
         ILogger<PostmarkEmailSender> logger)
     {
         this.http = http;
         this.logger = logger;
         this.options = options.Value;
 
-        if (string.IsNullOrWhiteSpace(this.options.ApiKey))
+        if (string.IsNullOrWhiteSpace(this.options.PostMarkApiKey))
             throw new InvalidOperationException("Postmark ApiKey is missing. Set Postmark:ApiKey in appsettings.");
 
         if (string.IsNullOrWhiteSpace(this.options.FromEmail))
@@ -36,7 +35,7 @@ public sealed class PostmarkEmailSender : IEmailSender
         if (this.http.DefaultRequestHeaders.Contains("X-Postmark-Server-Token"))
             this.http.DefaultRequestHeaders.Remove("X-Postmark-Server-Token");
 
-        this.http.DefaultRequestHeaders.Add("X-Postmark-Server-Token", this.options.ApiKey);
+        this.http.DefaultRequestHeaders.Add("X-Postmark-Server-Token", this.options.PostMarkApiKey);
     }
 
     public async Task SendAsync(EmailMsg msg, CancellationToken ct)

@@ -1,7 +1,7 @@
 ﻿using DocumentManager.Services;
 using DominateDocsData.Database;
 using DominateDocsData.Models;
-using FluentEmail.Core.Models;
+
 using Microsoft.Extensions.Logging;
 using System.Reflection;
 

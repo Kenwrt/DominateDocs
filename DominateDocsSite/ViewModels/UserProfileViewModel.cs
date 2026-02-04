@@ -150,7 +150,7 @@ public partial class UserProfileViewModel : ObservableObject
     [RelayCommand]
     private void SelectUser(DominateDocsSite.Data.ApplicationUser r)
     {
-        SelectedUser = EditingUser;
+        SelectedUser = r;
     }
 
 

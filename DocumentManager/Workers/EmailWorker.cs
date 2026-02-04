@@ -1,7 +1,7 @@
 ﻿using DocumentManager.Email;
 using DocumentManager.Infrastructure;
 using DocumentManager.Jobs;
-using DominateDocsNotify.Models;
+
 using Microsoft.Extensions.Logging;
 
 namespace DocumentManager.Workers;

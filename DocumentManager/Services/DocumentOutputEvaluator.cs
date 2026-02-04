@@ -1,6 +1,6 @@
 ﻿using DominateDocsData.Models;
 using DominateDocsData.Models.RulesEngine;
-using FluentEmail.Core.Models;
+
 using System;
 using Microsoft.Extensions.Logging;
 using System.Reflection;

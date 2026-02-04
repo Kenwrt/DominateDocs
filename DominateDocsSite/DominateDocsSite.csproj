@@ -44,6 +44,8 @@
 
 	<ItemGroup>
 	  <Compile Remove="Components\Layout\LiquidDocsTheme.cs" />
+	  <Compile Remove="ViewModels\ContactUsViewModel.cs" />
+	  <Compile Remove="ViewModels\NotifyMsgViewModel.cs" />
 	</ItemGroup>
 
 	<ItemGroup>
@@ -54,8 +56,10 @@
 	  <Content Remove="Components\Layout\MainLayoutOld.razor" />
 	  <Content Remove="Components\Layout\NavMenuOld.razor" />
 	  <Content Remove="Components\Pages\AddressAutocomplete2.razor" />
+	  <Content Remove="Components\Pages\ContactUs.razor" />
 	  <Content Remove="Components\Pages\Home.razor" />
 	  <Content Remove="Components\Pages\LoanAgreement.razor" />
+	  <Content Remove="Components\Pages\SendEmailPage.razor" />
 	  <Content Remove="Components\Pages\XXXXTrustee.razor" />
 	  <Content Remove="Components\Pages\XXXXTrusteeList.razor" />
 	  <Content Remove="Components\Pages\XXXXXSecurity.razor" />
@@ -128,7 +132,6 @@
   <ItemGroup>
     <ProjectReference Include="..\DocumentManager\DocumentManager.csproj" />
     <ProjectReference Include="..\DominateDocsData\DominateDocsData.csproj" />
-    <ProjectReference Include="..\DominateDocsNotifier\DominateDocsNotify.csproj" />
     <ProjectReference Include="..\StripeBillingManager\StripeBillingManager.csproj" />
   </ItemGroup>
 

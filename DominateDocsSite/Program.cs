@@ -2,7 +2,7 @@ using DocumentManager;
 using FluentValidation;
 using GemBox.Document;
 using DominateDocsData.FluentValidation;
-using DominateDocsNotify;
+
 using DominateDocsSite.Components;
 using DominateDocsSite.Components.Account;
 using DominateDocsSite.Data;
@@ -266,7 +266,7 @@ builder.Services.TryAddScoped<StateLendingLicenseViewModel>();
 builder.Services.TryAddScoped<SigningAuthorityViewModel>();
 builder.Services.TryAddScoped<LoanAgreementViewModel>();
 builder.Services.TryAddScoped<AdminBenchViewModel>();
-builder.Services.TryAddScoped<ContactUsViewModel>();
+//builder.Services.TryAddScoped<ContactUsViewModel>();
 builder.Services.TryAddScoped<LoanTypeViewModel>();
 builder.Services.TryAddScoped<LoanTypeListViewModel>();
 builder.Services.TryAddScoped<DashboardViewModel>();
@@ -298,31 +298,31 @@ var connWithUuid = baseConn.Contains("uuidRepresentation=", StringComparison.Ord
 builder.Services.AddSingleton<IMongoClient>(_ => new MongoClient(connWithUuid));
 builder.Services.AddSingleton<IMongoDatabaseRepo, MongoDatabaseRepo>();
 
-builder.Services.AddNotifyServices(options =>
-{
-    options.EmailAccountDomain = builder.Configuration.GetValue<string>("NotifyServices:EmailAccountDomain")?.Trim();
-    options.EmailAccount = builder.Configuration.GetValue<string>("NotifyServices:EmailAccount")?.Trim();
-    options.EmailAccount = builder.Configuration.GetValue<string>("NotifyServices:EmailAccount")?.Trim();
-    options.EmailAccountDisplay = builder.Configuration.GetValue<string>("NotifyServices:EmailAccountDisplay")?.Trim();
-    options.EmailAccountPassword = builder.Configuration.GetValue<string>("NotifyServices:EmailAccountPassword")?.Trim();
-    options.EnableAuthenication = builder.Configuration.GetValue<bool>("NotifyServices:EnableAuthenication");
-    options.EnableCertificatValidation = builder.Configuration.GetValue<bool>("NotifyServices:EnableCertificatValidation");
-    options.EnableGoogleOAuth = builder.Configuration.GetValue<bool>("NotifyServices:EnableGoogleOAuth");
-    options.SecureSocketOption = builder.Configuration.GetValue<bool>("NotifyServices:SecureSocketOption");
-    options.SMTPServerHost = builder.Configuration.GetValue<string>("NotifyServices:SMTPServerHost")?.Trim();
-    options.SMTPServerPort = builder.Configuration.GetValue<int>("NotifyServices:SMTPServerPort");
-    options.TwilioFromPhoneNumber = builder.Configuration.GetValue<string>("NotifyServices:TwilioFromPhoneNumber")?.Trim();
-    options.TwilioAuthToken = builder.Configuration.GetValue<string>("NotifyServices:TwilioAuthToken")?.Trim();
-    options.TwilioAccountSid = builder.Configuration.GetValue<string>("NotifyServices:TwilioAccountSid")?.Trim();
-    options.IsRunBackgroundEmailService = builder.Configuration.GetValue<bool>("NotifyServices:IsRunBackgroundEmailService");
-    options.IsRunBackgroundTextService = builder.Configuration.GetValue<bool>("NotifyServices:IsRunBackgroundTextService");
-    options.LocalNotificationTemplatesLocation = builder.Configuration.GetValue<string>("NotifyServices:LocalNotificationTemplatesLocation")?.Trim();
-    options.MaxEmailThreads = builder.Configuration.GetValue<int>("NotifyServices:MaxEmailThreads");
-    options.MaxTextThreads = builder.Configuration.GetValue<int>("NotifyServices:MaxTextThreads");
-    options.IsHousekeeperActive = builder.Configuration.GetValue<bool>("NotifyServices:IsHousekeeperActive");
-    options.IsActive = builder.Configuration.GetValue<bool>("NotifyServices:IsActive");
-    options.HouseKeepingIntervalMin = builder.Configuration.GetValue<int>("NotifyServices:HouseKeepingIntervalMin");
-});
+//builder.Services.AddNotifyServices(options =>
+//{
+//    options.EmailAccountDomain = builder.Configuration.GetValue<string>("NotifyServices:EmailAccountDomain")?.Trim();
+//    options.EmailAccount = builder.Configuration.GetValue<string>("NotifyServices:EmailAccount")?.Trim();
+//    options.EmailAccount = builder.Configuration.GetValue<string>("NotifyServices:EmailAccount")?.Trim();
+//    options.EmailAccountDisplay = builder.Configuration.GetValue<string>("NotifyServices:EmailAccountDisplay")?.Trim();
+//    options.EmailAccountPassword = builder.Configuration.GetValue<string>("NotifyServices:EmailAccountPassword")?.Trim();
+//    options.EnableAuthenication = builder.Configuration.GetValue<bool>("NotifyServices:EnableAuthenication");
+//    options.EnableCertificatValidation = builder.Configuration.GetValue<bool>("NotifyServices:EnableCertificatValidation");
+//    options.EnableGoogleOAuth = builder.Configuration.GetValue<bool>("NotifyServices:EnableGoogleOAuth");
+//    options.SecureSocketOption = builder.Configuration.GetValue<bool>("NotifyServices:SecureSocketOption");
+//    options.SMTPServerHost = builder.Configuration.GetValue<string>("NotifyServices:SMTPServerHost")?.Trim();
+//    options.SMTPServerPort = builder.Configuration.GetValue<int>("NotifyServices:SMTPServerPort");
+//    options.TwilioFromPhoneNumber = builder.Configuration.GetValue<string>("NotifyServices:TwilioFromPhoneNumber")?.Trim();
+//    options.TwilioAuthToken = builder.Configuration.GetValue<string>("NotifyServices:TwilioAuthToken")?.Trim();
+//    options.TwilioAccountSid = builder.Configuration.GetValue<string>("NotifyServices:TwilioAccountSid")?.Trim();
+//    options.IsRunBackgroundEmailService = builder.Configuration.GetValue<bool>("NotifyServices:IsRunBackgroundEmailService");
+//    options.IsRunBackgroundTextService = builder.Configuration.GetValue<bool>("NotifyServices:IsRunBackgroundTextService");
+//    options.LocalNotificationTemplatesLocation = builder.Configuration.GetValue<string>("NotifyServices:LocalNotificationTemplatesLocation")?.Trim();
+//    options.MaxEmailThreads = builder.Configuration.GetValue<int>("NotifyServices:MaxEmailThreads");
+//    options.MaxTextThreads = builder.Configuration.GetValue<int>("NotifyServices:MaxTextThreads");
+//    options.IsHousekeeperActive = builder.Configuration.GetValue<bool>("NotifyServices:IsHousekeeperActive");
+//    options.IsActive = builder.Configuration.GetValue<bool>("NotifyServices:IsActive");
+//    options.HouseKeepingIntervalMin = builder.Configuration.GetValue<int>("NotifyServices:HouseKeepingIntervalMin");
+//});
 
 builder.Services.AddStripeBillingManagerServices(options =>
 {

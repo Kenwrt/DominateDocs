@@ -82,7 +82,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\DominateDocsData\DominateDocsData.csproj" />
-    <ProjectReference Include="..\DominateDocsNotifier\DominateDocsNotify.csproj" />
    
   </ItemGroup>
 

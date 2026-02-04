@@ -109,7 +109,7 @@ public class DocumentManagerConfigOptions
     public bool IsHousekeeperActive { get; set; } = false;
 
     public string PostMarkApiKey { get; set; } = "";
-    public string FromEmail { get; set; } = "";
+    public string? FromEmail { get; set; } = "";
     public string? FromName { get; set; }
     public string? MessageStream { get; set; } = "outbound";
 

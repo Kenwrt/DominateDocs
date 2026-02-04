@@ -1,24 +1,10 @@
 ﻿using MudBlazor;
 using MudBlazor.Extensions.Core.Css;
 
-
 namespace DominateDocsSite.Components.Layout;
 
 public static class DominateDocsTheme
 {
-    // Brand tokens (keep these in one place)
-    //private const string Navy = "#0D1C2E";         // Deep Finance Navy
-    //private const string Slate = "#253F59";        // Slate Navy Blue
-    //private const string DeepSlate = "#223447";    // Deep Slate Blue
-    //private const string HoverSteel = "#3E566E";   // Muted Steel Hover
-
-    //private const string SlateBlack = "#1E1E1E";
-    //private const string Charcoal = "#333333";
-    //private const string Carbon = "#5C5C5C";
-    //private const string MidGray = "#B0B0B0";
-    //private const string LightGray = "#E6E6E6";
-    //private const string White = "#FFFFFF";
-
     public static readonly MudTheme Light = new()
     {
         PaletteLight = new PaletteLight

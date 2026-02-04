@@ -100,7 +100,7 @@ else
                 
                 <br />
 
-                <UserProfile OnUserProfileComplete="OnUserProfileComplete" OnUserProfileCancel="OnUserProfileCancel" AllowRecordEdit="true"/>
+                <Users OnUserComplete="OnUserComplete" OnUserCanceled="OnUserCanceled" AllowRecordEdit="true" SelectedUser="vm.SelectedUser"/>
 
             </MudPaper>
 
@@ -150,7 +150,7 @@ else
 
     private void OnSelectedUserRecord(DominateDocsSite.Data.ApplicationUser r)
     {
-        if (r is not null) vm.SelectUserCommand.Execute(r);
+        if (r is not null) vm.SelectedUser = r;
 
         AddEdit = true;
     }
@@ -169,14 +169,14 @@ else
         
     }
 
-    private void OnBorrowerComplete()
+    private void OnUserComplete()
     {
         AddEdit = false;
 
         StateHasChanged();
     }
 
-    private void OnBorrowerCancel()
+    private void OnUserCanceled()
     {
 
         AddEdit = false;

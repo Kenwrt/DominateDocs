@@ -1,4 +1,5 @@
-﻿using DominateDocsData.Models;
+﻿using DocumentManager.Email;
+using DominateDocsData.Models;
 using Microsoft.Extensions.Options;
 using System.Collections.Concurrent;
 
@@ -12,7 +13,7 @@ public class DocumentManagerState : IDocumentManagerState
 
     public ConcurrentDictionary<Guid, DocumentMerge> DocumentList { get; set; } = new();
     public ConcurrentDictionary<Guid, LoanAgreement> LoanList { get; set; } = new();
-
+    public ConcurrentQueue<EmailMsg> EmailMsgProcessingQueue { get; set; } = new();
     public ConcurrentQueue<DocumentMerge> DocumentProcessingQueue { get; set; } = new();
     public ConcurrentQueue<LoanAgreement> LoanProcessQueue { get; set; } = new();
 
