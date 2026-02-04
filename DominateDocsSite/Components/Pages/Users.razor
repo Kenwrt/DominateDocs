@@ -15,7 +15,7 @@
 @inject UserSession Session
 
 
-<MudText class="pl-4 mt-5" Typo="Typo.h4">Borrower Add/Edit</MudText>
+<MudText class="pl-4 mt-5" Typo="Typo.h4">User Add/Edit</MudText>
 
     @if (!String.IsNullOrEmpty(searchString))
     {
@@ -70,14 +70,14 @@
     }
     else
     {
-            <MudButton Class="rounded-4 mt-5 ml-4"
+        @*     <MudButton Class="rounded-4 mt-5 ml-4"
                        Disabled="@AddButtonDisabled"
                        Variant="Variant.Filled"
                        Size="Size.Small"
                        Color="Color.Primary"
                        OnClick="AddButton">
                 Add Borrower
-            </MudButton>
+            </MudButton> *@
 
             <MudTextField T="string"
                           @bind-Value="searchString"
@@ -93,10 +93,7 @@
                         <MudItem md="4">
                             <div class="d-flex flex-column gap-2">
 
-
-
-
-                    <MudTextField Class="pl-4" Style="background-color: white;" Variant="Variant.Outlined" @bind-Value="vm.EditingUser.Name" For="@(() => vm.EditingUser.Name)" Label="Entity Name" Required="true" />
+                                <MudTextField Class="pl-4" Style="background-color: white;" Variant="Variant.Outlined" @bind-Value="vm.EditingUser.Name" For="@(() => vm.EditingUser.Name)" Label="Entity Name" Required="true" />
 
                       
 
@@ -107,7 +104,7 @@
                       
 
 
-                    <MudTextField Class="pl-4" @bind-Value="vm.EditingUser.Email" Style="background-color: white;" Variant="Variant.Outlined"
+                                <MudTextField Class="pl-4" @bind-Value="vm.EditingUser.Email" Style="background-color: white;" Variant="Variant.Outlined"
                                                 Label="Email"
                                                 Placeholder="example@domain.com"
                                                 Required="true"
@@ -125,15 +122,12 @@
                                                 Immediate="true" />
                                                                
                                                    
-                            @* <AddressCompleteMap OnAddressChange="OnAddressComplete" Row="false" MultipleAddress = "false" AddressList="@addresDTOList" /> *@
+                                    @* <AddressCompleteMap OnAddressChange="OnAddressComplete" Row="false" MultipleAddress = "false" AddressList="@addresDTOList" /> *@
                                          
                             </div>
                         </MudItem>
                         <MudItem md="4">
-                          
-
-                            
-
+                                                      
                             @if (vm.SelectedUser != null)
                             {
                                 <MudGrid Justify="Justify.Center" AlignItems="AlignItems.Center" Class="mt-4 mb-5">
@@ -171,8 +165,8 @@
 
 @code
 {
-    [Parameter] public EventCallback<DominateDocsSite.Data.ApplicationUser> OnUserProfileComplete { get; set; }
-    [Parameter] public EventCallback OnUserProfileCanceled { get; set; }
+    [Parameter] public EventCallback<DominateDocsSite.Data.ApplicationUser> OnUserComplete { get; set; }
+    [Parameter] public EventCallback OnUserCanceled { get; set; }
     [Parameter] public bool AllowRecordEdit { get; set; } = false;
     [Parameter] public DominateDocsSite.Data.ApplicationUser SelectedUser { get; set; }
 
@@ -264,7 +258,7 @@
 
             vm.UpdateApplicationUserCommand.Execute(null);
 
-            await OnUserProfileComplete.InvokeAsync(vm.EditingUser);
+            await OnUserComplete.InvokeAsync(vm.EditingUser);
                        
             AddButtonDisabled = false;
 
