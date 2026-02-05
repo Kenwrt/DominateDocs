@@ -128,7 +128,6 @@
   <ItemGroup>
     <ProjectReference Include="..\DocumentManager\DocumentManager.csproj" />
     <ProjectReference Include="..\DominateDocsData\DominateDocsData.csproj" />
-    <ProjectReference Include="..\StripeBillingManager\StripeBillingManager.csproj" />
   </ItemGroup>
 
  
