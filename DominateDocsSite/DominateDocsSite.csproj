@@ -132,6 +132,14 @@
 
  
 
+  <ItemGroup>
+    <Content Update="wwwroot\Images\DominateDocs-cropped-tight.png">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
+ 
+
  
 
 </Project>
