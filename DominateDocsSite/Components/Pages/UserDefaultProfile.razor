@@ -289,7 +289,7 @@
                                         </MudSelect>
                                     }
 
-                                    <MudStack Row Justify="Justify.SpaceEvenly" AlignItems="AlignItems.Center" Class=" mt-5 mb-5 w-full">
+                                  @*   <MudStack Row Justify="Justify.SpaceEvenly" AlignItems="AlignItems.Center" Class=" mt-5 mb-5 w-full">
                                         <MudButton Type="Submit" OnClick="OnLoanTermSave" Color="Color.Success" Variant="Variant.Filled">
                                             "Save"
                                         </MudButton>
@@ -297,14 +297,92 @@
                                         <MudButton OnClick="OnClearTermSelection" Color="Color.Secondary" Variant="Variant.Filled">
                                             Clear
                                         </MudButton>
-                                    </MudStack>
+                                    </MudStack> *@
 
 
                                 </div>
+                                <div class="d-flex justify-space-between align-center mt-6">
+                                    <MudButton Variant="Variant.Outlined"
+                                               Color="Color.Dark"
+                                               StartIcon="@Icons.Material.Filled.Close"
+                                               OnClick="@(() => Nav.NavigateTo("/dashboard"))">
+                                        Cancel
+                                    </MudButton>
+
+                                    <MudButton Variant="Variant.Filled"
+                                               Color="Color.Dark"
+                                               EndIcon="@Icons.Material.Filled.ArrowForward"
+                                               Disabled="@(!CanContinue)"
+                                               OnClick="ContinueToLoanDetails">
+                                        Continue
+                                    </MudButton>
+                                </div>
+                                                               
 
                             </MudItem>
 
                         </MudGrid>
+                                              
+                    </MudPaper>
+                }
+                else if (ActiveStep == 3)
+                {
+                    <MudPaper Elevation="0" Class="rounded-xl pa-6 mt-6" Style="background-color: #ffffff; border: 1px solid rgba(0,0,0,0.08);">
+                     
+                        <MudText Typo="Typo.h6">Billing Status</MudText>
+
+                        @{
+                            var disabled = vm.EditingUserProfile.Billing.IsAccountDisabled == true;
+                            var bypassSub = vm.EditingUserProfile.Billing.BypassSubscriptionCharges == true;
+                            var bypassProc = vm.EditingUserProfile.Billing.BypassDocumentProcessingCharges == true;
+                            var validUntil = vm.EditingUserProfile.Billing.SubscriptionValidUntilUtc;
+                            var subOk = bypassSub || (validUntil.HasValue && validUntil.Value > DateTime.UtcNow);
+                        }
+
+                        <div class="d-flex flex-column gap-2">
+                            <MudChip T="bool" Color="@(disabled? Color.Error: Color.Success)">
+                                @( disabled ? "Account Disabled" : "Account Active")
+                            </MudChip>
+
+                            <MudChip T="bool" Color="@(subOk? Color.Success: Color.Warning)">
+                                @(subOk ? "Subscription OK (or bypassed)" : "Subscription Expired / Missing")
+                            </MudChip>
+
+                            <MudText Typo="Typo.caption">
+                                SubscriptionValidUntilUtc: @(validUntil.HasValue? validUntil.Value.ToString("u") : "Date Not Set>")
+                            </MudText>
+                        </div>
+
+                        @if (Session.UserRole == "Admin" || Session.UserRole == "DevAdmin")
+                        {
+                            <MudDivider Class="my-3" />
+                            <MudText Typo="Typo.h6">Admin Billing Controls</MudText>
+
+                            <MudSwitch T="bool" @bind-Checked="vm.EditingUserProfile.Billing.IsAccountDisabled" Color="Color.Error" Label="Master Disable Account" />
+                            <MudTextField @bind-Value="vm.EditingUserProfile.Billing.DisabledReason"
+                                          Variant="Variant.Outlined"
+                                          Label="Disable Reason"
+                                          Disabled="@(!vm.EditingUserProfile.Billing.IsAccountDisabled)"
+                                          Class="mt-2" />
+
+                            <MudDivider Class="my-3" />
+
+                          
+
+                            <MudSwitch Class="" T="bool" @bind-Value="vm.EditingUserProfile.Billing.BypassSubscriptionCharges" Color="Color.Primary">Bypass Subscription Charges</MudSwitch>
+
+                            <MudSwitch Class="" T="bool" @bind-Value="vm.EditingUserProfile.Billing.BypassDocumentProcessingCharges" Color="Color.Primary">Bypass Document Processing Charges</MudSwitch>
+                           
+
+
+                        }
+                        else
+                        {
+                            <MudDivider Class="my-3" />
+                            <MudText Typo="Typo.caption">
+                                Billing controls are Admin-only.
+                            </MudText>
+                        }
 
                         <div class="d-flex justify-space-between align-center mt-6">
                             <MudButton Variant="Variant.Outlined"
@@ -324,20 +402,20 @@
                         </div>
                     </MudPaper>
                 }
-                else
-                {
-                    <MudPaper Elevation="0" Class="rounded-xl pa-6" Style="background-color: #ffffff; border: 1px solid rgba(0,0,0,0.08);">
-                        <MudText Typo="Typo.h5">Review & Generate</MudText>
-                        <MudText Typo="Typo.body1" Class="mt-2">This step is wired. Add review + generation here.</MudText>
-                    </MudPaper>
-                }
+               
 
             </MudContainer>
         </MudItem>
+      
     </MudGrid>
 </MudContainer>
 
 @code {
+
+    [Parameter] public EventCallback<DominateDocsData.Models.UserProfile> OnUserComplete { get; set; }
+    [Parameter] public EventCallback OnUserCanceled { get; set; }
+    [Parameter] public bool AllowRecordEdit { get; set; } = false;
+    [Parameter] public Guid SelectedApplicationUserId { get; set; } = Guid.Empty;
 
     private int ActiveStep { get; set; } = 0;
 
@@ -351,7 +429,8 @@
     {
         new("Your Details", "Select your role"),
         new("Loan Basics",  "Select a common Loan Type"),
-        new("Loan Terms",   "Principal, rate, term, payment schedule")
+        new("Loan Terms",   "Principal, rate, term, payment schedule"),
+        new("Billing Details",   "Billing Information")
     };
 
     private string SelectedLoanTypeName => vm?.EditingUserProfile?.LoanDefaults?.LoanTypeName ?? string.Empty;
@@ -373,7 +452,7 @@
 
     protected override async Task OnInitializedAsync()
     {
-        await vm.InitializePageCommand.ExecuteAsync(null);
+        await vm.InitializePageCommand.ExecuteAsync(SelectedApplicationUserId);
 
         //await lvm.InitializePageCommand.ExecuteAsync(null);
 
@@ -382,7 +461,7 @@
         // {
         //     SelectedRoleUi = vm.EditingUserProfile.LoanDefaults.UserType;
 
-           
+
         //     // if (t is not null && lvm?.EditingAgreement is not null)
         //     // {
         //     //     lvm.EditingAgreement.AmorizationType = t.AmorizationType;
@@ -398,11 +477,21 @@
         // If you ever want "edit existing profile" behavior later, you can set it here conditionally.
     }
 
+    //  private Task OnBypassSubscriptionChanged(bool value)
+    // {
+    //     vm.EditingUserProfile.Billing.BypassSubscriptionCharges = value;
+    //     // If you're using MVVM and the UI doesn't refresh:
+    //     // InvokeAsync(StateHasChanged);
+
+    //     return Task.CompletedTask;
+    // }
+
+
     private void SelectRole(UserTypes role)
     {
         if (vm?.EditingUserProfile is null)
             return;
-                  
+
         // Store on the model like you already do
         vm.EditingUserProfile.LoanDefaults.UserType = role;
 
@@ -430,8 +519,17 @@
             return;
         }
 
-        OnLoanTermSave();              // optional if you want to save here
-        Nav.NavigateTo("/dashboard");  // done
+        OnLoanTermSave();
+
+        if (SelectedApplicationUserId != Guid.Empty)
+        {
+            OnUserComplete.InvokeAsync(vm.EditingUserProfile);
+        }
+        else
+        {
+            Nav.NavigateTo("/dashboard");  // done
+        }
+       
     }
 
 

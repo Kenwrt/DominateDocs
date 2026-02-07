@@ -3,6 +3,7 @@ namespace DominateDocsData.Database;
 
 public interface IMongoDatabaseRepo
 {
+    void DeleteDocumentStoreByDocId(Guid docId);
     void DeleteRecord<T>(T record) where T : class;
     void DeleteRecordById<T>(Guid id) where T : class;
     void DropCollection<T>(T record) where T : class;

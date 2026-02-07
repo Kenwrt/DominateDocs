@@ -23,9 +23,7 @@ public class DocumentLibrary
     public BlobRef? MasterTemplateRef { get; set; }
 
     public byte[] MasterTemplateBytes { get; set; } // will move this to Azure at a later date
-
-    public List<Guid> DocumentIds { get; set; } = new();
-
+      
     public List<Document> Documents { get; set; } = new(); // will delete after migration
 
     public DateTime? UpdatedAt { get; set; }

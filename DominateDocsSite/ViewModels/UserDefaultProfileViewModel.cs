@@ -1,15 +1,27 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using DominateDocsData.Database;
+using DominateDocsData.Helpers;
 using DominateDocsData.Models;
 using DominateDocsData.Models.DTOs;
-using DominateDocsData.Database;
+using DominateDocsSite.Data;
 using DominateDocsSite.State;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
+using Nextended.Core.Extensions;
 using System.Collections.ObjectModel;
+using System.Globalization;
 
 namespace DominateDocsSite.ViewModels;
 
 public partial class UserDefaultProfileViewModel : ObservableObject
 {
+    [ObservableProperty]
+    private ObservableCollection<DominateDocsSite.Data.ApplicationUser>? recordList = new();
+
+    [ObservableProperty]
+    private ObservableCollection<DominateDocsData.Models.UserProfile>? userProfileList = new();
+
     [ObservableProperty]
     private ObservableCollection<LoanTypeListDTO> loanTypes = new();
 
@@ -21,6 +33,12 @@ public partial class UserDefaultProfileViewModel : ObservableObject
 
     [ObservableProperty]
     private Broker selectedBroker = null;
+
+    [ObservableProperty]
+    private Guid selectedApplicationUserId = Guid.Empty;
+
+    [ObservableProperty]
+    private DominateDocsSite.Data.ApplicationUser selectedApplicationUser = null;
 
     [ObservableProperty]
     private Servicer selectedServicer = null;
@@ -35,26 +53,46 @@ public partial class UserDefaultProfileViewModel : ObservableObject
     private readonly IApplicationStateManager appState;
     private readonly IMongoDatabaseRepo dbApp;
     private readonly ILogger<UserDefaultProfileViewModel> logger;
+    private readonly ApplicationDbContext dbContext;
 
-    private Guid CurrentUserId => userSession.UserId;
+    private readonly UserManager<ApplicationUser> userManager;
+
+
+    private Guid CurrentUserId = Guid.Empty;
 
     public UserDefaultProfileViewModel(
         IMongoDatabaseRepo dbApp,
         ILogger<UserDefaultProfileViewModel> logger,
         UserSession userSession,
-        IApplicationStateManager appState)
+        IApplicationStateManager appState, ApplicationDbContext dbContext, UserManager<ApplicationUser> userManager)
     {
         this.dbApp = dbApp;
         this.logger = logger;
         this.userSession = userSession;
         this.appState = appState;
+        this.dbContext = dbContext;
+        this.userManager = userManager;
+
+        RecordList = new ObservableCollection<DominateDocsSite.Data.ApplicationUser>(dbContext.ApplicationUsers.ToList());
+
+        UserProfileList = new ObservableCollection<DominateDocsData.Models.UserProfile>(dbApp.GetRecords<DominateDocsData.Models.UserProfile>().ToList());
+
     }
 
     [RelayCommand]
-    private async Task InitializePage()
+    private async Task InitializePage(Guid userId)
     {
         try
         {
+            if (userId != Guid.Empty)
+            {
+                CurrentUserId = userId;
+            }
+            else
+            {
+                CurrentUserId = userSession.UserId;
+            }
+            
             // 1) Load loan types (used regardless of profile existence)
             var types = dbApp.GetRecords<DominateDocsData.Models.LoanType>().Select(x => new LoanTypeListDTO(x.Id, x.Name, x.Description, x.IconKey)).ToList();
 
@@ -77,7 +115,6 @@ public partial class UserDefaultProfileViewModel : ObservableObject
                 // Persist immediately so the UI/components can rely on it existing.
                 await dbApp.UpSertRecordAsync(profile);
             }
-            
             
             EditingUserProfile = profile;
             SelectedProfile = profile;
@@ -117,6 +154,46 @@ public partial class UserDefaultProfileViewModel : ObservableObject
         // Defensive
         EditingUserProfile.LoanDefaults ??= new LoanDefaults();
        
+    }
+
+    [RelayCommand]
+    private async Task DeleteUser(DominateDocsSite.Data.ApplicationUser r)
+    {
+        int index = RecordList.FindIndex(x => x.Id == r.Id);
+
+        if (index > -1)
+        {
+            RecordList.RemoveAt(index);
+        }
+
+        dbContext.ApplicationUsers.Remove(r);
+
+        dbApp.DeleteRecordById<DominateDocsData.Models.UserProfile>(Guid.Parse(r.Id));
+    }
+
+    [RelayCommand]
+    private async Task ResetPassword(DominateDocsSite.Data.ApplicationUser r)
+    {
+        var user = await userManager.FindByEmailAsync(r.Email);
+
+        if (user != null)
+        {
+            var token = await userManager.GeneratePasswordResetTokenAsync(user);
+
+            if (token != null)
+            {
+                var result = await userManager.ResetPasswordAsync(
+                    user,
+                    token,
+                    "TempPassword123!"
+                );
+            }
+        }
+
+        //if (!result.Succeeded)
+        //{
+        //    // inspect result.Errors
+        //}
     }
 
     [RelayCommand]

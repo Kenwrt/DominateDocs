@@ -1,4 +1,5 @@
 ﻿using DominateDocsData.Helpers;
+using DominateDocsData.Models;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using MongoDB.Bson;
@@ -335,6 +336,27 @@ public class MongoDatabaseRepo : IMongoDatabaseRepo
             }
 
             collection.DeleteOne(filter);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex.Message);
+        }
+    }
+
+    public void DeleteDocumentStoreByDocId(Guid docId)
+    {
+        try
+        {
+            var collection = mongoConn.GetCollection<DocumentStore>("DocumentStore");
+
+            var filter = Builders<DocumentStore>.Filter.Eq("DocId", docId);
+
+            var doc = collection.Find(filter).FirstOrDefault();
+
+            if (doc != null)
+            {
+                collection.DeleteOne(filter);
+            }
         }
         catch (Exception ex)
         {

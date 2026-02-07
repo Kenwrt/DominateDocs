@@ -241,15 +241,11 @@ public static class ApiEndpointsExtensions
         {
            
             // Await the task to get the result of the asynchronous operation
-            var documentRecord = dbApp.GetRecordById<Document>(documentId);
+            var doc = dbApp.GetRecords<DocumentStore>().FirstOrDefault(x => x.DocId == documentId);
 
-            DocumentStore documentStore = dbApp.GetRecordById<DocumentStore>(documentRecord.DocStoreId);
-            
+            string fileName = $"{doc.Name}--{documentId.ToString().Substring(0, 12)}--{System.DateTime.UtcNow.ToString("MM-dd-yyyy-HH-MM")}.docm";
 
-
-            string fileName = $"{documentRecord.Name}--{documentId.ToString().Substring(0, 12)}--{System.DateTime.UtcNow.ToString("MM-dd-yyyy-HH-MM")}.docm";
-
-            byte[] documentBytes = documentStore.DocumentBytes;
+            byte[] documentBytes = doc.DocumentBytes;
 
             if (documentBytes == null)
                 return Results.NotFound();

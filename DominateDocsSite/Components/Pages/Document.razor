@@ -39,12 +39,7 @@
     {
         <MudText Class="mb-5" Typo="Typo.body1">Library: <b>@vm.SelectedLibrary.Name</b></MudText>
     }
-
-   @*  @if (vm.SelectedDocumentSet is not null)
-    {
-        <MudText Class="mb-5" Typo="Typo.body1">Document Set: <b>@vm.SelectedDocumentSet.Name</b></MudText>
-    } *@
-   
+         
     <MudGrid>
         <MudItem xs="12" md="8">
             <MudTable Items="vm.RecordList" Hover="true" Dense="true" @bind-SelectedItem="vm.SelectedRecord" RowClick="OnRowClick">
@@ -58,7 +53,7 @@
                     <MudTh></MudTh>
                 </HeaderContent>
                 <RowTemplate>
-                    <MudTd>@context.Name</MudTd>
+                    <MudTd>@context.Name (@context.Id--@context.DocStoreId)</MudTd>
                     <MudTd>@context.UpdatedAt</MudTd>
                      <MudTd>
                              <MudChip OnClick="@(() => EditRecordAsync(context))" T="bool" Color="@((context.UpdatedAt is null) ? Color.Success : Color.Error)">
@@ -99,25 +94,44 @@
                     @(vm.SelectedRecord == null ? "Add Document" : "Edit Document")
                 </MudText>
                 <MudForm Model="@vm.EditingRecord" @ref="@formEditRecord" Validation="@docVal" ValidationDelay="0">
+
                     <div class="d-flex flex-column gap-2">
-                            <MudTextField @bind-Value="vm.EditingRecord.Name" Label="Name" Required="true" />
-                            <MudSelect Class="ml-4" T="DominateDocsData.Enums.DocumentTypes.OutputTypes" Style="background-color: white;" Variant="Variant.Outlined" Label="Generate As:" @bind-Value="vm.EditingRecord.OutputType" Dense="true">
+
+                        <MudTextField Class="ml-4" Variant="Variant.Outlined" @bind-Value="vm.EditingRecord.Name" Label="Document Name" Required="true" />
+                            
+
+                            <MudSelect Class="ml-4" T="DominateDocsData.Enums.DocumentTypes.OutputTypes"  Variant="Variant.Outlined" Label="Generate As:" @bind-Value="vm.EditingRecord.OutputType" Dense="true">
 
                                 @foreach (var t in Enum.GetValues<DominateDocsData.Enums.DocumentTypes.OutputTypes>())
                                 {
-                                    <MudSelectItem Style="background-color: white;" T="DominateDocsData.Enums.DocumentTypes.OutputTypes" Value="t">@t.GetDescription()</MudSelectItem>
+                                    <MudSelectItem  T="DominateDocsData.Enums.DocumentTypes.OutputTypes" Value="t">@t.GetDescription()</MudSelectItem>
                                 }
 
                             </MudSelect>
 
-                          @*   <MudSelect Class="ml-4" T="DominateDocsData.Enums.DocumentTypes.Types" Style="background-color: white;" Variant="Variant.Outlined" Label="Generate As:" @bind-Value="vm.EditingRecord.DocumentType" Dense="true">
+                            <MudSelect Class="ml-4" T="DominateDocsData.Enums.DocumentTypes.GenerateMultipleFor" MultiSelection="true" Variant="Variant.Outlined" Label="Generate Individual Documents for:" SelectedValues="vm.EditingRecord.GenerateMultipleFor"
+                                SelectedValuesChanged="@(values => vm.EditingRecord.GenerateMultipleFor = values.ToList())" Dense="true">
 
-                                @foreach (var dt in Enum.GetValues<DominateDocsData.Enums.DocumentTypes.Types>())
+                                @foreach (var dt in Enum.GetValues<DominateDocsData.Enums.DocumentTypes.GenerateMultipleFor>())
                                 {
-                                    <MudSelectItem Style="background-color: white;" T="DominateDocsData.Enums.DocumentTypes.Types" Value="dt">@dt.GetDescription()</MudSelectItem>
+                                    <MudSelectItem T="DominateDocsData.Enums.DocumentTypes.GenerateMultipleFor" Value="dt">
+                                        @dt.GetDescription()
+                                    </MudSelectItem>
                                 }
 
-                            </MudSelect> *@
+                            </MudSelect>
+
+                            <MudSelect Class="ml-4" T="int" Variant="Variant.Outlined" Label="Number of Copies:" @bind-Value="vm.EditingRecord.Copies" Dense="true">
+                                @for (int i = 1; i <= 10; i++)
+                                {
+                                    // Capture the current value of i in a local variable
+                                    var copyCount = i;
+
+                                    <MudSelectItem Style="background-color: white;" T="int" Value="@copyCount">
+                                        @copyCount @(copyCount == 1 ? "copy" : "copies")
+                                    </MudSelectItem>
+                                }
+                            </MudSelect>
 
                             <MudStack Row="true" Spacing="2" Class="mt-4">
                                 <MudButton Type="Submit" OnClick="HandleSubmitAsync" Color="Color.Success" Variant="Variant.Filled">
@@ -138,8 +152,6 @@
 
     private string _search = "";
 
-
-
     private bool documentExists = false;
 
     private MudForm formEditRecord;
@@ -147,8 +159,6 @@
     protected override async Task OnInitializedAsync()
     {
         _search = "";  
-
-
 
         await vm.InitializePageCommand.ExecuteAsync(null);
 
@@ -171,19 +181,14 @@
             {
                 await  vm.AddRecordCommand.ExecuteAsync(null);
 
-                
-
-               
             }
             else
             {
-                await vm.EditRecordCommand.ExecuteAsync(null);
-               
+                await vm.UpsertRecordCommand.ExecuteAsync(vm.EditingRecord);
 
-               
-
-               
             }
+
+            
 
         }
         

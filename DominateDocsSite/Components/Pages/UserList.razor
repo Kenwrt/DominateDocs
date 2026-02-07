@@ -6,125 +6,112 @@
 @using System.Globalization
 @using DominateDocsSite.State
 
+
 @rendermode InteractiveServer
-@inject UserProfileViewModel vm
 @inject NavigationManager NavigationManager
+@inject UserDefaultProfileViewModel vm
 @inject ISnackbar Snackbar
 @inject UserSession Session
 
- <MudGrid Class="mb-10">
+
 
 @if (!AddEdit)
 {
-        
-            <MudItem xs="12" md="12">
-            <MudTable Items="FilteredList"
-                      Hover="true"
-                      Bordered="true"
-                      Dense="true"
-                      @bind-SelectedItem="vm.SelectedUser"
-                      RowClick="OnSelectedRecord">
-                <ToolBarContent>
-                    <MudTextField @bind-Value="searchString"
-                                  Placeholder="Search..."
-                                  Immediate="true" />
-                </ToolBarContent>
-                <HeaderContent>
-                    <MudTh>Entity Name</MudTh>
-                    <MudTh>Address</MudTh>
-                    <MudTh>Phone</MudTh>
-                    <MudTh>Email</MudTh>
-                    <MudTh>LockedOut</MudTh>
-                    <MudTh>
-                        <MudButton Class="rounded-4"
-                                   Disabled="@AddButtonDisabled"
-                                   Variant="Variant.Text"
-                                   Size="Size.Small"
-                                   Color="Color.Primary"
-                                   StartIcon="@Icons.Material.Filled.Add"
-                                   OnClick="AddButton">
-                            Add User
-                        </MudButton>
-                    </MudTh>
-                </HeaderContent>
-                <RowTemplate>
-                    <MudTd DataLabel="Name">@context.Name</MudTd>
-                    <MudTd DataLabel="Address">@context.StreetAddress</MudTd>
-                    <MudTd DataLabel="Phone">@context.PhoneNumber</MudTd>
-                    <MudTd DataLabel="Email">@context.Email</MudTd>
-                    <MudTd DataLabel="LocakedOut">
-                        <MudChip T="bool" Color="@((context.LockoutEnabled) ? Color.Success : Color.Error)">
-                            @(context.LockoutEnabled ? "Yes" : "No")
-                        </MudChip>
-                    </MudTd>
-                    <MudTd>
-                        <MudButton Variant="Variant.Text"
-                                   Size="Size.Small"
-                                   Color="Color.Info"
-                                   StartIcon="@Icons.Material.Filled.Edit"
-                                   OnClick="@(() => OnSelectedUserRecord(context))">
-                            Edit
-                        </MudButton>
+    <MudGrid Class="mb-10">
+    <MudItem xs="12" md="12">
+        <MudTable Items="FilteredList"
+                  Hover="true"
+                  Bordered="true"
+                  Dense="true"
+                  @bind-SelectedItem="vm.SelectedApplicationUser"
+                  RowClick="OnSelectedRecord">
+            <ToolBarContent>
+                <MudTextField @bind-Value="searchString"
+                              Placeholder="Search..."
+                              Immediate="true" />
+            </ToolBarContent>
+            <HeaderContent>
+                <MudTh>Entity Name</MudTh>
+                <MudTh>Address</MudTh>
+                <MudTh>Phone</MudTh>
+                <MudTh>Email</MudTh>
+                <MudTh>LockedOut</MudTh>
+                <MudTh>
+                    <MudButton Class="rounded-4"
+                               Disabled="@AddButtonDisabled"
+                               Variant="Variant.Text"
+                               Size="Size.Small"
+                               Color="Color.Primary"
+                               StartIcon="@Icons.Material.Filled.Add"
+                               OnClick="AddButton">
+                        Add User
+                    </MudButton>
+                </MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="Name">@context.Name</MudTd>
+                <MudTd DataLabel="Address">@context.StreetAddress</MudTd>
+                <MudTd DataLabel="Phone">@context.PhoneNumber</MudTd>
+                <MudTd DataLabel="Email">@context.Email</MudTd>
+                <MudTd DataLabel="LocakedOut">
+                    <MudChip T="bool" Color="@((context.LockoutEnabled) ? Color.Success : Color.Error)">
+                        @(context.LockoutEnabled ? "Yes" : "No")
+                    </MudChip>
+                </MudTd>
+                <MudTd>
+                    <MudButton Variant="Variant.Text"
+                               Size="Size.Small"
+                               Color="Color.Info"
+                               StartIcon="@Icons.Material.Filled.Edit"
+                               OnClick="@(() => OnSelectedUserRecord(context))">
+                        Edit
+                    </MudButton>
 
-                        <MudButton Variant="Variant.Text"
-                                   Size="Size.Small"
-                                   Color="Color.Error"
-                                   StartIcon="@Icons.Material.Filled.Delete"
-                                   OnClick="@(() => OnDeleteUserRecord(context))">
-                            Delete
-                        </MudButton>
+                    <MudButton Variant="Variant.Text"
+                               Size="Size.Small"
+                               Color="Color.Error"
+                               StartIcon="@Icons.Material.Filled.Delete"
+                               OnClick="@(() => OnDeleteUserRecord(context))">
+                        Delete
+                    </MudButton>
 
-                        <MudButton Variant="Variant.Text"
-                                   Size="Size.Small"
-                                   Color="Color.Error"
-                                   StartIcon="@Icons.Material.Filled.Delete"
-                                   OnClick="@(() => OnResetPasswordAsync(context))">
-                            Reset Password
-                        </MudButton>
-                    </MudTd>
-                </RowTemplate>
-                <NoRecordsContent>
-                    <MudText Color="Color.Secondary" Class="pa-4">
-                        🚫 No Active Users Found. Please add!
-                    </MudText>
-                </NoRecordsContent>
-            </MudTable>
-            </MudItem>
-        
+                    <MudButton Variant="Variant.Text"
+                               Size="Size.Small"
+                               Color="Color.Error"
+                               StartIcon="@Icons.Material.Filled.LockReset"
+                               OnClick="@(() => OnResetPasswordAsync(context))">
+                        Reset Password
+                    </MudButton>
+                </MudTd>
+            </RowTemplate>
+            <NoRecordsContent>
+                <MudText Color="Color.Secondary" Class="pa-4">
+                    🚫 No Active Users Found. Please add!
+                </MudText>
+            </NoRecordsContent>
+        </MudTable>
+    </MudItem>
+  </MudGrid>
 
 }
 else
 {
-        <MudItem xs="12" md="12">
-            <MudPaper Elevation="1" Class="mt-5" Style="background-color: #F2F2F2;">
-                
-                <br />
-
-                <Users OnUserComplete="OnUserComplete" OnUserCanceled="OnUserCanceled" AllowRecordEdit="true" SelectedUser="vm.SelectedUser"/>
-
-            </MudPaper>
-
-        </MudItem>
-}      
-</MudGrid>
-
-
-
-
+  
+       
+            <UserDefaultProfile OnUserComplete="OnUserComplete"
+                   OnUserCanceled="OnUserCanceled"
+                   AllowRecordEdit="true"
+                   SelectedApplicationUserId="Guid.Parse(vm.SelectedApplicationUser.Id)" />
+       
+  
+}
 
 @code
 {
     private bool AddEdit = false;
-
-
-
     private bool AddButtonDisabled = false;
-
-    private string _search = "";
-
     private string searchString = "";
 
-    // Filtered view of the borrowers based on searchString
     private IEnumerable<DominateDocsSite.Data.ApplicationUser> FilteredList =>
         string.IsNullOrWhiteSpace(searchString)
             ? vm.RecordList
@@ -135,8 +122,7 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        vm.InitializePageCommand.Execute(null);
-              
+        vm.InitializePageCommand.Execute(vm.SelectedApplicationUserId);
     }
 
     private void AddButton()
@@ -145,42 +131,45 @@ else
 
         AddEdit = true;
         AddButtonDisabled = true;
-
     }
 
-    private void OnSelectedUserRecord(DominateDocsSite.Data.ApplicationUser r)
+    private async Task OnSelectedUserRecord(DominateDocsSite.Data.ApplicationUser r)
     {
-        if (r is not null) vm.SelectedUser = r;
+        if (r is null) return;
 
+        vm.SelectedApplicationUser = r;
+
+        //await vm.LoadUserAndProfileCommand.ExecuteAsync(r);
+   
         AddEdit = true;
     }
 
+    
+
+
     private void OnDeleteUserRecord(DominateDocsSite.Data.ApplicationUser r)
     {
-       if (r is not null) vm.DeleteUserCommand.Execute(r);         
-       
+        if (r is not null) vm.DeleteUserCommand.Execute(r);
         AddEdit = false;
     }
 
     private async Task OnResetPasswordAsync(DominateDocsSite.Data.ApplicationUser r)
     {
         if (r is not null) await vm.ResetPasswordCommand.ExecuteAsync(r);
-
-        
     }
 
+   
     private void OnUserComplete()
     {
         AddEdit = false;
-
+        AddButtonDisabled = false;
         StateHasChanged();
     }
 
     private void OnUserCanceled()
     {
-
         AddEdit = false;
-
+        AddButtonDisabled = false;
         StateHasChanged();
     }
 }

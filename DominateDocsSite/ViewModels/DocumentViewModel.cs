@@ -5,6 +5,8 @@ using DominateDocsData.Models;
 using DominateDocsData.Database;
 using DominateDocsSite.State;
 using System.Collections.ObjectModel;
+using DominateDocsData.Helpers;
+using Newtonsoft.Json;
 
 namespace DominateDocsSite.ViewModels;
 
@@ -23,9 +25,7 @@ public partial class DocumentViewModel : ObservableObject
 
     [ObservableProperty]
     private DominateDocsData.Models.DocumentLibrary? selectedLibrary;
-
-    //[ObservableProperty]
-    //private DominateDocsData.Models.DocumentSet? selectedDocumentSet;
+       
 
     public string? SessionToken { get; set; }
 
@@ -55,6 +55,8 @@ public partial class DocumentViewModel : ObservableObject
         this.dbApp = dbApp;
 
         this.wordServices = wordServices;
+
+        SelectedLibrary = dbApp.GetRecordById<DocumentLibrary>(userSession.DocLibId);
     }
 
     [RelayCommand]
@@ -64,164 +66,172 @@ public partial class DocumentViewModel : ObservableObject
 
         RecordList.Clear();
 
-        dbApp.GetRecords<DominateDocsData.Models.Document>().Where(doc => doc.DocLibId == userSession.DocLibId).ToList().ForEach(doc => RecordList.Add(doc));
+        //dbApp.GetRecords<DominateDocsData.Models.Document>().Where(doc => doc.DocLibId == userSession.DocLibId).ToList().ForEach(doc => RecordList.Add(doc));
+
+        RecordList = SelectedLibrary.Documents.ToObservableCollection();
                 
     }
 
     [RelayCommand]
     private async Task AddRecord()
     {
-        //string path;
+        byte[] masterTemplateBytes = SelectedLibrary.MasterTemplateBytes;
 
-        //byte[] masterTemplateBytes = SelectedLibrary.MasterTemplateBytes;
+        string fileName = $"{EditingRecord.Name}--{System.DateTime.UtcNow.ToString("MM-dd-yyyy-HH-MM")}.docm";
 
-        //string fileName = $"{EditingRecord.Name}--{System.DateTime.UtcNow.ToString("MM-dd-yyyy-HH-MM")}.docm";
+        using var ms = new MemoryStream(masterTemplateBytes);
 
-        //using var ms = new MemoryStream(masterTemplateBytes);
+        DocumentTag documentTag = new DocumentTag
+        {
+            DocumentId = EditingRecord.Id,
+            LibraryId = SelectedLibrary.Id,
+            DocumentName = fileName,
+            BaseTemplateId = SelectedLibrary.MasterTemplate,
+            DocumentStoreId = Guid.Empty
+        };
 
-        //DocumentTag documentTag = new DocumentTag
-        //{
-        //    DocumentId = EditingRecord.Id,
-        //    LibraryId = SelectedLibrary.Id,
-        //    DocumentName = fileName,
-        //    //DocumentCollectionId = EditingRecord.DocumentSetId,
-        //    BaseTemplateId = SelectedLibrary.MasterTemplate,
-        //    DocumentStoreId = Guid.Empty
-        //};
+        var editedMs = await wordServices.InsertHiddenTagAsync(ms, "DominateDocsTag", JsonConvert.SerializeObject(documentTag, Formatting.Indented));
 
-        // var editedMs = await wordServices.InsertHiddenTagAsync(ms, "DominateDocsTag", JsonConvert.SerializeObject(documentTag, Formatting.Indented));
+        editedMs.Position = 0; // Reset the stream position to the beginning
 
-        //editedMs.Position = 0; // Reset the stream position to the beginning
+        //Add to DocumentStore
 
-        //var fileBytes = editedMs.ToArray();
+        DocumentStore ds = new DocumentStore();
+        ds.UpdatedAt = DateTime.Now;
+        ds.DocumentBytes = editedMs.ToArray();
+        ds.Name = EditingRecord.Name;
+        ds.DocLibId = SelectedLibrary.Id;
+        ds.DocId = EditingRecord.Id;
 
-        //if (SelectedDocumentSet is not null)
-        //{
-        //    //path = Path.Combine(webEnv.WebRootPath, @$"UploadedTemplates\{SelectedLibrary.Name}\{SelectedDocumentSet.Name}");
-        //}
-        //else
-        //{
-        //    path = Path.Combine(webEnv.WebRootPath, @$"UploadedTemplates\{SelectedLibrary.Name}");
-        //}
+      
 
-        ////Directory.CreateDirectory(path);
 
-        //var filePathAndName = Path.Combine(path, fileName);
+        EditingRecord.DocStoreId = ds.Id;
+        EditingRecord.UpdatedAt = DateTime.UtcNow;
+        EditingRecord.HiddenTagValue = JsonConvert.SerializeObject(documentTag, Formatting.Indented);
+        
+        
+        
 
-        //System.IO.File.WriteAllBytesAsync(filePathAndName, fileBytes).Wait();
 
-        //// EditingRecord.UpdatedAt = DateTime.UtcNow;
-        //EditingRecord.TemplateDocumentBytes = fileBytes;
-        //EditingRecord.HiddenTagValue = JsonConvert.SerializeObject(documentTag, Formatting.Indented);
+        SelectedLibrary.Documents.Add(EditingRecord);
 
-        //RecordList.Add(EditingRecord); // Add to the local collection
+        dbApp.UpSertRecord<DocumentLibrary>(SelectedLibrary);
 
-        //dbApp.UpSertRecord<DominateDocsData.Models.Document>((DominateDocsData.Models.Document)EditingRecord);
+        dbApp.UpSertRecord<DocumentStore>(ds);
 
-        //if (SelectedDocumentSet is not null)
-        //{
-        //    //Add it to the DocumentSet's collection
-        //    //SelectedDocumentSet.Documents.Add(EditingRecord);
-
-        //    //dbApp.UpSertRecord<DocumentSet>(SelectedDocumentSet); // Update the DocumentSet in the database
-        //}
-        //else
-        //{
-        //    if (!SelectedLibrary.Documents.Any(x => x.Name == EditingRecord.Name))
-        //    {
-        //        SelectedLibrary.Documents.Add(EditingRecord);
-        //    }
-
-        //    dbApp.UpSertRecord<DominateDocsData.Models.DocumentLibrary>(SelectedLibrary); // Update the DocumentTemplate in the database
-        //}
+        RecordList.Add(EditingRecord); // Add to the local collection
 
         EditingRecord = await GetNewRecordAsync();
 
         SelectedRecord = null;
     }
 
-    [RelayCommand]
-    private async Task EditRecord()
-    {
-        //if (SelectedRecord != null)
-        //{
-        //    var index = RecordList.IndexOf(SelectedRecord);
-        //    if (index >= 0)
-        //    {
-        //        RecordList[index] = EditingRecord;
-        //        dbApp.UpSertRecord<DominateDocsData.Models.Document>((DominateDocsData.Models.Document)EditingRecord);
+    //[RelayCommand]
+    //private async Task EditRecord()
+    //{
+    //    //if (SelectedRecord != null)
+    //    //{
+    //    //    var index = RecordList.IndexOf(SelectedRecord);
+    //    //    if (index >= 0)
+    //    //    {
+    //    //        RecordList[index] = EditingRecord;
+    //    //        dbApp.UpSertRecord<DominateDocsData.Models.Document>((DominateDocsData.Models.Document)EditingRecord);
 
-        //        //Edit in the Document in Library
-        //        DocumentLibrary docLib = dbApp.GetRecords<DominateDocsData.Models.DocumentLibrary>().FirstOrDefault(lib => lib.Id == SelectedRecord.DocLibId);
+    //    //        //Edit in the Document in Library
+    //    //        DocumentLibrary docLib = dbApp.GetRecords<DominateDocsData.Models.DocumentLibrary>().FirstOrDefault(lib => lib.Id == SelectedRecord.DocLibId);
 
-        //        if (docLib is not null)
-        //        {
-        //            var libDocIndex = docLib.Documents.FindIndex(d => d.Id == EditingRecord.Id);
+    //    //        if (docLib is not null)
+    //    //        {
+    //    //            var libDocIndex = docLib.Documents.FindIndex(d => d.Id == EditingRecord.Id);
 
-        //            if (libDocIndex >= 0)
-        //            {
-        //                docLib.Documents[libDocIndex] = EditingRecord;
-        //                dbApp.UpSertRecord<DominateDocsData.Models.DocumentLibrary>(docLib);
-        //            }
-        //        }
+    //    //            if (libDocIndex >= 0)
+    //    //            {
+    //    //                docLib.Documents[libDocIndex] = EditingRecord;
+    //    //                dbApp.UpSertRecord<DominateDocsData.Models.DocumentLibrary>(docLib);
+    //    //            }
+    //    //        }
 
-        //        //Edit in the Document in DocumentSet
+    //    //        //Edit in the Document in DocumentSet
 
-        //        //DocumentSet docSet = dbApp.GetRecords<DominateDocsData.Models.DocumentSet>().FirstOrDefault(lib => lib.Id == SelectedRecord.DocSetId);
+    //    //        //DocumentSet docSet = dbApp.GetRecords<DominateDocsData.Models.DocumentSet>().FirstOrDefault(lib => lib.Id == SelectedRecord.DocSetId);
 
-        //        //if (docSet is not null)
-        //        //{
-        //        //    var docSetDocIndex = SelectedDocumentSet.Documents.FindIndex(d => d.Id == EditingRecord.Id);
+    //    //        //if (docSet is not null)
+    //    //        //{
+    //    //        //    var docSetDocIndex = SelectedDocumentSet.Documents.FindIndex(d => d.Id == EditingRecord.Id);
 
-        //        //    if (docSetDocIndex >= 0)
-        //        //    {
-        //        //        SelectedDocumentSet.Documents[docSetDocIndex] = EditingRecord;
-        //        //        dbApp.UpSertRecord<DominateDocsData.Models.DocumentSet>(SelectedDocumentSet);
-        //        //    }
+    //    //        //    if (docSetDocIndex >= 0)
+    //    //        //    {
+    //    //        //        SelectedDocumentSet.Documents[docSetDocIndex] = EditingRecord;
+    //    //        //        dbApp.UpSertRecord<DominateDocsData.Models.DocumentSet>(SelectedDocumentSet);
+    //    //        //    }
 
-        //        //}
+    //    //        //}
 
-        //        SelectedRecord = null;
+    //    //        SelectedRecord = null;
 
-        //        EditingRecord = await GetNewRecordAsync();
-        //    }
-        //}
-    }
-
-    [RelayCommand]
-    private async Task InitializeRecord()
-    {
-        EditingRecord = await GetNewRecordAsync();
-    }
-
+    //    //        EditingRecord = await GetNewRecordAsync();
+    //    //    }
+    //    //}
+    //}
+        
     [RelayCommand]
     private async Task DeleteRecord(DominateDocsData.Models.Document doc)
     {
-        //if (doc != null)
-        //{
-        //    RecordList.RemoveWhere(x => x.Id == doc.Id);
+        if (doc != null)
+        {
+            RecordList.RemoveWhere(x => x.Id == doc.Id);
 
-        //    dbApp.DeleteRecord<DominateDocsData.Models.Document>((DominateDocsData.Models.Document)doc);
 
-        //    SelectedLibrary.Documents.RemoveAll(x => x.Id == doc.Id);
+            var idx = SelectedLibrary.Documents.RemoveWhere(x => x.DocStoreId == Guid.Empty);
 
-        //   // if (SelectedDocumentSet is not null && SelectedDocumentSet.Documents.Any(x => x.Id == doc.Id)) SelectedDocumentSet.Documents.RemoveAll(x => x.Id == doc.Id);
+            SelectedLibrary.Documents.RemoveWhere(x => x.Id == doc.Id);
 
-        //    SelectedRecord = null;
+            dbApp.UpSertRecord<DocumentLibrary>(SelectedLibrary);
 
-        //    EditingRecord = await GetNewRecordAsync();
-        //}
+            //Delete Document from DocumentStore
+            dbApp.DeleteDocumentStoreByDocId(doc.Id);
+                                         
+            SelectedRecord = null;
+
+            EditingRecord = await GetNewRecordAsync();
+        }
     }
 
     [RelayCommand]
     private async Task SelectRecord(DominateDocsData.Models.Document? doc)
     {
-        //if (doc != null)
-        //{
-        //    SelectedRecord = doc;
-        //    EditingRecord = doc;
-        //}
+        if (doc != null)
+        {
+            SelectedRecord = doc;
+            EditingRecord = doc;
+        }
     }
+
+    [RelayCommand]
+    private async Task UpsertRecord(DominateDocsData.Models.Document? doc)
+    {
+        if (doc != null)
+        {
+
+            var index = RecordList.FindIndex(d => d.Id == doc.Id);
+
+            if (index > -1) RecordList[index] = doc;
+
+            //Find the record in the Library and update it
+            index = SelectedLibrary.Documents.FindIndex(d => d.Id == doc.Id);
+
+            SelectedLibrary.Documents[index] = doc;
+
+            
+            dbApp.UpSertRecord<DocumentLibrary>(SelectedLibrary);
+
+            SelectedRecord = null;
+            EditingRecord = await GetNewRecordAsync(); ;
+        }
+    }
+
+
 
     [RelayCommand]
     private async Task ClearEditing()
@@ -230,6 +240,7 @@ public partial class DocumentViewModel : ObservableObject
         EditingRecord = await GetNewRecordAsync();
     }
 
+    [RelayCommand]
     private async Task<DominateDocsData.Models.Document> GetNewRecordAsync()
     {
         EditingRecord = new DominateDocsData.Models.Document()

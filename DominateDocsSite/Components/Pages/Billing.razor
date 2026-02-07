@@ -1,0 +1,116 @@
+﻿@page "/billing"
+
+@using DominateDocsData.Models
+@using DominateDocsData.Database
+@using DominateDocsSite.State
+@using MudBlazor
+
+@inject IMongoDatabaseRepo dbApp
+@inject UserSession Session
+@inject ISnackbar Snackbar
+
+<PageTitle>Billing</PageTitle>
+
+<MudPaper Elevation="2" Class="pa-6">
+    <MudText Typo="Typo.h4">Billing</MudText>
+    <MudText Typo="Typo.caption">Subscription status, charges, and event history.</MudText>
+
+    @if (_profile is null)
+    {
+        <MudText Class="mt-4" Color="Color.Warning">No UserProfile found. Billing data unavailable.</MudText>
+    }
+    else
+    {
+        <MudDivider Class="my-4" />
+
+        <MudText Typo="Typo.h6">Account Status</MudText>
+        <MudGrid Class="mt-2">
+            <MudItem xs="12" md="4">
+                <MudChip T="bool" Color="@(_profile.Billing?.IsAccountDisabled == true ? Color.Error : Color.Success)">
+                    @(_profile.Billing?.IsAccountDisabled == true ? "Account Disabled" : "Account Active")
+                </MudChip>
+            </MudItem>
+
+            <MudItem xs="12" md="8">
+                <MudText Typo="Typo.body2">
+                    SubscriptionValidUntilUtc:
+                    @(_profile.Billing?.SubscriptionValidUntilUtc.HasValue == true
+                        ? _profile.Billing.SubscriptionValidUntilUtc.Value.ToString("u")
+                        : "<null>")
+                </MudText>
+            </MudItem>
+        </MudGrid>
+
+        <MudDivider Class="my-4" />
+
+        <MudText Typo="Typo.h6">Charges</MudText>
+        <MudTable Items="_profile.BillingCharges" Dense="true" Hover="true" Bordered="true" Class="mt-2">
+            <HeaderContent>
+                <MudTh>Date (UTC)</MudTh>
+                <MudTh>Type</MudTh>
+                <MudTh>Status</MudTh>
+                <MudTh>Amount</MudTh>
+                <MudTh>LoanId</MudTh>
+                <MudTh>Notes</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd>@context.CreatedAtUtc.ToString("u")</MudTd>
+                <MudTd>@context.ChargeType</MudTd>
+                <MudTd>@context.Status</MudTd>
+                <MudTd>@($"{context.Amount:0.00} {context.Currency}")</MudTd>
+                <MudTd>@(context.LoanId?.ToString() ?? "")</MudTd>
+                <MudTd>@context.Notes</MudTd>
+            </RowTemplate>
+            <NoRecordsContent>
+                <MudText Class="pa-4">No charges recorded.</MudText>
+            </NoRecordsContent>
+        </MudTable>
+
+        <MudDivider Class="my-4" />
+
+        <MudText Typo="Typo.h6">Event Audit Trail</MudText>
+        <MudTable Items="_profile.BillingEvents" Dense="true" Hover="true" Bordered="true" Class="mt-2">
+            <HeaderContent>
+                <MudTh>Date (UTC)</MudTh>
+                <MudTh>Event</MudTh>
+                <MudTh>LoanId</MudTh>
+                <MudTh>Message</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd>@context.OccurredAtUtc.ToString("u")</MudTd>
+                <MudTd>@context.EventType</MudTd>
+                <MudTd>@(context.LoanId?.ToString() ?? "")</MudTd>
+                <MudTd>@context.Message</MudTd>
+            </RowTemplate>
+            <NoRecordsContent>
+                <MudText Class="pa-4">No billing events recorded.</MudText>
+            </NoRecordsContent>
+        </MudTable>
+    }
+</MudPaper>
+
+@code
+{
+    private UserProfile? _profile;
+
+    protected override void OnInitialized()
+    {
+        try
+        {
+            // Reflection so we don't bind to UserSession internals
+            var t = Session?.GetType();
+            var p = t?.GetProperty("UserId");
+            var idObj = p?.GetValue(Session);
+
+            if (idObj is null) return;
+
+            var userId = idObj is Guid g ? g : Guid.Parse(idObj.ToString());
+
+            _profile = dbApp.GetRecords<UserProfile>().FirstOrDefault(x => x.UserId == userId);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add("Failed to load billing profile.", Severity.Error);
+        }
+    }
+}

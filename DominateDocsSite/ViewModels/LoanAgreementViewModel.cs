@@ -414,6 +414,17 @@ public partial class LoanAgreementViewModel : ObservableObject
                 return;
             }
 
+
+            // ============================================================
+            // ✅ BILLING ENFORCEMENT: account disable + subscription + per-loan fee
+            // ============================================================
+            var billingGate = await EnforceBillingForDocGenerationAsync(this.userId, loanId).ConfigureAwait(false);
+            if (!billingGate.ok)
+            {
+                LastPipelineStatus = billingGate.reason;
+                return;
+            }
+
             // Avoid AdminBench-mode suppression in LoanWorker.
             if (freshLoan.AdminBench != null)
             {
@@ -1070,4 +1081,173 @@ public partial class LoanAgreementViewModel : ObservableObject
             logger.LogError(ex.Message);
         }
     }
+
+    // ============================================================
+    // ✅ BILLING: Central enforcement + auditing (Mongo UserProfile)
+    // ============================================================
+    private async System.Threading.Tasks.Task<(bool ok, string reason)> EnforceBillingForDocGenerationAsync(System.Guid userId, System.Guid loanId)
+    {
+        // Load profile from Mongo
+        DominateDocsData.Models.UserProfile? profile =
+            System.Linq.Enumerable.FirstOrDefault(
+                this.dbApp.GetRecords<DominateDocsData.Models.UserProfile>(),
+                x => x.UserId == userId);
+
+        if (profile is null)
+            return (false, "UserProfile missing. Billing cannot be validated.");
+
+        // Ensure containers exist
+        profile.Billing ??= new DominateDocsData.Models.UserProfile.BillingAccount();
+        profile.BillingEvents ??= new System.Collections.Generic.List<DominateDocsData.Models.UserProfile.BillingEventRecord>();
+        profile.BillingCharges ??= new System.Collections.Generic.List<DominateDocsData.Models.UserProfile.BillingChargeRecord>();
+
+        // Event: attempt
+        profile.BillingEvents.Add(new DominateDocsData.Models.UserProfile.BillingEventRecord
+        {
+            EventType = DominateDocsData.Models.UserProfile.BillingEventTypes.DocumentGenerationAttempted,
+            UserId = userId,
+            LoanId = loanId,
+            Message = "User initiated doc generation pipeline."
+        });
+
+        // Master disable switch
+        if (profile.Billing.IsAccountDisabled)
+        {
+            profile.BillingEvents.Add(new DominateDocsData.Models.UserProfile.BillingEventRecord
+            {
+                EventType = DominateDocsData.Models.UserProfile.BillingEventTypes.DocumentGenerationBlockedAccountDisabled,
+                UserId = userId,
+                LoanId = loanId,
+                Message = $"Blocked: account disabled. Reason={profile.Billing.DisabledReason ?? "<none>"}"
+            });
+
+            await this.dbApp.UpSertRecordAsync<DominateDocsData.Models.UserProfile>(profile).ConfigureAwait(false);
+            return (false, "Account disabled.");
+        }
+
+        var nowUtc = System.DateTime.UtcNow;
+
+        // Subscription enforcement unless bypassed
+        var bypassSub = profile.Billing.BypassSubscriptionCharges;
+        var validUntil = profile.Billing.SubscriptionValidUntilUtc;
+
+        profile.BillingEvents.Add(new DominateDocsData.Models.UserProfile.BillingEventRecord
+        {
+            EventType = DominateDocsData.Models.UserProfile.BillingEventTypes.SubscriptionStatusChecked,
+            UserId = userId,
+            LoanId = loanId,
+            Message = $"Checked subscription. Bypass={bypassSub} ValidUntilUtc={(validUntil.HasValue ? validUntil.Value.ToString("u") : "<null>")}"
+        });
+
+        if (!bypassSub)
+        {
+            if (!validUntil.HasValue || validUntil.Value <= nowUtc)
+            {
+                profile.BillingEvents.Add(new DominateDocsData.Models.UserProfile.BillingEventRecord
+                {
+                    EventType = DominateDocsData.Models.UserProfile.BillingEventTypes.SubscriptionExpiredBlocked,
+                    UserId = userId,
+                    LoanId = loanId,
+                    Message = "Blocked: subscription expired or missing."
+                });
+
+                await this.dbApp.UpSertRecordAsync<DominateDocsData.Models.UserProfile>(profile).ConfigureAwait(false);
+                return (false, "Subscription expired. Renew to generate documents.");
+            }
+        }
+        else
+        {
+            profile.BillingEvents.Add(new DominateDocsData.Models.UserProfile.BillingEventRecord
+            {
+                EventType = DominateDocsData.Models.UserProfile.BillingEventTypes.SubscriptionBypassedAllowed,
+                UserId = userId,
+                LoanId = loanId,
+                Message = "Subscription bypass active."
+            });
+        }
+
+        // Per-loan processing fee enforcement (first generation only)
+        profile.Billing.LoanStates ??= new System.Collections.Generic.List<DominateDocsData.Models.UserProfile.LoanBillingState>();
+
+        var state = System.Linq.Enumerable.FirstOrDefault(profile.Billing.LoanStates, x => x.LoanId == loanId);
+        if (state is null)
+        {
+            state = new DominateDocsData.Models.UserProfile.LoanBillingState { LoanId = loanId };
+            profile.Billing.LoanStates.Add(state);
+        }
+
+        var bypassProc = profile.Billing.BypassDocumentProcessingCharges;
+
+        if (!state.ProcessingFeeSatisfied)
+        {
+            if (bypassProc)
+            {
+                state.ProcessingFeeSatisfied = true;
+                state.FirstSatisfiedAtUtc = nowUtc;
+
+                profile.BillingEvents.Add(new DominateDocsData.Models.UserProfile.BillingEventRecord
+                {
+                    EventType = DominateDocsData.Models.UserProfile.BillingEventTypes.DocumentProcessingBypassedFirstTime,
+                    UserId = userId,
+                    LoanId = loanId,
+                    Message = "First-time $200 processing fee bypassed by admin flag."
+                });
+
+                profile.BillingCharges.Add(new DominateDocsData.Models.UserProfile.BillingChargeRecord
+                {
+                    ChargeType = DominateDocsData.Models.UserProfile.BillingChargeTypes.DocumentProcessingPerLoan,
+                    Status = DominateDocsData.Models.UserProfile.BillingChargeStatus.Bypassed,
+                    Amount = 200m,
+                    Currency = "USD",
+                    UserId = userId,
+                    LoanId = loanId,
+                    Notes = "Bypassed first-time processing fee."
+                });
+            }
+            else
+            {
+                // NOTE: This is where Stripe payment should occur (Checkout or off-session PaymentIntent).
+                // For now we record Pending and block generation until payment is settled by your Stripe flow.
+                profile.BillingCharges.Add(new DominateDocsData.Models.UserProfile.BillingChargeRecord
+                {
+                    ChargeType = DominateDocsData.Models.UserProfile.BillingChargeTypes.DocumentProcessingPerLoan,
+                    Status = DominateDocsData.Models.UserProfile.BillingChargeStatus.Pending,
+                    Amount = 200m,
+                    Currency = "USD",
+                    UserId = userId,
+                    LoanId = loanId,
+                    Notes = "Payment required before first doc generation for this loan."
+                });
+
+                profile.BillingEvents.Add(new DominateDocsData.Models.UserProfile.BillingEventRecord
+                {
+                    EventType = DominateDocsData.Models.UserProfile.BillingEventTypes.DocumentProcessingChargedFirstTime,
+                    UserId = userId,
+                    LoanId = loanId,
+                    Message = "Blocked: first-time $200 processing fee not paid yet (recorded as pending)."
+                });
+
+                await this.dbApp.UpSertRecordAsync<DominateDocsData.Models.UserProfile>(profile).ConfigureAwait(false);
+                return (false, "Payment required: $200 processing fee for first-time document generation on this loan.");
+            }
+        }
+        else
+        {
+            profile.BillingEvents.Add(new DominateDocsData.Models.UserProfile.BillingEventRecord
+            {
+                EventType = DominateDocsData.Models.UserProfile.BillingEventTypes.DocumentGenerationFreeRepeat,
+                UserId = userId,
+                LoanId = loanId,
+                Message = "Repeat generation: free."
+            });
+        }
+
+        // Increment generation counters
+        state.GenerationCount++;
+        state.LastGeneratedAtUtc = nowUtc;
+
+        await this.dbApp.UpSertRecordAsync<DominateDocsData.Models.UserProfile>(profile).ConfigureAwait(false);
+        return (true, "Billing OK.");
+    }
+
 }
