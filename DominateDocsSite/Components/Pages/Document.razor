@@ -48,24 +48,16 @@
                 <HeaderContent>
                     <MudTh>Name</MudTh>
                     <MudTh>Last Updated</MudTh>
-                    <MudTh>Template</MudTh>
+                    <MudTh>Document</MudTh>
                     <MudTh>Output As</MudTh>
                     <MudTh></MudTh>
                 </HeaderContent>
                 <RowTemplate>
-                    <MudTd>@context.Name (@context.Id--@context.DocStoreId)</MudTd>
+                    <MudTd>@context.Name</MudTd>
                     <MudTd>@context.UpdatedAt</MudTd>
                      <MudTd>
-                             <MudChip OnClick="@(() => EditRecordAsync(context))" T="bool" Color="@((context.UpdatedAt is null) ? Color.Success : Color.Error)">
-                            @if (context.UpdatedAt is null)
-                            {
-                                documentExists = false;
-                            }
-                            else
-                            {
-                                documentExists = true;
-                            }
-                            @(documentExists ? "Update" : "Create")
+                        <MudChip OnClick="@(() => EditRecordAsync(context))" T="bool" Color="Color.Success">
+                            "Edit"
                         </MudChip>
                     </MudTd>
                     <MudTd>
@@ -75,9 +67,7 @@
                     </MudTd>
                     <MudTd>
 
-                        <MudIconButton Icon="@Icons.Material.Filled.Merge"
-                                       Color="Color.Info"
-                                       OnClick="@(() => MergeTestAsync(context))" />
+                    
                         <MudIconButton Icon="@Icons.Material.Filled.Edit"
                                        Color="Color.Info"
                                        OnClick="@(() => SelectRecordAsync(context))" />
@@ -90,7 +80,7 @@
         </MudItem>
         <MudItem xs="12" md="4">
             <MudPaper Elevation="0" Class="pa-4">
-                <MudText Typo="Typo.h6">
+                <MudText Class="ml-4" Typo="Typo.h6">
                     @(vm.SelectedRecord == null ? "Add Document" : "Edit Document")
                 </MudText>
                 <MudForm Model="@vm.EditingRecord" @ref="@formEditRecord" Validation="@docVal" ValidationDelay="0">
@@ -133,7 +123,7 @@
                                 }
                             </MudSelect>
 
-                            <MudStack Row="true" Spacing="2" Class="mt-4">
+                            <MudStack Row="true" Spacing="2" Class="mt-4 ml-4">
                                 <MudButton Type="Submit" OnClick="HandleSubmitAsync" Color="Color.Success" Variant="Variant.Filled">
                                     @(vm.SelectedRecord == null ? "Add" : "Save")
                                 </MudButton>
@@ -220,29 +210,7 @@
         StateHasChanged();
 
     }
-
-    private async Task MergeTestAsync(DominateDocsData.Models.Document doc)
-    {
-        DocumentMerge documentMerge = new()
-        {
-            Id = Guid.NewGuid(),
-            Document = doc,
-            
-
-        };
-
-        LoanAgreement loanAgreement = new();
-
-       // documentMerge.Document.MergeValues = JsonConvert.SerializeObject(loanAgreement, Formatting.Indented);
-
-        docState.DocumentProcessingQueue.Enqueue(documentMerge);
-
-        StateHasChanged();
-
-    }
-
-
-
+       
     private async Task SelectRecordAsync(DominateDocsData.Models.Document doc)
     {
        await vm.SelectRecordCommand.ExecuteAsync(doc);

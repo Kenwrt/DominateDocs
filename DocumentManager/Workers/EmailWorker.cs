@@ -113,36 +113,34 @@ public sealed class EmailWorker : WorkerPoolBackgroundService<EmailJob>
 
     private static string BuildBody(Guid loanId, int docCount, EmailEnums.AttachmentOutput mode)
     {
-        return mode == EmailEnums.AttachmentOutput.ZipFile
-            ? $"Attached is a ZIP containing {docCount} generated document(s) for loan {loanId}."
-            : $"Attached are {docCount} generated document(s) for loan {loanId}.";
+        if (mode == EmailEnums.AttachmentOutput.ZipFile)
+            return $"Attached is a ZIP containing {docCount} generated document(s) for loan {loanId:N}.";
+
+        return $"Attached are {docCount} generated document(s) for loan {loanId:N}.";
     }
 
     private async Task WaitForMergeQuietPeriodAsync(Guid loanId, int maxWaitSeconds, CancellationToken ct)
     {
         if (maxWaitSeconds <= 0) return;
 
-        var end = DateTime.UtcNow.AddSeconds(maxWaitSeconds);
+        var start = DateTime.UtcNow;
+        var lastCount = CountCompletedMerges(loanId);
+        var stableSince = DateTime.UtcNow;
 
-        var lastCompletedCount = -1;
-        var stableTicks = 0;
-
-        while (DateTime.UtcNow < end && !ct.IsCancellationRequested)
+        while (!ct.IsCancellationRequested && (DateTime.UtcNow - start).TotalSeconds < maxWaitSeconds)
         {
-            var completed = CountCompletedMerges(loanId);
+            await Task.Delay(500, ct).ConfigureAwait(false);
 
-            if (completed == lastCompletedCount)
-                stableTicks++;
-            else
-                stableTicks = 0;
+            var count = CountCompletedMerges(loanId);
+            if (count != lastCount)
+            {
+                lastCount = count;
+                stableSince = DateTime.UtcNow;
+            }
 
-            lastCompletedCount = completed;
-
-            // “Quiet” for ~1 second (5 * 200ms)
-            if (stableTicks >= 5)
+            // quiet for 1s
+            if ((DateTime.UtcNow - stableSince).TotalMilliseconds >= 1000)
                 return;
-
-            await Task.Delay(200, ct).ConfigureAwait(false);
         }
     }
 
@@ -161,14 +159,31 @@ public sealed class EmailWorker : WorkerPoolBackgroundService<EmailJob>
     {
         var results = new List<EmailAttachment>();
 
-        var merges = docState.DocumentList.Values
-            .Where(m => m is not null
-                        && m.LoanAgreement is not null
-                        && m.LoanAgreement.Id == loanId
-                        && m.Status == DocumentMergeState.Status.Complete
-                        && m.MergedDocumentBytes is not null
-                        && m.MergedDocumentBytes.Length > 0)
-            .OrderBy(m => m.Document?.Name)
+        // ✅ FIX:
+        // docState.DocumentList is an in-memory running history. If you attach from it directly,
+        // each run accumulates more "Complete" merges and your email attachments multiply.
+        //
+        // We dedupe by Document.Id and keep the most recently-seen merge per document
+        // (Dictionary preserves insertion order; last write wins).
+        var latestByDocId = new Dictionary<Guid, dynamic>();
+
+        foreach (var m in docState.DocumentList.Values)
+        {
+            if (m is null) continue;
+            if (m.LoanAgreement is null) continue;
+            if (m.LoanAgreement.Id != loanId) continue;
+            if (m.Status != DocumentMergeState.Status.Complete) continue;
+            if (m.MergedDocumentBytes is null || m.MergedDocumentBytes.Length == 0) continue;
+
+            var docId = (Guid)(m.Document?.Id ?? Guid.Empty);
+            if (docId == Guid.Empty) continue;
+
+            // Overwrite so the newest merge for this doc wins.
+            latestByDocId[docId] = m;
+        }
+
+        var merges = latestByDocId.Values
+            .OrderBy(m => (string?)(m.Document?.Name) ?? string.Empty)
             .ToList();
 
         var total = 0;
@@ -178,18 +193,18 @@ public sealed class EmailWorker : WorkerPoolBackgroundService<EmailJob>
             if (results.Count >= MaxDocs)
                 break;
 
-            var bytes = m.MergedDocumentBytes!;
+            var bytes = (byte[])m.MergedDocumentBytes!;
             if (bytes.Length == 0) continue;
 
             // OutputType comes from the Document
-            var outType = m.Document?.OutputType ?? DocumentTypes.OutputTypes.PDF;
+            var outType = (DocumentTypes.OutputTypes)(m.Document?.OutputType ?? DocumentTypes.OutputTypes.PDF);
 
             var ext = outType == DocumentTypes.OutputTypes.DOCX ? "docx" : "pdf";
             var contentType = outType == DocumentTypes.OutputTypes.DOCX
                 ? "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
                 : "application/pdf";
 
-            var baseName = string.IsNullOrWhiteSpace(m.Document?.Name) ? "document" : m.Document!.Name!;
+            var baseName = string.IsNullOrWhiteSpace((string?)m.Document?.Name) ? "document" : (string)m.Document!.Name!;
             var fileName = NormalizeFileName(baseName, ext);
 
             if (total + bytes.Length > MaxTotalBytes)
@@ -263,21 +278,23 @@ public sealed class EmailWorker : WorkerPoolBackgroundService<EmailJob>
         foreach (var c in Path.GetInvalidFileNameChars())
             name = name.Replace(c, '_');
 
+        name = name.Trim();
+        if (string.IsNullOrWhiteSpace(name))
+            name = "document";
+
         return $"{name}.{ext}";
     }
 
     private static string MakeZipSafeFileName(string fileName)
     {
-        var name = (fileName ?? "document.bin").Replace("\\", "_").Replace("/", "_");
+        var name = (fileName ?? "document").Trim();
         foreach (var c in Path.GetInvalidFileNameChars())
             name = name.Replace(c, '_');
 
-        return string.IsNullOrWhiteSpace(name) ? "document.bin" : name;
-    }
+        name = name.Trim();
+        if (string.IsNullOrWhiteSpace(name))
+            name = "document.pdf";
 
-    public override Task StartAsync(CancellationToken cancellationToken)
-    {
-        logger.LogInformation("✅ EmailWorker STARTED (Workers={Workers})", 2);
-        return base.StartAsync(cancellationToken);
+        return name;
     }
 }

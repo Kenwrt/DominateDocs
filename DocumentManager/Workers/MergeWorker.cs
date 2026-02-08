@@ -3,6 +3,7 @@ using DocumentManager.Infrastructure;
 using DocumentManager.Jobs;
 using DocumentManager.Services;
 using DocumentManager.State;
+using DominateDocsData.Database;
 using DominateDocsData.Enums;
 using DominateDocsData.Models;
 using Microsoft.Extensions.Logging;
@@ -31,6 +32,9 @@ public sealed class MergeWorker : WorkerPoolBackgroundService<MergeJob>
     // NEW: direct email sender (Postmark implementation)
     private readonly IEmailSender emailSender;
 
+    // NEW: DB access for DocumentStore
+    private readonly IMongoDatabaseRepo dbApp;
+
     public MergeWorker(
         IJobQueue<MergeJob> queue,
         ILogger<MergeWorker> logger,
@@ -39,7 +43,8 @@ public sealed class MergeWorker : WorkerPoolBackgroundService<MergeJob>
         IRazorLiteService razorLiteService,
         IWordServices wordServices,
         IEnumerable<IMergeCompleteHook> completionHooks,
-        IEmailSender emailSender)
+        IEmailSender emailSender,
+        IMongoDatabaseRepo dbApp)
         : base(queue, logger, options.Value.MaxDocumentMergeThreads)
     {
         this.logger = logger;
@@ -49,6 +54,7 @@ public sealed class MergeWorker : WorkerPoolBackgroundService<MergeJob>
         this.wordServices = wordServices;
         this.completionHooks = completionHooks;
         this.emailSender = emailSender;
+        this.dbApp = dbApp;
     }
 
     protected override async Task HandleAsync(MergeJob job, CancellationToken ct)
@@ -65,10 +71,24 @@ public sealed class MergeWorker : WorkerPoolBackgroundService<MergeJob>
 
             docState.DocumentList.TryAdd(documentMerge.Id, documentMerge);
 
-            using var ms = new MemoryStream(
-                capacity: documentMerge.Document.TemplateDocumentBytes.Length + 4096);
+            var templateBytes = ResolveTemplateBytes(documentMerge.Document);
 
-            ms.Write(documentMerge.Document.TemplateDocumentBytes, 0, documentMerge.Document.TemplateDocumentBytes.Length);
+            if (templateBytes is null || templateBytes.Length == 0)
+            {
+                logger.LogError("❌ MergeWorker: No template bytes resolved. MergeId={MergeId} DocId={DocId} DocStoreId={DocStoreId}",
+                    documentMerge.Id,
+                    documentMerge.Document?.Id,
+                    documentMerge.Document?.DocStoreId);
+
+                documentMerge.MergedDocumentBytes = null;
+                documentMerge.Status = DocumentMergeState.Status.Error;
+                docState.StateHasChanged();
+                return;
+            }
+
+            using var ms = new MemoryStream(capacity: templateBytes.Length + 4096);
+
+            ms.Write(templateBytes, 0, templateBytes.Length);
             ms.Position = 0;
 
             var msResult = await razorLiteService.ProcessAsync(ms, documentMerge.LoanAgreement).ConfigureAwait(false);
@@ -140,6 +160,41 @@ public sealed class MergeWorker : WorkerPoolBackgroundService<MergeJob>
             // keep it in docState.DocumentList if you want UI to show it; otherwise remove it here
             // docState.DocumentList.TryRemove(documentMerge.Id, out _);
         }
+    }
+
+    private byte[]? ResolveTemplateBytes(Document? doc)
+    {
+        if (doc is null) return null;
+
+        // Preferred: DocumentStore bytes
+        if (doc.DocStoreId != Guid.Empty)
+        {
+            try
+            {
+                var store = dbApp.GetRecordById<DocumentStore>(doc.DocStoreId);
+                if (store?.DocumentBytes is not null && store.DocumentBytes.Length > 0)
+                    return store.DocumentBytes;
+
+                logger.LogWarning("MergeWorker: DocumentStore bytes missing/empty. DocId={DocId} DocStoreId={DocStoreId}",
+                    doc.Id, doc.DocStoreId);
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "MergeWorker: failed to load DocumentStore. DocId={DocId} DocStoreId={DocStoreId}",
+                    doc.Id, doc.DocStoreId);
+            }
+        }
+
+        // Back-compat fallback (migration period)
+        if (doc.TemplateDocumentBytes is not null && doc.TemplateDocumentBytes.Length > 0)
+        {
+            logger.LogWarning("MergeWorker: using fallback TemplateDocumentBytes (DocStoreId missing or invalid). DocId={DocId} Name={Name}",
+                doc.Id, doc.Name);
+
+            return doc.TemplateDocumentBytes;
+        }
+
+        return null;
     }
 
     private async Task TryEmailMergedDocumentAsync(

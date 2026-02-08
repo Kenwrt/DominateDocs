@@ -27,166 +27,123 @@
         // places may not be loaded if you didn't request libraries=places
         if (google.maps.places) {
             autocompleteService ||= new google.maps.places.AutocompleteService();
-            // PlacesService needs an element; we can use the map if it exists, else a detached div
-            placesService ||= new google.maps.places.PlacesService(map || document.createElement("div"));
+            if (map) {
+                placesService ||= new google.maps.places.PlacesService(map);
+            }
         }
 
         return true;
     }
 
-    function waitForGoogle(timeoutMs = 8000) {
-        if (haveApi()) return Promise.resolve(true);
+    function safeGet(elOrSelector) {
+        if (!elOrSelector) return null;
+        if (typeof elOrSelector === "string") return document.querySelector(elOrSelector);
+        return elOrSelector;
+    }
 
-        const start = Date.now();
-        return new Promise((resolve) => {
-            const tick = () => {
-                if (haveApi()) return resolve(true);
-                if (Date.now() - start > timeoutMs) return resolve(false);
-                setTimeout(tick, 50);
-            };
-            tick();
+    function sleep(ms) {
+        return new Promise(r => setTimeout(r, ms));
+    }
+
+    // ---- Core map lifecycle ----
+    async function initializeGoogleMaps() {
+        // Called by the timers at bottom, safe if already initialized
+        if (!haveApi()) return;
+
+        // If map already exists, don't re-init.
+        if (map) return;
+
+        // Try to find common map element IDs/classes
+        const mapEl =
+            document.getElementById("map") ||
+            document.getElementById("googleMap") ||
+            document.querySelector(".google-map") ||
+            document.querySelector("[data-google-map]");
+
+        if (!mapEl) return;
+
+        map = new google.maps.Map(mapEl, {
+            center: { lat: 36.1627, lng: -86.7816 }, // Nashville default
+            zoom: 12,
+            mapTypeControl: true,
+            streetViewControl: false,
+            fullscreenControl: false
         });
-    }
-
-    function waitForElement(getEl, timeoutMs = 8000) {
-        const start = Date.now();
-        return new Promise((resolve) => {
-            const tick = () => {
-                const el = getEl();
-                if (el) return resolve(el);
-                if (Date.now() - start > timeoutMs) return resolve(null);
-                setTimeout(tick, 50);
-            };
-            tick();
-        });
-    }
-
-    function clearMarkersInternal() {
-        for (const m of markers) {
-            if (m && typeof m.setMap === "function") m.setMap(null);
-        }
-        markers = [];
-    }
-
-    // ---- Init ----
-    async function initMap(elOrId, options) {
-        const ready = await waitForGoogle(8000);
-        if (!ready) {
-            console.error("❌ Google Maps API did not load in time.");
-            return false;
-        }
-
-        const el = typeof elOrId === "string"
-            ? document.getElementById(elOrId)
-            : elOrId;
-
-        if (!el) {
-            console.error("❌ initMap: element not found.");
-            return false;
-        }
 
         ensureServices();
+        debugMapStatus();
+    }
 
-        // already initialized
-        if (map) return true;
-
-        const defaults = {
-            center: { lat: 36.1627, lng: -86.7816 }, // Nashville
-            zoom: 12,
-            mapTypeId: google.maps.MapTypeId.ROADMAP
-        };
-
-        map = new google.maps.Map(el, Object.assign(defaults, options || {}));
-
-        // Now that map exists, placesService can bind to it
-        if (google.maps.places) {
-            placesService = new google.maps.places.PlacesService(map);
+    async function forceMapInit() {
+        // Explicit init requested from Blazor.
+        // Wait for google maps library and for the map DOM element to exist.
+        for (let i = 0; i < 50; i++) {
+            if (haveApi()) break;
+            await sleep(100);
+        }
+        for (let i = 0; i < 50; i++) {
+            const mapEl =
+                document.getElementById("map") ||
+                document.getElementById("googleMap") ||
+                document.querySelector(".google-map") ||
+                document.querySelector("[data-google-map]");
+            if (mapEl) break;
+            await sleep(100);
         }
 
+        await initializeGoogleMaps();
+    }
+
+    function initMap(elementOrSelector, options) {
+        if (!haveApi()) {
+            console.error("❌ Google Maps API not loaded (initMap).");
+            return false;
+        }
+
+        const el = safeGet(elementOrSelector);
+        if (!el) {
+            console.error("❌ Map element not found (initMap).");
+            return false;
+        }
+
+        map = new google.maps.Map(el, options || {
+            center: { lat: 36.1627, lng: -86.7816 },
+            zoom: 12,
+            mapTypeControl: true,
+            streetViewControl: false,
+            fullscreenControl: false
+        });
+
+        ensureServices();
+        debugMapStatus();
         console.log("✅ Map initialized");
         return true;
     }
 
-    // Back-compat: your old code used initializeGoogleMaps and a hardcoded element id="map"
-    async function initializeGoogleMaps() {
-        const ready = await waitForGoogle(8000);
-        if (!ready) {
-            console.error("❌ Google Maps API not ready.");
-            return;
-        }
-
-        const el = await waitForElement(() => document.getElementById("map"), 8000);
-        if (!el) {
-            console.error("❌ Map element #map not found.");
-            return;
-        }
-
-        await initMap(el, null);
-    }
-
-    // Google callback name commonly used: &callback=initMap
-    window.initMap = initializeGoogleMaps;
-
-    async function blazorMapReady() {
-        // call from OnAfterRender when your component is ready
-        await initializeGoogleMaps();
-    }
-
-    function forceMapInit() {
-        console.log("💪 Force initializing map...");
-        initializeGoogleMaps();
+    function blazorMapReady(elementOrSelector) {
+        // Back-compat function if older code calls it.
+        return initMap(elementOrSelector);
     }
 
     function debugMapStatus() {
-        console.log("🔍 Debug Status:");
-        console.log("- Google available:", typeof google !== "undefined");
-        console.log("- Maps available:", haveApi());
-        console.log("- Map object:", map);
-        console.log("- Map element:", document.getElementById("map"));
-        console.log("- Markers:", markers);
-        console.log("- Active markers:", markers.filter(m => m).length);
+        try {
+            console.log("✅ Map status:", {
+                haveApi: haveApi(),
+                mapExists: !!map,
+                geocoder: !!geocoder,
+                autocompleteService: !!autocompleteService,
+                placesService: !!placesService,
+                markers: markers.length
+            });
+        } catch { }
     }
 
-    // ---- Autocomplete ----
-    async function getAddressPredictions(input) {
-        if (!input || input.length < 3) return [];
-
-        const ready = await waitForGoogle(8000);
-        if (!ready) return [];
-
-        ensureServices();
-        if (!autocompleteService) return [];
-
-        return new Promise((resolve) => {
-            autocompleteService.getPlacePredictions(
-                {
-                    input,
-                    types: ["address"],
-                    componentRestrictions: { country: "us" }
-                },
-                (predictions, status) => {
-                    if (status === google.maps.places.PlacesServiceStatus.OK && predictions) {
-                        resolve(predictions.map(p => p.description));
-                    } else {
-                        resolve([]);
-                    }
-                }
-            );
-        });
-    }
-
-    // ---- Geocoding ----
+    // ---- Geocode helper ----
     async function geocodeAddress(address) {
-        if (!address) return null;
-
-        const ready = await waitForGoogle(8000);
-        if (!ready) return null;
-
-        ensureServices();
-        if (!geocoder) return null;
-
-        const trimmed = address.trim();
+        const trimmed = (address || "").trim();
         if (!trimmed) return null;
+
+        if (!haveApi() || !ensureServices() || !geocoder) return null;
 
         return new Promise((resolve) => {
             geocoder.geocode(
@@ -199,6 +156,13 @@
         });
     }
 
+    function clearMarkersInternal() {
+        try {
+            markers.forEach(m => { try { if (m) m.setMap(null); } catch { } });
+        } catch { }
+        markers = [];
+    }
+
     // ---- Markers ----
     async function addMapMarker(address, index) {
         if (!address) return;
@@ -208,10 +172,35 @@
             return;
         }
 
-        const result = await geocodeAddress(address);
-        if (!result) return;
+        // Support either a string address OR an AddressDTO object.
+        let title = "";
+        let location = null;
 
-        const location = result.geometry.location;
+        // If passed a DTO with Lat/Lng, use it directly (fast, no geocode).
+        if (typeof address === "object") {
+            const lat = address.Lat ?? address.lat ?? null;
+            const lng = address.Lng ?? address.lng ?? null;
+
+            title = address.FullAddress ?? address.fullAddress ?? "";
+
+            if (lat != null && lng != null) {
+                location = new google.maps.LatLng(Number(lat), Number(lng));
+            } else if (title) {
+                // Fall back to geocoding the full address if coordinates are missing.
+                const result = await geocodeAddress(title);
+                if (!result) return;
+                location = result.geometry.location;
+            } else {
+                console.warn("⚠ addMapMarker missing address/lat/lng:", address);
+                return;
+            }
+        } else {
+            // String input: geocode it.
+            title = String(address);
+            const result = await geocodeAddress(title);
+            if (!result) return;
+            location = result.geometry.location;
+        }
 
         const idx = (typeof index === "number" && index >= 0) ? index : markers.filter(m => m).length;
 
@@ -224,7 +213,7 @@
         const marker = new google.maps.Marker({
             position: location,
             map,
-            title: address,
+            title: title,
             label: { text: String(idx + 1), color: "white", fontWeight: "bold" },
             icon: {
                 url: `https://maps.google.com/mapfiles/ms/micons/${markerColor}.png`,
@@ -246,8 +235,14 @@
         }
     }
 
+    // Back-compat alias: Blazor currently calls AppMaps.addMarker(...)
+    async function addMarker(address, index) {
+        return await addMapMarker(address, index);
+    }
+
     async function updateMapMarker(index, address) {
         if (typeof index !== "number" || index < 0) return;
+
         if (markers[index]) markers[index].setMap(null);
         await addMapMarker(address, index);
     }
@@ -268,21 +263,43 @@
         });
     }
 
-    async function rebuildAllMarkers(addresses) {
+    async function rebuildAllMarkers(addressesOrDtos) {
         if (!map) return;
 
         clearMarkersInternal();
 
-        if (!Array.isArray(addresses) || !addresses.length) return;
+        if (!Array.isArray(addressesOrDtos) || !addressesOrDtos.length) return;
 
-        for (let i = 0; i < addresses.length; i++) {
+        for (let i = 0; i < addressesOrDtos.length; i++) {
             // eslint-disable-next-line no-await-in-loop
-            await addMapMarker(addresses[i], i);
+            await addMapMarker(addressesOrDtos[i], i);
         }
     }
 
     function clearMarkers() {
         clearMarkersInternal();
+    }
+
+    // ---- Autocomplete predictions ----
+    async function getAddressPredictions(input) {
+        if (!input) return [];
+        if (!haveApi() || !ensureServices() || !autocompleteService) {
+            // If places library isn't available, return empty.
+            return [];
+        }
+
+        return new Promise((resolve) => {
+            autocompleteService.getPlacePredictions(
+                { input: input },
+                (predictions, status) => {
+                    if (status !== google.maps.places.PlacesServiceStatus.OK || !predictions) {
+                        resolve([]);
+                        return;
+                    }
+                    resolve(predictions.map(p => p.description));
+                }
+            );
+        });
     }
 
     // ---- Address parsing (DTO-friendly) ----
@@ -338,25 +355,19 @@
             parts.neighborhood?.long ||
             null;
 
-        let zip = parts.postal_code?.long || null;
-        const zipSuffix = parts.postal_code_suffix?.long || null;
-        if (zip && zipSuffix) zip = `${zip}-${zipSuffix}`;
-
-        const streetAddress = (streetNumber || route)
-            ? `${streetNumber ? streetNumber : ""}${streetNumber && route ? " " : ""}${route ? route : ""}`.trim()
-            : null;
-
-        const fullAddress = r.formatted_address || trimmed;
-        const state = parts.administrative_area_level_1?.short || null;
+        const state = parts.administrative_area_level_1?.short || parts.administrative_area_level_1?.long || null;
+        const zip = parts.postal_code?.long || null;
         const county = parts.administrative_area_level_2?.long || null;
-        const country = parts.country?.short || "US";
+        const country = parts.country?.short || parts.country?.long || "US";
+
+        const streetAddress = [streetNumber, route].filter(Boolean).join(" ").trim() || null;
+
         const lat = r.geometry?.location ? r.geometry.location.lat() : null;
         const lng = r.geometry?.location ? r.geometry.location.lng() : null;
-        const placeId = r.place_id || null;
 
         const dto = {
             // PascalCase
-            FullAddress: fullAddress,
+            FullAddress: r.formatted_address || trimmed,
             StreetAddress: streetAddress,
             City: city,
             State: state,
@@ -365,10 +376,10 @@
             Country: country,
             Lat: lat,
             Lng: lng,
-            PlaceId: placeId,
+            PlaceId: r.place_id || null,
 
-            // camelCase mirror
-            fullAddress: fullAddress,
+            // camelCase
+            fullAddress: r.formatted_address || trimmed,
             streetAddress: streetAddress,
             city: city,
             state: state,
@@ -377,7 +388,7 @@
             country: country,
             lat: lat,
             lng: lng,
-            placeId: placeId
+            placeId: r.place_id || null
         };
 
         console.log("✅ Parsed address DTO:", dto);
@@ -398,6 +409,7 @@
 
         // markers
         addMapMarker,
+        addMarker,
         updateMapMarker,
         removeMapMarker,
         rebuildAllMarkers,
@@ -408,6 +420,7 @@
     window.initializeGoogleMaps = initializeGoogleMaps;
     window.getAddressPredictions = getAddressPredictions;
     window.addMapMarker = addMapMarker;
+    window.addMarker = addMarker;
     window.updateMapMarker = updateMapMarker;
     window.removeMapMarker = removeMapMarker;
     window.rebuildAllMarkers = rebuildAllMarkers;

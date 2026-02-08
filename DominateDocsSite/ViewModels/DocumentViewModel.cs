@@ -68,7 +68,7 @@ public partial class DocumentViewModel : ObservableObject
 
         //dbApp.GetRecords<DominateDocsData.Models.Document>().Where(doc => doc.DocLibId == userSession.DocLibId).ToList().ForEach(doc => RecordList.Add(doc));
 
-        RecordList = SelectedLibrary.Documents.ToObservableCollection();
+        RecordList = SelectedLibrary.Documents.OrderBy(x => x.Name).ToObservableCollection();
                 
     }
 
@@ -213,6 +213,15 @@ public partial class DocumentViewModel : ObservableObject
     {
         if (doc != null)
         {
+
+
+
+
+
+
+
+
+
 
             var index = RecordList.FindIndex(d => d.Id == doc.Id);
 

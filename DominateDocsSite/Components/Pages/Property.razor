@@ -1,4 +1,4 @@
-﻿@using System.Text
+﻿﻿@using System.Text
 @using Blazored.FluentValidation
 @using DominateDocsData.Models
 @using DominateDocsData.Enums
@@ -6,6 +6,7 @@
 @using DominateDocsSite.State
 @using MudBlazor
 @using System.Threading
+@using CommunityToolkit.Mvvm.Input
 
 @rendermode InteractiveServer
 
@@ -35,9 +36,9 @@
                           Immediate="true" />
         </ToolBarContent>
         <HeaderContent>
-           
+
             <MudTh>Address</MudTh>
-          
+
             <MudTh>
                 <MudButton Class="rounded-4"
                            Variant="Variant.Text"
@@ -50,7 +51,7 @@
             </MudTh>
         </HeaderContent>
         <RowTemplate>
-          
+
             <MudTd DataLabel="Address">@context.FullAddress</MudTd>
             <MudTd>
                 <MudButton Class="rounded-4"
@@ -88,11 +89,11 @@ else
 
             <MudItem md="4">
 
-                 <div class="d-flex flex-column gap-2 mt-10">
+                <div class="d-flex flex-column gap-2 mt-10">
 
-                <AddressCompleteMap OnAddressChange="OnAddressComplete" Row="false" MultipleAddress="false" AddressList="@addresDTOList" DisplayMap="true" />
+                    <AddressCompleteMap OnAddressChange="OnAddressComplete" Row="false" MultipleAddress="true" AddressList="@addresDTOList" DisplayMap="true" />
                 </div>
-                
+
             </MudItem>
             <MudItem md="4">
 
@@ -105,7 +106,7 @@ else
                         }
 
                     </MudSelect>
-                    
+
                     <MudTextField Class="pl-4 mr-5" Style="" Variant="Variant.Outlined" @bind-Value="vm.EditingRecord.ParcelNumber" Label="Parcel Number" Required="false" />
 
                     <MudNumericField Class="pl-4 mr-5" Style="" HideSpinButtons="true" Adornment="Adornment.Start" AdornmentText="$" Culture="CultureInfo.InvariantCulture"
@@ -125,7 +126,7 @@ else
                 <div class="d-flex flex-column gap-2">
 
                     <MudSwitch Class="pl-4 mb-4 mt-10" T="bool" @bind-Value="vm.EditingRecord.IsOwnerOccupied" Color="Color.Primary" Label="Is Owner Occupied" />
-                    <MudSwitch Class="pl-4 pr-4" T="bool" @bind-Value="vm.EditingRecord.IsPropertyOwnerDisplay" Color="Color.Primary">Property Owners(@(vm.EditingRecord?.PropertyOwners?.Count ?? 0))</MudSwitch>
+                    <MudSwitch Class="pl-4 pr-4" T="bool" @bind-Value="vm.EditingRecord.IsPropertyOwnerDisplay" Color="Color.Primary">Property Owners(@(vm.EditingRecord?.PropertyOwners?.Count))</MudSwitch>
 
                     @if (vm.EditingRecord.IsPropertyOwnerDisplay)
                     {
@@ -147,10 +148,10 @@ else
 
 @code
 {
-        [Parameter] public EventCallback<DominateDocsData.Models.PropertyRecord> OnPropertyComplete { get; set; }
-        [Parameter] public EventCallback OnPropertyCanceled { get; set; }
-        [Parameter] public bool AllowRecordEdit { get; set; } = false;
-        [Parameter] public DominateDocsData.Models.PropertyRecord SelectedProperty { get; set; } = null;
+    [Parameter] public EventCallback<DominateDocsData.Models.PropertyRecord> OnPropertyComplete { get; set; }
+    [Parameter] public EventCallback OnPropertyCanceled { get; set; }
+    [Parameter] public bool AllowRecordEdit { get; set; } = false;
+    [Parameter] public DominateDocsData.Models.PropertyRecord SelectedProperty { get; set; } = null;
 
     private bool AddEdit = false;
 
@@ -176,39 +177,57 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-
-        vm.InitializePageCommand.Execute(SelectedProperty);
-
-        if (SelectedProperty is not null)
+        // Ensure the VM is initialized BEFORE we touch vm.EditingRecord or allow address callbacks to write into it.
+        try
         {
-            editRecord = true;
-        }
-
-        if (!string.IsNullOrEmpty(vm.EditingRecord.FullAddress))
-        {
-            AddressDTO dto = new()
+            if (vm.InitializePageCommand is IAsyncRelayCommand asyncCmd)
             {
-                FullAddress = vm.EditingRecord.FullAddress,
-                StreetAddress = vm.EditingRecord.StreetAddress,
-                State = vm.EditingRecord.State,
-                City = vm.EditingRecord.City,
-                ZipCode = vm.EditingRecord.ZipCode,
-                County = vm.EditingRecord.County,
-                Country = vm.EditingRecord.Country,
-                Lat = vm.EditingRecord.Lat,
-                Lng = vm.EditingRecord.Lng
-            };
-            addresDTOList.Add(dto);
+                await asyncCmd.ExecuteAsync(SelectedProperty);
+            }
+            else
+            {
+                vm.InitializePageCommand.Execute(SelectedProperty);
+            }
+
+            // Safety: make sure EditingRecord exists no matter what.
+            if (vm.EditingRecord is null)
+            {
+                vm.GetNewRecordCommand.Execute(null);
+            }
+
+            if (SelectedProperty is not null)
+            {
+                editRecord = true;
+            }
+
+            addresDTOList.Clear();
+
+            if (vm.EditingRecord is not null && !string.IsNullOrEmpty(vm.EditingRecord.FullAddress))
+            {
+                AddressDTO dto = new()
+                {
+                    FullAddress = vm.EditingRecord.FullAddress,
+                    StreetAddress = vm.EditingRecord.StreetAddress,
+                    State = vm.EditingRecord.State,
+                    City = vm.EditingRecord.City,
+                    ZipCode = vm.EditingRecord.ZipCode,
+                    County = vm.EditingRecord.County,
+                    Country = vm.EditingRecord.Country,
+                    Lat = vm.EditingRecord.Lat,
+                    Lng = vm.EditingRecord.Lng
+                };
+                addresDTOList.Add(dto);
+            }
         }
-
-
-
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Property init failed: {ex.Message}", Severity.Error);
+        }
     }
 
     private async Task SearchBackAsync()
     {
         searchString = "";
-
     }
 
     private async Task HandleSubmit()
@@ -224,10 +243,8 @@ else
         {
             if (!editRecord)
             {
-
-                if (vm.RecordList.Any(x => (x.FullAddress == vm.EditingRecord .FullAddress && vm.EditingRecord.FullAddress != null)))
+                if (vm.RecordList.Any(x => (x.FullAddress == vm.EditingRecord.FullAddress && vm.EditingRecord.FullAddress != null)))
                 {
-
                     Snackbar.Add("A Property already exists choose from the list of Properties.", Severity.Error);
                     return;
                 }
@@ -256,7 +273,6 @@ else
             AddButtonDisabled = false;
             editRecord = true;
         }
-
 
         StateHasChanged();
     }
@@ -297,29 +313,58 @@ else
 
     private void OnAddressComplete(List<AddressDTO> addressList)
     {
-        if (addressList == null || addressList.Count == 0)
+        try
         {
-            vm.EditingRecord.FullAddress = string.Empty;
-            vm.EditingRecord.StreetAddress = string.Empty;
-            vm.EditingRecord.City = string.Empty;
-            vm.EditingRecord.State = string.Empty;
-            vm.EditingRecord.ZipCode = string.Empty;
-            vm.EditingRecord.County = string.Empty;
-            vm.EditingRecord.Country = string.Empty;
-        }
-        else
-        {
-            var addressDTO = addressList.FirstOrDefault();
+            // AddressCompleteMap can fire callbacks at inconvenient times.
+            if (vm.EditingRecord is null)
+            {
+                vm.GetNewRecordCommand.Execute(null);
+            }
 
-            vm.EditingRecord.FullAddress = addressDTO.FullAddress;
-            vm.EditingRecord.StreetAddress = addressDTO.StreetAddress;
-            vm.EditingRecord.City = addressDTO.City;
-            vm.EditingRecord.State = addressDTO.State;
-            vm.EditingRecord.ZipCode = addressDTO.ZipCode;
-            vm.EditingRecord.County = addressDTO.County;
-            vm.EditingRecord.Country = addressDTO.Country;
-            vm.EditingRecord.Lat = addressDTO.Lat;
-            vm.EditingRecord.Lng = addressDTO.Lng;
+            if (vm.EditingRecord is null)
+            {
+                // If it’s STILL null, do not crash the circuit. Just bail.
+                Snackbar.Add("Address selection ignored because EditingRecord is not available.", Severity.Warning);
+                return;
+            }
+
+            if (addressList == null || addressList.Count == 0)
+            {
+                vm.EditingRecord.FullAddress = string.Empty;
+                vm.EditingRecord.StreetAddress = string.Empty;
+                vm.EditingRecord.City = string.Empty;
+                vm.EditingRecord.State = string.Empty;
+                vm.EditingRecord.ZipCode = string.Empty;
+                vm.EditingRecord.County = string.Empty;
+                vm.EditingRecord.Country = string.Empty;
+            }
+            else
+            {
+                var addressDTO = addressList.FirstOrDefault();
+
+                if (addressDTO is null)
+                {
+                    Snackbar.Add("Address selection returned empty data.", Severity.Warning);
+                    return;
+                }
+
+                vm.EditingRecord.FullAddress = addressDTO.FullAddress;
+                vm.EditingRecord.StreetAddress = addressDTO.StreetAddress;
+                vm.EditingRecord.City = addressDTO.City;
+                vm.EditingRecord.State = addressDTO.State;
+                vm.EditingRecord.ZipCode = addressDTO.ZipCode;
+                vm.EditingRecord.County = addressDTO.County;
+                vm.EditingRecord.Country = addressDTO.Country;
+                vm.EditingRecord.Lat = addressDTO.Lat;
+                vm.EditingRecord.Lng = addressDTO.Lng;
+            }
+
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            // Don’t kill the circuit because Google returned something weird.
+            Snackbar.Add($"Address selection failed: {ex.Message}", Severity.Error);
         }
     }
 

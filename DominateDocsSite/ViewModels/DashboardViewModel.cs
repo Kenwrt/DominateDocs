@@ -57,7 +57,7 @@ public partial class DashboardViewModel : ObservableObject
     [RelayCommand]
     private async Task InitDashboard()
     {
-        if (userSession.UserRole == UserEnums.Roles.Admin.ToString())
+        if (userSession.UserRole == UserEnums.Roles.Admin.ToString() || userSession.UserRole == UserEnums.Roles.DevAdmin.ToString())
         {
             AgreementList = dbApp.GetRecords<DominateDocsData.Models.LoanAgreement>().ToObservableCollection();
         }

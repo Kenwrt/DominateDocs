@@ -211,22 +211,22 @@ public static class ApiEndpointsExtensions
 
             if (documentTag is null) return Results.NotFound($"Document with ID {documentTag.DocumentId} not found.");
 
-            Document docTemp = dbApp.GetRecordById<Document>(documentTag.DocumentId);
+            DocumentStore docStore = dbApp.GetDocumentStoreByDocId(documentTag.DocumentId);
+
+            DocumentLibrary docLib = dbApp.GetRecordById<DocumentLibrary>(docStore.DocLibId);
+
+            Document docTemp = docLib.Documents.FirstOrDefault(x => x.Id == docStore.DocId);
 
             if (docTemp is null) return Results.NotFound($"Document with ID {documentTag.DocumentId} not found.");
 
-            DocumentStore docStore = dbApp.GetRecordById<DocumentStore>(docTemp.DocStoreId);
+            //DocumentStore docStore = dbApp.GetRecordById<DocumentStore>(docTemp.DocStoreId);
 
             docStore.DocumentBytes = bytes;
 
             docStore.UpdatedAt = System.DateTime.UtcNow;
 
             dbApp.UpSertRecord<DocumentStore>(docStore);
-
-            docTemp.UpdatedAt = System.DateTime.UtcNow;
-
-            dbApp.UpSertRecord<Document>(docTemp);
-
+                       
             return Results.Ok($"File {record.FileName} uploaded successfully");
         }
         catch (System.Exception)

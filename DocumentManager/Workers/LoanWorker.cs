@@ -143,22 +143,26 @@ public sealed class LoanWorker : WorkerPoolBackgroundService<LoanJob>
         if (docIds.Count == 0)
             return Task.FromResult<IReadOnlyList<Document>>(Array.Empty<Document>());
 
-        var docs = new List<Document>(docIds.Count);
+        // ✅ NEW: Resolve documents from DocumentLibrary.Documents (NOT the old top-level Documents collection)
+        var docPool = GetAllLibraryDocuments();
+        var docsById = docPool.ToDictionary(d => d.Id, d => d);
+
+        var resolved = new List<Document>(docIds.Count);
 
         foreach (var id in docIds)
         {
-            try
+            if (docsById.TryGetValue(id, out var doc))
             {
-                var d = dbApp.GetRecordById<Document>(id);
-                if (d != null) docs.Add(d);
+                resolved.Add(doc);
             }
-            catch (Exception ex)
+            else
             {
-                logger.LogError(ex, "ThenGenerate(DB): failed to load DocumentId={DocumentId}", id);
+                logger.LogWarning("ThenGenerate(DB): DocumentId={DocumentId} not found in DocumentLibrary.Documents (old Documents collection likely still referenced elsewhere)",
+                    id);
             }
         }
 
-        return Task.FromResult<IReadOnlyList<Document>>(docs);
+        return Task.FromResult<IReadOnlyList<Document>>(resolved);
     }
 
     // -------------------------
@@ -258,6 +262,7 @@ public sealed class LoanWorker : WorkerPoolBackgroundService<LoanJob>
             TryGetNestedString(loan, "Lender", "StateCode") ??
             TryGetNestedString(loan, "Lenders", 0, "Address", "State") ??
             TryGetNestedString(loan, "Lenders", 0, "MailingAddress", "State") ??
+            TryGetNestedString(loan, "Lenders", 0, "MailingAddress", "State") ??
             TryGetNestedString(loan, "Lenders", 0, "PhysicalAddress", "State") ??
             TryGetNestedString(loan, "Lender", "Address", "State") ??
             TryGetNestedString(loan, "Lender", "MailingAddress", "State") ??
@@ -326,17 +331,12 @@ public sealed class LoanWorker : WorkerPoolBackgroundService<LoanJob>
                 data.Remove(k);
         }
 
-       
-
         return data;
     }
-
-
 
     private Task<string> GetLenderNamesAsync(LoanAgreement loan) => Task.FromResult(loan.LenderNames ?? "");
     private Task<string> GetBorrowerNamesAsync(LoanAgreement loan) => Task.FromResult(loan.BorrowerNames ?? "");
     private Task<string> GetBrokerNamesAsync(LoanAgreement loan) => Task.FromResult(loan.BrokerNames ?? "");
-
 
     private static string? TryGetNestedString(object root, params object[] path)
     {
@@ -371,41 +371,43 @@ public sealed class LoanWorker : WorkerPoolBackgroundService<LoanJob>
     /// Creates the persisted delivery plan on the LoanAgreement.
     /// This is what Admin Bench shows, and what Merge queue uses.
     /// </summary>
-    private Task SaveDeliveriesAsync(LoanAgreement loan, IReadOnlyList<Document> docs, CancellationToken ct)
+    private async Task SaveDeliveriesAsync(
+    LoanAgreement loan,
+    IReadOnlyList<Document> docs,
+    CancellationToken ct)
     {
+        loan.DocumentDeliverys ??= new List<DocumentDelivery>();
         loan.DocumentDeliverys.Clear();
 
-        // Admin Bench can optionally force a single output type for the *bench run*.
-        // Real-world behavior: each Document may define its own OutputType.
-        var forcedOutput = (loan.AdminBench?.Enabled == true) ? loan.AdminBench.OutputTypeOverride : null;
+        var forcedOutput =
+            loan.AdminBench?.Enabled == true
+                ? loan.AdminBench.OutputTypeOverride
+                : (DocumentTypes.OutputTypes?)null;
 
         foreach (var doc in docs)
         {
-            var outputType = forcedOutput ?? doc.OutputType;
-
             loan.DocumentDeliverys.Add(new DocumentDelivery
             {
                 DocId = doc.Id,
-                OutputType = outputType,
-
-                // ✅ Copies is the new requirement.
-                // Older documents in Mongo may have Copies=0 until saved again, so we normalize to 1.
+                OutputType = forcedOutput ?? doc.OutputType,
                 Copies = doc.Copies <= 0 ? 1 : doc.Copies,
-
-                // Defaults already exist in your DocumentDelivery model, but setting explicitly is clearer.
                 DelieveryTypes = DocumentTypes.DelieveryTypes.Email,
-
-                // You left this as string in your model (spelling preserved).
-                // Leave empty unless you have a known convention.
-                DeliveryLoaction = ""
+                DeliveryLoaction = string.Empty
             });
         }
 
-        logger.LogInformation("✅ SaveDeliveriesAsync: LoanId={LoanId} DeliveryCount={Count}",
-            loan.Id, loan.DocumentDeliverys.Count);
+        // ============================
+        // 🔑 THIS WAS MISSING
+        // Persist the updated loan
+        // ============================
+        await dbApp.UpSertRecordAsync(loan).ConfigureAwait(false);
 
-        return Task.CompletedTask;
+        logger.LogInformation(
+            "✅ Deliveries persisted. LoanId={LoanId} DeliveryCount={Count}",
+            loan.Id,
+            loan.DocumentDeliverys.Count);
     }
+
 
     /// <summary>
     /// Queues merge jobs based on the persisted delivery plan.
@@ -428,27 +430,23 @@ public sealed class LoanWorker : WorkerPoolBackgroundService<LoanJob>
 
         foreach (var delivery in loan.DocumentDeliverys)
         {
-            Document? doc = null;
-
-            try
-            {
-                doc = dbApp.GetRecordById<Document>(delivery.DocId);
-            }
-            catch (Exception ex)
-            {
-                logger.LogError(ex, "QueueMergeFromDeliveriesAsync: failed loading DocumentId={DocId}", delivery.DocId);
-            }
+            var doc = TryResolveLibraryDocumentById(delivery.DocId);
 
             if (doc is null)
+            {
+                logger.LogWarning("QueueMergeFromDeliveriesAsync: DocumentId={DocId} not found in DocumentLibrary.Documents", delivery.DocId);
                 continue;
+            }
 
             // Delivery output type controls what is produced for THIS document.
-            doc.OutputType = delivery.OutputType;
+            // IMPORTANT: do NOT mutate the library metadata document instance.
+            var mergeDoc = CloneDocument(doc);
+            mergeDoc.OutputType = delivery.OutputType;
 
             var merge = new DocumentMerge
             {
                 LoanAgreement = loan,
-                Document = doc,
+                Document = mergeDoc,
                 Status = DocumentMergeState.Status.Queued
             };
 
@@ -458,5 +456,62 @@ public sealed class LoanWorker : WorkerPoolBackgroundService<LoanJob>
 
         logger.LogInformation("✅ QueueMergeFromDeliveriesAsync: LoanId={LoanId} MergeJobsQueued={Count}",
             loan.Id, queued);
+    }
+
+    // -------------------------
+    // NEW: Library-based resolution helpers
+    // -------------------------
+
+    private List<Document> GetAllLibraryDocuments()
+    {
+        try
+        {
+            var libs = dbApp.GetRecords<DocumentLibrary>().ToList();
+            return libs
+                .Where(l => l is not null)
+                .SelectMany(l => l.Documents ?? new List<Document>())
+                .ToList();
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "LoanWorker: failed to load DocumentLibrary records");
+            return new List<Document>();
+        }
+    }
+
+    private Document? TryResolveLibraryDocumentById(Guid docId)
+    {
+        if (docId == Guid.Empty) return null;
+
+        var docs = GetAllLibraryDocuments();
+        return docs.FirstOrDefault(d => d.Id == docId);
+    }
+
+    private static Document CloneDocument(Document source)
+    {
+        // Shallow clone, enough to prevent OutputType (and other per-merge overrides) from mutating library metadata.
+        return new Document
+        {
+            Id = source.Id,
+            DocLibId = source.DocLibId,
+            Name = source.Name,
+            DocStoreId = source.DocStoreId,
+
+            TemplateRef = source.TemplateRef,
+            MergedRef = source.MergedRef,
+
+            MasterTemplateDocumentUsedName = source.MasterTemplateDocumentUsedName,
+
+            TemplateDocumentBytes = source.TemplateDocumentBytes,
+            MergedDocumentBytes = source.MergedDocumentBytes,
+
+            HiddenTagName = source.HiddenTagName,
+            HiddenTagValue = source.HiddenTagValue,
+            UpdatedAt = source.UpdatedAt,
+
+            GenerateMultipleFor = source.GenerateMultipleFor is null ? new List<DocumentTypes.GenerateMultipleFor>() : new List<DocumentTypes.GenerateMultipleFor>(source.GenerateMultipleFor),
+            OutputType = source.OutputType,
+            Copies = source.Copies
+        };
     }
 }

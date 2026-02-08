@@ -138,8 +138,7 @@
 
                     </MudSelect>
 
-
-                    <MudTextField Class="pl-4" Style="" Variant="Variant.Outlined" @bind-Value="vm.EditingRecord.EIN" Label="EIN#" Required="false" />
+                                     
                     <MudTextField Class="pl-4" Style="" Variant="Variant.Outlined" @bind-Value="vm.EditingRecord.ContactName" For="@(() => vm.EditingRecord.ContactName)" Label="Contact Name" Required="true" />
 
                     <MudSelect Class="ml-4" T="DominateDocsData.Enums.Entity.ContactRoles" Style="" Variant="Variant.Outlined" Label="Contact's Role" @bind-Value="vm.EditingRecord.ContactsRole" Dense="true">
@@ -166,8 +165,7 @@
                                   @bind-Value="vm.EditingRecord.ContactPhoneNumber"
                                   Mask="@phoneMask"
                                   Placeholder="(___) ___-____"
-                                  Required="true"
-                                  Immediate="true" />
+                                  Required="true" />
                 }
                 else
                 {
@@ -189,8 +187,7 @@
                                   @bind-Value="vm.EditingRecord.ContactPhoneNumber"
                                   Mask="@phoneMask"
                                   Placeholder="(___) ___-____"
-                                  Required="true"
-                                  Immediate="true" />
+                                  Required="true" />
 
                     <MudTextField Class="pl-4 mr-5" @bind-Value="vm.EditingRecord.SSN" Style="" Variant="Variant.Outlined" For="@(() => vm.EditingRecord.SSN)"
                                   Label="SSN"
@@ -219,7 +216,7 @@
 
                 <MudTextField Class="pl-4 mr-5" Variant="Variant.Outlined" Style="" @bind-Value="vm.EditingRecord.NmlsLicenseNumber" Color="Color.Primary" For="@(() => vm.EditingRecord.NmlsLicenseNumber)" Label="NMLS License Number" />
 
-                <MudSwitch Class="pl-4 pr-4" T="bool" @bind-Value="vm.EditingRecord.IsStateLicense" Color="Color.Primary">State Licenses(@(vm.EditingRecord.StateLicenses?.Count ?? 0))</MudSwitch>
+                <MudSwitch Class="pl-4 pr-4" T="bool" @bind-Value="vm.EditingRecord.IsStateLicense" Color="Color.Primary">State Licenses(@(vm.EditingRecord.StateLicenses?.Count))</MudSwitch>
 
                 @if (vm.EditingRecord.IsStateLicense)
                 {
@@ -228,14 +225,14 @@
                                          StateLicenseList="@vm.EditingRecord.StateLicenses" />
                 }
 
-                <MudSwitch Class="pl-4 pr-4" T="bool" @bind-Value="vm.EditingRecord.IsAliasNamesUsed" Color="Color.Primary">Alias Names(@(vm.EditingRecord.AliasNames?.Count ?? 0))</MudSwitch>
+                <MudSwitch Class="pl-4 pr-4" T="bool" @bind-Value="vm.EditingRecord.IsAliasNamesUsed" Color="Color.Primary">Alias Names(@(vm.EditingRecord.AliasNames?.Count))</MudSwitch>
 
                 @if (vm.EditingRecord.IsAliasNamesUsed)
                 {
                     <AkaAlias OnAliasComplete="OnAliasComplete" OnAliasCanceled="OnAliasCanceled" AliasList="@vm.EditingRecord.AliasNames" />
                 }
 
-                <MudSwitch Class="pl-4 pr-4" T="bool" @bind-Value="vm.EditingRecord.IsSignatureAuthority" Color="Color.Primary">Signature Authority Names(@(vm.EditingRecord.SigningAuthorities?.Count ?? 0))</MudSwitch>
+                <MudSwitch Class="pl-4 pr-4" T="bool" @bind-Value="vm.EditingRecord.IsSignatureAuthority" Color="Color.Primary">Signature Authority Names(@(vm.EditingRecord.SigningAuthorities?.Count))</MudSwitch>
 
                 @if (vm.EditingRecord.IsSignatureAuthority)
                 {

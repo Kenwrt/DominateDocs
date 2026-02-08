@@ -70,7 +70,7 @@
         get
         {
             IEnumerable<DocumentListDTO> q =
-                AllDocuments.Where(d => d.Id != Guid.Empty && !SelectedIds.Contains(d.Id));
+                AllDocuments.Where(d => d.Id != Guid.Empty && !SelectedIds.Contains(d.Id)).OrderBy(x => x.Name);
 
             if (!string.IsNullOrWhiteSpace(_search))
             {

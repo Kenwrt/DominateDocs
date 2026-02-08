@@ -1,6 +1,6 @@
-﻿
-namespace DominateDocsData.Database;
+﻿using DominateDocsData.Models;
 
+namespace DominateDocsData.Database;
 public interface IMongoDatabaseRepo
 {
     void DeleteDocumentStoreByDocId(Guid docId);
@@ -8,6 +8,8 @@ public interface IMongoDatabaseRepo
     void DeleteRecordById<T>(Guid id) where T : class;
     void DropCollection<T>(T record) where T : class;
     Task DropCollectionAsync<T>();
+    Guid? GetDocIdFromDocumentStore(Guid id);
+    DocumentStore? GetDocumentStoreByDocId(Guid docId);
     T GetRecordById<T>(Guid id) where T : class;
     T GetRecordByUserId<T>(Guid id) where T : class;
     Task<T> GetRecordByUserNameAsync<T>(string userName) where T : class;

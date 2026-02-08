@@ -79,8 +79,7 @@ else
                                               @bind-Value="vm.EditingRecord.PhoneNumber"
                                               Mask="phoneMask"
                                               Placeholder="(___) ___-____"
-                                              Required="true"
-                                              Immediate="true" />
+                                              Required="true" />
 
                                 <MudStack Row="true" Spacing="10" Class="mt-4 mb-10">
                                     <MudButton Class="ml-10" Type="Submit" OnClick="HandleSubmit" Color="Color.Success" Variant="Variant.Filled">@(vm.SelectedRecord == null ? "Add" : "Save")</MudButton>

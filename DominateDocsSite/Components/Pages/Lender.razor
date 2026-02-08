@@ -145,12 +145,7 @@ else
 
                         </MudSelect>
 
-                        <MudTextField Class="pl-4"
-                                      Variant="Variant.Outlined"
-                                      @bind-Value="vm.EditingRecord.EIN"
-                                      Label="EIN#"
-                                      Required="false" />
-
+                   
                         <MudTextField Class="pl-4"
                                       Variant="Variant.Outlined"
                                       @bind-Value="vm.EditingRecord.ContactName"
@@ -190,8 +185,7 @@ else
                                       @bind-Value="vm.EditingRecord.ContactPhoneNumber"
                                       Mask="@phoneMask"
                                       Placeholder="(___) ___-____"
-                                      Required="true"
-                                      Immediate="true" />
+                                      Required="true" />
                     }
                     else
                     {
@@ -219,8 +213,7 @@ else
                                       @bind-Value="vm.EditingRecord.ContactPhoneNumber"
                                       Mask="@phoneMask"
                                       Placeholder="(___) ___-____"
-                                      Required="true"
-                                      Immediate="true" />
+                                      Required="true" />
                     }
 
                     <AddressCompleteMap OnAddressChange="OnAddressComplete"
@@ -314,7 +307,7 @@ else
                                   For="@(() => vm.EditingRecord.NmlsLicenseNumber)"
                                   Label="NMLS License Number" />
 
-                    <MudSwitch Class="pl-4 pr-4" T="bool" @bind-Value="vm.EditingRecord.IsStateLicense" Color="Color.Primary">State Lending Licenses(@(vm.EditingRecord.StateLicenses?.Count ?? 0))</MudSwitch>
+                    <MudSwitch Class="pl-4 pr-4" T="bool" @bind-Value="vm.EditingRecord.IsStateLicense" Color="Color.Primary">State Lending Licenses(@(vm.EditingRecord.StateLicenses?.Count))</MudSwitch>
 
                     @if (vm.EditingRecord.IsStateLicense)
                     {
@@ -334,7 +327,7 @@ else
                     <MudSwitch Class="pl-4 pr-4 mt-7"
                                T="bool"
                                @bind-Value="vm.EditingRecord.IsAliasNamesUsed"
-                               Color="Color.Primary">Alias Names(@(vm.EditingRecord.AliasNames?.Count ?? 0))</MudSwitch>
+                               Color="Color.Primary">Alias Names(@(vm.EditingRecord.AliasNames?.Count))</MudSwitch>
 
                     @if (vm.EditingRecord.IsAliasNamesUsed)
                     {
@@ -346,7 +339,7 @@ else
                     <MudSwitch Class="pl-4 pr-4"
                                T="bool"
                                @bind-Value="vm.EditingRecord.IsSignatureAuthority"
-                               Color="Color.Primary">Signature Authority Names(@(vm.EditingRecord.SigningAuthorities?.Count ?? 0))</MudSwitch>
+                               Color="Color.Primary">Signature Authority Names(@(vm.EditingRecord.SigningAuthorities?.Count))</MudSwitch>
 
                     @if (vm.EditingRecord.IsSignatureAuthority)
                     {

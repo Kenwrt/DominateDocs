@@ -343,6 +343,54 @@ public class MongoDatabaseRepo : IMongoDatabaseRepo
         }
     }
 
+    public DocumentStore? GetDocumentStoreByDocId(Guid docId)
+    {
+        try
+        {
+            var collection = mongoConn.GetCollection<DocumentStore>(nameof(DocumentStore));
+
+            var filter = Builders<DocumentStore>.Filter.Eq(x => x.DocId, docId);
+
+            return collection.Find(filter).FirstOrDefault();
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error getting DocumentStore by DocId. DocId: {DocId}", docId);
+            return null;
+        }
+    }
+
+    public Guid? GetDocIdFromDocumentStore(Guid id)
+    {
+        try
+        {
+            var collection = mongoConn.GetCollection<DocumentStore>("DocumentStore");
+
+            var filter = Builders<DocumentStore>.Filter.Eq(
+                "_id",
+                new MongoDB.Bson.BsonBinaryData(id, GuidRepresentation.Standard));
+
+            var doc = collection.Find(filter).FirstOrDefault();
+
+            if (doc == null)
+            {
+                // fall back to "Id" for old docs
+                filter = Builders<DocumentStore>.Filter.Eq(
+                    "Id",
+                    new MongoDB.Bson.BsonBinaryData(id, GuidRepresentation.Standard)
+                );
+                doc = collection.Find(filter).FirstOrDefault();
+            }
+
+            return doc?.DocId;
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex.Message);
+            return null;
+        }
+    }
+
     public void DeleteDocumentStoreByDocId(Guid docId)
     {
         try

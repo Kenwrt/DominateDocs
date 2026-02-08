@@ -12,216 +12,262 @@ public sealed class DocumentOutputService : IDocumentOutputService
 {
     private readonly IMongoDatabaseRepo db;
     private readonly IDocumentManagerState docState;
-
     private readonly ILogger<DocumentOutputService> logger;
 
     public DocumentOutputService(
         IMongoDatabaseRepo db,
         IDocumentManagerState docState,
-
         ILogger<DocumentOutputService> logger)
     {
         this.db = db;
         this.docState = docState;
-
         this.logger = logger;
     }
 
-    // -------------------------
-    // Library + list loading
-    // -------------------------
+    // =========================================================
+    // DocLibId semantics
+    // =========================================================
+    // SelectedDocLibId is the *logical* DocLibId stored on:
+    //   - Document.DocLibId (inside DocumentLibrary.Documents)
+    //   - LoanType.DocLibId
+    //
+    // It is NOT the DocumentLibrary record Id.
+    // =========================================================
 
     public List<Guid> GetDocLibIds()
     {
-        // Build libraries from things that actually have DocLibId (NO LoanAgreement.DocLibId)
-        var allDocs = db.GetRecords<DominateDocsData.Models.Document>().ToList();
-        var allLoanTypes = db.GetRecords<DominateDocsData.Models.LoanType>().ToList();
+        try
+        {
+            var libs = db.GetRecords<DocumentLibrary>().ToList();
+            var docs = libs
+                .Where(l => l is not null)
+                .SelectMany(l => l.Documents ?? new List<Document>())
+                .ToList();
 
-        return allDocs.Select(d => d.DocLibId)
-            .Concat(allLoanTypes.Select(t => t.DocLibId))
-            .Where(id => id != Guid.Empty)
-            .Distinct()
-            .OrderBy(id => id)
-            .ToList();
+            var loanTypes = db.GetRecords<LoanType>().ToList();
+
+            return docs.Select(d => d.DocLibId)
+                .Concat(loanTypes.Select(t => t.DocLibId))
+                .Where(x => x != Guid.Empty)
+                .Distinct()
+                .OrderBy(x => x)
+                .ToList();
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "GetDocLibIds failed");
+            return new List<Guid>();
+        }
     }
 
-    public List<DominateDocsData.Models.Document> GetDocuments(Guid docLibId)
+    public List<Document> GetDocuments(Guid docLibId)
     {
-        return db.GetRecords<DominateDocsData.Models.Document>()
-            .Where(d => d.DocLibId == docLibId)
-            .OrderBy(d => d.Name)
-            .ToList();
+        // docLibId = Document.DocLibId (logical), NOT DocumentLibrary.Id
+        try
+        {
+            var libs = db.GetRecords<DocumentLibrary>().ToList();
+
+            return libs
+                .Where(l => l is not null)
+                .SelectMany(l => l.Documents ?? new List<Document>())
+                .Where(d => d.DocLibId == docLibId)
+                .OrderBy(d => d.Name)
+                .ToList();
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "GetDocuments failed for DocLibId={DocLibId}", docLibId);
+            return new List<Document>();
+        }
     }
 
-    public List<DominateDocsData.Models.LoanType> GetLoanTypes(Guid docLibId)
+    public List<LoanType> GetLoanTypes(Guid docLibId)
     {
-        return db.GetRecords<DominateDocsData.Models.LoanType>()
-            .Where(t => t.DocLibId == docLibId)
-            .OrderBy(t => t.Name)
-            .ToList();
+        try
+        {
+            return db.GetRecords<LoanType>()
+                .Where(t => t.DocLibId == docLibId)
+                .OrderBy(t => t.Name)
+                .ToList();
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "GetLoanTypes failed for DocLibId={DocLibId}", docLibId);
+            return new List<LoanType>();
+        }
     }
 
-    public List<DominateDocsData.Models.LoanAgreement> GetLoanAgreements()
+    public List<LoanAgreement> GetLoanAgreements()
     {
-        // Agreements are NOT keyed by DocLibId in your model
-        return db.GetRecords<DominateDocsData.Models.LoanAgreement>().ToList();
+        try
+        {
+            return db.GetRecords<LoanAgreement>().ToList();
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "GetLoanAgreements failed");
+            return new List<LoanAgreement>();
+        }
     }
 
-    public string GetLoanLabel(DominateDocsData.Models.LoanAgreement loan)
+    public string GetLoanLabel(LoanAgreement loan)
     {
-        // Prefer ReferenceName if present; else fall back to Name, Id, ToString
+        // Prefer common fields if present; keep this safe for model churn.
         var rn = TryGetPropString(loan, "ReferenceName");
         if (!string.IsNullOrWhiteSpace(rn)) return rn;
 
         var name = TryGetPropString(loan, "Name");
         if (!string.IsNullOrWhiteSpace(name)) return name;
 
-        var id = TryGetPropString(loan, "Id");
-        if (!string.IsNullOrWhiteSpace(id)) return id;
-
-        return loan.ToString() ?? "LoanAgreement";
+        return loan.ToString() ?? "Loan";
     }
-
-    // -------------------------
-    // Evaluation (rules)
-    // -------------------------
 
     public List<Document> EvaluateDocuments(LoanType loanType, LoanAgreement loanAgreement, IReadOnlyList<Document> docPool)
     {
         var data = BuildEvalData(loanAgreement);
 
-        // Evaluate IDs from rules
         var ids = DocumentOutputEvaluator.BuildFinalDocumentIds(loanType, data);
 
-        var docsById = docPool.ToDictionary(d => d.Id, d => d);
+        var byId = docPool.GroupBy(d => d.Id).ToDictionary(g => g.Key, g => g.First());
 
-        return ids.Where(id => docsById.ContainsKey(id))
-                  .Select(id => docsById[id])
-                  .ToList();
-    }
-
-    /// <summary>
-    /// This is your "key bag" for rule evaluation. Add keys here (or make this pluggable later).
-    /// </summary>
-    public Dictionary<string, object?> BuildEvalData(DominateDocsData.Models.LoanAgreement loan)
-    {
-        // This is the rule "key bag". If the UI lets you pick a field name,
-        // then this method is the contract that provides it.
-        var data = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
-
-        var lender0 = loan.Lenders?.FirstOrDefault();
-        var borrower0 = loan.Borrowers?.FirstOrDefault();
-        var broker0 = loan.Brokers?.FirstOrDefault();
-
-        // States
-        var lenderState = GetState(lender0);
-        if (!string.IsNullOrWhiteSpace(lenderState))
-            data["LenderState"] = lenderState;
-
-        var borrowerState = GetState(borrower0);
-        if (!string.IsNullOrWhiteSpace(borrowerState))
-            data["BorrowerState"] = borrowerState;
-
-        var brokerState = GetState(broker0);
-        if (!string.IsNullOrWhiteSpace(brokerState))
-            data["BrokerState"] = brokerState;
-
-        // Codes
-        var lenderCode = loan.LenderCode ?? GetString(lender0, "LenderCode") ?? GetString(lender0, "Code");
-        if (!string.IsNullOrWhiteSpace(lenderCode))
-            data["LenderCode"] = lenderCode;
-
-        var borrowerCode = loan.BorrowerCode ?? GetString(borrower0, "BorrowerCode") ?? GetString(borrower0, "Code");
-        if (!string.IsNullOrWhiteSpace(borrowerCode))
-            data["BorrowerCode"] = borrowerCode;
-
-        var brokerCode = loan.BrokerCode ?? GetString(broker0, "BrokerCode") ?? GetString(broker0, "Code");
-        if (!string.IsNullOrWhiteSpace(brokerCode))
-            data["BrokerCode"] = brokerCode;
-
-        // Property
-        if (!string.IsNullOrWhiteSpace(loan.PropertyState))
-            data["PropertyState"] = loan.PropertyState;
-
-        return data;
-
-        static string? GetState(object? party)
+        var results = new List<Document>();
+        foreach (var id in ids)
         {
-            if (party is null) return null;
-
-            // Try common names across your models (you change these, because humans)
-            var raw =
-                GetString(party, "State") ??
-                GetString(party, "PreferredStateVenue") ??
-                GetString(party, "StateOfIncorporation");
-
-            return string.IsNullOrWhiteSpace(raw) ? null : raw.Trim();
+            if (byId.TryGetValue(id, out var doc))
+                results.Add(doc);
         }
 
-        static string? GetString(object? obj, string propName)
+        return results;
+    }
+
+    // =========================================================
+    // DocumentStore support (templates live here)
+    // =========================================================
+
+    public byte[]? TryGetTemplateBytes(Document doc)
+    {
+        if (doc is null) return null;
+
+        if (doc.DocStoreId != Guid.Empty)
         {
-            if (obj is null) return null;
             try
             {
-                var pi = obj.GetType().GetProperty(propName, System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance);
-                return pi?.GetValue(obj)?.ToString();
+                var store = db.GetRecordById<DocumentStore>(doc.DocStoreId);
+                if (store?.DocumentBytes is not null && store.DocumentBytes.Length > 0)
+                    return store.DocumentBytes;
             }
-            catch { return null; }
-        }
-    }
-
-
-    // -------------------------
-    // Merge + Email
-    // -------------------------
-
-    public async Task MergeAndEmailAsync(
-        IReadOnlyList<DominateDocsData.Models.Document> docs,
-        DominateDocsData.Models.LoanAgreement loanAgreement,
-        DocumentTypes.OutputTypes outputType,
-        string emailTo,
-        string subject)
-    {
-        if (docs.Count == 0) return;
-
-        docState.IsRunBackgroundDocumentMergeService = true;
-      
-
-        var merges = new List<DocumentMerge>();
-
-        foreach (var doc in docs)
-        {
-            doc.OutputType = outputType;
-
-            var merge = new DocumentMerge
+            catch (Exception ex)
             {
-                Id = Guid.NewGuid(),
-                LoanAgreement = loanAgreement,
-                Document = doc,
-                Status = DocumentMergeState.Status.Pending
-            };
-
-            merges.Add(merge);
-            docState.DocumentProcessingQueue.Enqueue(merge);
+                logger.LogError(ex, "TryGetTemplateBytes failed. DocId={DocId} DocStoreId={DocStoreId}", doc.Id, doc.DocStoreId);
+            }
         }
 
-        // Wait for completion (simple polling like your VM did)
-        while (merges.Any(m => m.Status == DocumentMergeState.Status.Pending))
-            await Task.Delay(200);
+        // Back-compat fallback during migration (older docs)
+        if (doc.TemplateDocumentBytes is not null && doc.TemplateDocumentBytes.Length > 0)
+            return doc.TemplateDocumentBytes;
 
-        var completed = merges
-            .Where(m => m.Status == DocumentMergeState.Status.Complete && m.MergedDocumentBytes != null)
-            .ToList();
-
-        QueueEmailBestEffort(
-            to: emailTo,
-            subject: subject,
-            completed: completed);
+        return null;
     }
 
-    // -------------------------
-    // Reflection helpers
-    // -------------------------
+    public Document? TryResolveDocumentById(Guid docId)
+    {
+        if (docId == Guid.Empty) return null;
+
+        try
+        {
+            var libs = db.GetRecords<DocumentLibrary>().ToList();
+
+            return libs
+                .Where(l => l is not null)
+                .SelectMany(l => l.Documents ?? new List<Document>())
+                .FirstOrDefault(d => d.Id == docId);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "TryResolveDocumentById failed. DocId={DocId}", docId);
+            return null;
+        }
+    }
+
+    // =========================================================
+    // Rule evaluation keys
+    // =========================================================
+
+    private IReadOnlyDictionary<string, object?> BuildEvalData(LoanAgreement loan)
+    {
+        var data = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
+
+        data["LenderCode"] = loan.LenderCode;
+        data["BrokerCode"] = loan.BrokerCode;
+        data["BorrowerCode"] = loan.BorrowerCode;
+        data["PropertyState"] = loan.PropertyState;
+        data["LoanTypeName"] = loan.LoanTypeName;
+
+        data["LoanId"] = loan.Id;
+        data["LoanTypeId"] = loan.LoanTypeId;
+        data["DocLibId"] = loan.DocLibId;
+
+        var lenderState =
+            TryGetNestedString(loan, "Lenders", 0, "State") ??
+            TryGetNestedString(loan, "Lenders", 0, "StateChoiceOfLaw") ??
+            TryGetNestedString(loan, "Lender", "State") ??
+            TryGetNestedString(loan, "Lender", "StateChoiceOfLaw") ??
+            TryGetNestedString(loan, "Lenders", 0, "Address", "State") ??
+            TryGetNestedString(loan, "Lenders", 0, "MailingAddress", "State") ??
+            TryGetNestedString(loan, "Lenders", 0, "PhysicalAddress", "State");
+
+        if (!string.IsNullOrWhiteSpace(lenderState))
+            data["LenderState"] = lenderState!.Trim();
+
+        var borrowerState =
+            TryGetNestedString(loan, "Borrowers", 0, "State") ??
+            TryGetNestedString(loan, "Borrowers", 0, "StateChoiceOfLaw") ??
+            TryGetNestedString(loan, "Borrower", "State") ??
+            TryGetNestedString(loan, "Borrower", "StateChoiceOfLaw") ??
+            TryGetNestedString(loan, "Borrowers", 0, "Address", "State") ??
+            TryGetNestedString(loan, "Borrowers", 0, "MailingAddress", "State") ??
+            TryGetNestedString(loan, "Borrowers", 0, "PhysicalAddress", "State");
+
+        if (!string.IsNullOrWhiteSpace(borrowerState))
+            data["BorrowerState"] = borrowerState!.Trim();
+
+        var brokerState =
+            TryGetNestedString(loan, "Brokers", 0, "State") ??
+            TryGetNestedString(loan, "Brokers", 0, "StateChoiceOfLaw") ??
+            TryGetNestedString(loan, "Broker", "State") ??
+            TryGetNestedString(loan, "Broker", "StateChoiceOfLaw") ??
+            TryGetNestedString(loan, "Brokers", 0, "Address", "State") ??
+            TryGetNestedString(loan, "Brokers", 0, "MailingAddress", "State") ??
+            TryGetNestedString(loan, "Brokers", 0, "PhysicalAddress", "State");
+
+        if (!string.IsNullOrWhiteSpace(brokerState))
+            data["BrokerState"] = brokerState!.Trim();
+
+        if (loan.AdminBench?.KeyOverrides is not null)
+        {
+            foreach (var kvp in loan.AdminBench.KeyOverrides)
+                data[kvp.Key] = kvp.Value;
+        }
+
+        // prune nulls
+        if (data.Count > 0)
+        {
+            var rm = new List<string>();
+            foreach (var kv in data)
+                if (kv.Value is null) rm.Add(kv.Key);
+            foreach (var k in rm)
+                data.Remove(k);
+        }
+
+        return data;
+    }
+
+    private static string? TryGetPropString(object obj, string propName)
+    {
+        var prop = obj.GetType().GetProperty(propName, BindingFlags.Public | BindingFlags.Instance | BindingFlags.IgnoreCase);
+        if (prop == null) return null;
+        return prop.GetValue(obj)?.ToString();
+    }
 
     private static string? TryGetNestedString(object root, params object[] path)
     {
@@ -235,7 +281,7 @@ public sealed class DocumentOutputService : IDocumentOutputService
 
                 if (seg is string propName)
                 {
-                    var pi = cur.GetType().GetProperty(propName, BindingFlags.Public | BindingFlags.Instance);
+                    var pi = cur.GetType().GetProperty(propName, BindingFlags.Public | BindingFlags.Instance | BindingFlags.IgnoreCase);
                     cur = pi?.GetValue(cur);
                 }
                 else if (seg is int index)
@@ -250,155 +296,5 @@ public sealed class DocumentOutputService : IDocumentOutputService
             return cur?.ToString();
         }
         catch { return null; }
-    }
-
-    private static string? TryGetPropString(object obj, string propName)
-    {
-        try
-        {
-            var pi = obj.GetType().GetProperty(propName, BindingFlags.Public | BindingFlags.Instance);
-            var v = pi?.GetValue(obj);
-            return v?.ToString();
-        }
-        catch { return null; }
-    }
-
-    // -------------------------
-    // Email enqueue (best effort)
-    // -------------------------
-
-    private void QueueEmailBestEffort(string to, string subject, List<DocumentMerge> completed)
-    {
-        // Same approach as your VM: reflection so we don't guess your EmailMsg shape.
-        try
-        {
-            var emailMsgType = FindType("DominateDocsNotify.Models.EmailMsg");
-            if (emailMsgType == null)
-            {
-                logger.LogWarning("EmailMsg type not found. Skipping email queue.");
-                return;
-            }
-
-            var msg = Activator.CreateInstance(emailMsgType);
-            if (msg == null)
-            {
-                logger.LogWarning("Could not create EmailMsg instance. Skipping email queue.");
-                return;
-            }
-
-            SetIfExists(msg, "Id", Guid.NewGuid());
-            SetIfExists(msg, "To", to);
-            SetIfExists(msg, "Subject", subject);
-            SetIfExists(msg, "MessageBody", $"Admin bench merge completed. Attachments: {completed.Count}.");
-
-            // ProviderType (optional)
-            var providerProp = emailMsgType.GetProperty("ProviderType");
-            if (providerProp != null && providerProp.CanWrite)
-            {
-                var pt = providerProp.PropertyType;
-                if (pt.IsEnum)
-                {
-                    object? value = Enum.GetNames(pt).Contains("Fluent")
-                        ? Enum.Parse(pt, "Fluent")
-                        : Enum.GetValues(pt).GetValue(0);
-
-                    if (value != null) providerProp.SetValue(msg, value);
-                }
-            }
-
-            // Attachments (best effort)
-            TryAddAttachments(msg, completed);
-
-            // Queue it
-            var q = docState.EmailMsgProcessingQueue;
-            var enqueue = q.GetType().GetMethod("Enqueue");
-            enqueue?.Invoke(q, new[] { msg });
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "QueueEmailBestEffort failed (email skipped).");
-        }
-    }
-
-    private void TryAddAttachments(object msg, List<DocumentMerge> completed)
-    {
-        try
-        {
-            var t = msg.GetType();
-            var attachmentsProp = t.GetProperty("Attachments", BindingFlags.Public | BindingFlags.Instance);
-            if (attachmentsProp == null) return;
-
-            var attachmentsObj = attachmentsProp.GetValue(msg);
-            if (attachmentsObj == null) return;
-
-            var addMethod = attachmentsObj.GetType().GetMethod("Add");
-            if (addMethod == null) return;
-
-            var elementType = attachmentsObj.GetType().IsGenericType
-                ? attachmentsObj.GetType().GetGenericArguments()[0]
-                : null;
-
-            if (elementType == null) return;
-
-            foreach (var m in completed)
-            {
-                if (m.MergedDocumentBytes == null) continue;
-
-                var att = Activator.CreateInstance(elementType);
-                if (att == null) continue;
-
-                SetIfExists(att, "FileName", $"{SafeName(m.Document?.Name) ?? "MergedDoc"}.pdf");
-                SetIfExists(att, "ContentType", "application/pdf");
-                SetIfExists(att, "Bytes", m.MergedDocumentBytes);
-                SetIfExists(att, "Data", m.MergedDocumentBytes);
-
-                addMethod.Invoke(attachmentsObj, new[] { att });
-            }
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "Attachment reflection add failed (email will queue without attachments).");
-        }
-    }
-
-    private static void SetIfExists(object target, string propName, object? value)
-    {
-        var pi = target.GetType().GetProperty(propName, BindingFlags.Public | BindingFlags.Instance);
-        if (pi == null || !pi.CanWrite) return;
-
-        if (value == null)
-        {
-            pi.SetValue(target, null);
-            return;
-        }
-
-        if (pi.PropertyType.IsAssignableFrom(value.GetType()))
-        {
-            pi.SetValue(target, value);
-            return;
-        }
-
-        if (pi.PropertyType.IsEnum && value is string s)
-            pi.SetValue(target, Enum.Parse(pi.PropertyType, s));
-    }
-
-    private static Type? FindType(string fullName)
-    {
-        foreach (var asm in AppDomain.CurrentDomain.GetAssemblies())
-        {
-            var t = asm.GetType(fullName, throwOnError: false);
-            if (t != null) return t;
-        }
-        return null;
-    }
-
-    private static string? SafeName(string? name)
-    {
-        if (string.IsNullOrWhiteSpace(name)) return null;
-
-        foreach (var c in Path.GetInvalidFileNameChars())
-            name = name.Replace(c, '_');
-
-        return name;
     }
 }

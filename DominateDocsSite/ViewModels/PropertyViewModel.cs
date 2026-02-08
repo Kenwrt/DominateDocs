@@ -16,7 +16,7 @@ public partial class PropertyViewModel : ObservableObject
     private ObservableCollection<DominateDocsData.Models.PropertyRecord> myPropertyList = new();
 
     [ObservableProperty]
-    private DominateDocsData.Models.PropertyRecord editingRecord = null;
+    private DominateDocsData.Models.PropertyRecord editingRecord = new DominateDocsData.Models.PropertyRecord();
 
     [ObservableProperty]
     private DominateDocsData.Models.PropertyRecord selectedRecord = null;
@@ -36,6 +36,12 @@ public partial class PropertyViewModel : ObservableObject
         this.appState = appState;
 
         userId = userSession.UserId;
+
+        // Safety: ensure we never start with a null EditingRecord.
+        if (EditingRecord is null)
+        {
+            GetNewRecord();
+        }
     }
 
     [RelayCommand]
@@ -54,9 +60,11 @@ public partial class PropertyViewModel : ObservableObject
                 EditingRecord = r;
             }
         }
-          
 
-        dbApp.GetRecords<DominateDocsData.Models.PropertyRecord>().Where(x => x.UserId == userId).ToList().ForEach(lf => RecordList.Add(lf));
+        dbApp.GetRecords<DominateDocsData.Models.PropertyRecord>()
+             .Where(x => x.UserId == userId)
+             .ToList()
+             .ForEach(lf => RecordList.Add(lf));
     }
 
     [RelayCommand]
@@ -116,6 +124,14 @@ public partial class PropertyViewModel : ObservableObject
         if (SelectedRecord != null)
         {
             SelectedRecord = null;
+        }
+
+        if (EditingRecord is null)
+        {
+            GetNewRecord();
+        }
+        else
+        {
             GetNewRecord();
         }
     }

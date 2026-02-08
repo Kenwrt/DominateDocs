@@ -106,7 +106,9 @@ public sealed class LoanTypeViewModel
     {
         try
         {
-            var filtered = db.GetRecords<Document>().Where(x => x.DocLibId == docLibId).Select(d => new DocumentListDTO(d.Id, d.DocLibId, d.Name, d.UpdatedAt, d.DocStoreId)).ToList();    
+            var docLib = db.GetRecords<DocumentLibrary>().FirstOrDefault(x => x.Id == docLibId);
+
+            var filtered = docLib.Documents.Select(d => new DocumentListDTO(d.Id, d.DocLibId, d.Name, d.UpdatedAt, d.DocStoreId)).ToList();    
 
             MasterDocumentDtos = filtered;
 

@@ -156,7 +156,7 @@ else
                         <MudItem md="4">
                             <div class="d-flex flex-column gap-2">
 
-                                <MudSwitch Class="pl-4 pr-4 mt-8" T="bool" @bind-Value="vm.EditingRecord.IsPropertyOwnerDisplay" Color="Color.Primary">Property Owners(@(vm.EditingRecord?.PropertyOwners?.Count ?? 0))</MudSwitch>
+                                <MudSwitch Class="pl-4 pr-4 mt-8" T="bool" @bind-Value="vm.EditingRecord.IsPropertyOwnerDisplay" Color="Color.Primary">Property Owners(@(vm.EditingRecord?.PropertyOwners?.Count))</MudSwitch>
 
                                 @if (vm.EditingRecord.IsPropertyOwnerDisplay)
                                 {
