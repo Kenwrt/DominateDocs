@@ -217,6 +217,17 @@ public static class ApiEndpointsExtensions
 
             Document docTemp = docLib.Documents.FirstOrDefault(x => x.Id == docStore.DocId);
 
+            docTemp.UpdatedAt = System.DateTime.UtcNow;
+
+            var idx = docLib.Documents.FindIndex(x => x.Id == docStore.DocId);
+
+            if (idx > -1)
+            {
+                docLib.Documents[idx] = docTemp;
+            }
+
+            dbApp.UpSertRecord<DocumentLibrary>(docLib);
+
             if (docTemp is null) return Results.NotFound($"Document with ID {documentTag.DocumentId} not found.");
 
             //DocumentStore docStore = dbApp.GetRecordById<DocumentStore>(docTemp.DocStoreId);

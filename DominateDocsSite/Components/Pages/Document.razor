@@ -57,11 +57,11 @@
                     <MudTd>@context.UpdatedAt</MudTd>
                      <MudTd>
                         <MudChip OnClick="@(() => EditRecordAsync(context))" T="bool" Color="Color.Success">
-                            "Edit"
+                            Edit
                         </MudChip>
                     </MudTd>
                     <MudTd>
-                        <MudChip T="string")">
+                        <MudChip T="string">
                             @context.OutputType.GetDescription()
                         </MudChip>
                     </MudTd>
