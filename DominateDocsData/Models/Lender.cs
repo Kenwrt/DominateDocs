@@ -53,6 +53,8 @@ public class Lender : IPartyNames
 
     public bool IsAliasNamesUsed { get; set; } = false;
 
+    public bool IsCflLicensed { get; set; } = false;
+
     public List<EntityOwner> EntityOwners { get; set; } = new();
     public string EntityOwnersFormatted { get; set; }
 

@@ -15,12 +15,40 @@ namespace DominateDocsData.Models.RulesEngine.Fields
         static RuleFieldRegistry()
         {
             // ----------------------------------------------------
-            // Register your non-State fields here (examples only)
+            // Register your non-State fields here
             // ----------------------------------------------------
             Register(new RuleFieldDefinition
             {
                 Key = "LenderName",
                 Label = "Lender Name",
+                UiType = RuleFieldUiType.Text,
+                DataType = typeof(string),
+                AllowedOperators = new HashSet<ConditionalOperator>
+                {
+                    ConditionalOperator.Equals,
+                    ConditionalOperator.NotEquals,
+                    ConditionalOperator.In,
+                    ConditionalOperator.NotIn
+                }
+            });
+
+            Register(new RuleFieldDefinition
+            {
+                Key = "LenderIsCflLicensed",
+                Label = "Lender Is CFL Licensed",
+                UiType = RuleFieldUiType.Boolean,
+                DataType = typeof(bool),
+                AllowedOperators = new HashSet<ConditionalOperator>
+                {
+                    ConditionalOperator.IsTrue,
+                    ConditionalOperator.IsFalse
+                }
+            });
+
+            Register(new RuleFieldDefinition
+            {
+                Key = "LenderCode",
+                Label = "Lender Code",
                 UiType = RuleFieldUiType.Text,
                 DataType = typeof(string),
                 AllowedOperators = new HashSet<ConditionalOperator>
@@ -129,7 +157,6 @@ namespace DominateDocsData.Models.RulesEngine.Fields
 
         private static string ToLabel(string key)
         {
-            // crude but readable: BorrowerState -> Borrower State
             return string.Concat(key.Select((ch, i) =>
                 i > 0 && char.IsUpper(ch) ? " " + ch : ch.ToString()));
         }

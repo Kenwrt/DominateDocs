@@ -1,4 +1,4 @@
-﻿@using DominateDocsData.Models
+﻿﻿@using DominateDocsData.Models
 @using DominateDocsData.Models.DTOs
 @using DominateDocsData.Models.RulesEngine
 @using MudBlazor
@@ -17,140 +17,139 @@
     /* Make the breadcrumb items feel clickable and consistent */
     .loan-type-create .mud-breadcrumb-item a {
         text-decoration: none;
+        font-weight: 600;
     }
 
-        .loan-type-create .mud-breadcrumb-item a:hover {
-            text-decoration: underline;
-        }
-
-    /* Align the details section fields nicely */
-    .loan-type-create .loan-type-details .mud-input-control {
-        margin-bottom: 0;
+    .loan-type-create .mud-breadcrumb-item a:hover {
+        text-decoration: underline;
     }
 
-    /* Manual breadcrumbs (always renders) */
-    .loan-type-create .loan-breadcrumbs {
+    .loan-type-create .section-title {
+        font-weight: 700;
+        letter-spacing: .2px;
+    }
+
+    .loan-type-create .subtle {
+        color: rgba(0,0,0,.6);
+    }
+
+    .loan-type-create .header-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        flex-wrap: wrap;
+    }
+
+    .loan-type-create .header-row .left {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+    }
+
+    .loan-type-create .header-row .right {
         display: flex;
         align-items: center;
         gap: 8px;
-        font-size: .95rem;
-        margin-bottom: 12px;
     }
 
-        .loan-type-create .loan-breadcrumbs .crumb-sep {
-            opacity: .6;
-        }
-
-    /* Icon preview line */
-    .loan-type-create .icon-preview {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        margin-top: 8px;
-    }
-
-    /* Default document chips spacing */
     .loan-type-create .default-docs {
         display: flex;
         flex-wrap: wrap;
         gap: 8px;
     }
 
-        .loan-type-create .default-docs .mud-chip {
-            margin: 0;
-        }
-
-    .loan-type-create .crumb-link {
-        color: #1976d2 !important; /* blue */
-        font-weight: 600;
+    .loan-type-create .icon-preview {
+        display: flex;
+        align-items: center;
+        gap: 10px;
     }
 
-        .loan-type-create .crumb-link:hover {
-            color: #2e7d32 !important; /* green on hover */
-            text-decoration: underline;
-            cursor: pointer;
-        }
+    .loan-type-create .icon-preview .label {
+        font-size: .85rem;
+        color: rgba(0,0,0,.6);
+        margin-right: 6px;
+    }
+
+    .loan-type-create .icon-preview .preview {
+        width: 36px;
+        height: 36px;
+        border-radius: 12px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(0,0,0,.04);
+    }
 </style>
 
-<MudContainer MaxWidth="MaxWidth.False" Class="pa-4 loan-type-create">
+<div class="loan-type-create">
 
-    <!-- BREADCRUMBS (manual so it actually shows) -->
-    <div class="loan-breadcrumbs">
-        <MudButton Variant="Variant.Text"
-                   Color="Color.Primary"
-                   Class="crumb-btn"
-                   OnClick="@GoToLoanTypeList">
-            Loan Types
-        </MudButton>
+    <MudBreadcrumbs Class="mb-2">
+        <MudBreadcrumbItem Href="/LoanTypeList">Loan Types</MudBreadcrumbItem>
+        <MudBreadcrumbItem Disabled="true">@((SelectedLoanType is null) ? "Create" : "Edit")</MudBreadcrumbItem>
+    </MudBreadcrumbs>
 
-        <span class="crumb-sep">/</span>
+    <div class="header-row mb-3">
+        <div class="left">
+            <MudText Typo="Typo.h5" Class="section-title">Loan Type</MudText>
+            <MudText Typo="Typo.body2" Class="subtle">
+                Define the loan type basics (name, description, icon), then configure rules.
+            </MudText>
+        </div>
 
-        <MudText Inline="true" Typo="Typo.body2" Color="Color.Secondary">
-            @((SelectedLoanType is null) ? "Add Loan Type" : "Edit Loan Type")
-        </MudText>
+        <div class="right">
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Success"
+                       Disabled="@SaveDisabled"
+                       OnClick="@Complete">
+                Save
+            </MudButton>
+        </div>
     </div>
 
-
-    <MudText Typo="Typo.h6">Loan Type</MudText>
-
-    <MudText Typo="Typo.body2" Class="mb-3 mud-text-secondary">
-        Define the loan type basics (name, description, icon), then configure rules.
-    </MudText>
-
     <!-- Loan Type Details -->
-    <MudPaper Elevation="0" Outlined="true" Class="pa-3 mb-3 loan-type-details">
-        <MudText Typo="Typo.subtitle2" Class="mb-2">Loan Type Details</MudText>
+    <MudPaper Elevation="0" Outlined="true" Class="pa-4 mb-4">
+        <MudText Typo="Typo.subtitle1" Class="mb-2">Loan Type Details</MudText>
 
-        <MudGrid GutterSize="3">
+        <MudGrid Spacing="3">
             <MudItem xs="12" md="4">
-                <MudTextField T="string"
-                              Label="Name"
+                <MudTextField Label="Name"
                               Variant="Variant.Outlined"
-                              Immediate="true"
-                              @bind-Value="vm.EditingLoanType.Name" />
+                              Dense="true"
+                              @bind-Value="vm.EditingLoanType.Name"
+                              Required="true" />
             </MudItem>
 
-            <MudItem xs="12" md="4">
-                <MudTextField T="string"
-                              Label="Description"
+            <MudItem xs="12" md="5">
+                <MudTextField Label="Description"
                               Variant="Variant.Outlined"
-                              Immediate="true"
+                              Dense="true"
                               @bind-Value="vm.EditingLoanType.Description" />
             </MudItem>
 
-            <MudItem xs="12" md="4">
+            <MudItem xs="12" md="3">
                 <MudSelect T="string"
                            Label="Icon"
                            Variant="Variant.Outlined"
                            Dense="true"
-                           Clearable="true"
                            @bind-Value="vm.EditingLoanType.IconKey">
-
-                    @foreach (var opt in IconOptions)
+                    @foreach (var option in IconOptions)
                     {
-                        <MudSelectItem Value="@opt.Key">
-                            <div class="d-flex align-center" style="gap:10px;">
-                                <MudIcon Icon="@opt.Icon" />
-                                <MudText Typo="Typo.body2">@opt.Key</MudText>
-                            </div>
-                        </MudSelectItem>
+                        <MudSelectItem Value="@option.Key">@option.Icon</MudSelectItem>
                     }
                 </MudSelect>
 
-                @if (!string.IsNullOrWhiteSpace(vm.EditingLoanType.IconKey))
-                {
-                    <div class="icon-preview">
-                        <MudText Typo="Typo.caption" Color="Color.Secondary">Preview:</MudText>
-                        <MudIcon Icon="@GetIconByKey(vm.EditingLoanType.IconKey)" />
-                    </div>
-                }
+                <div class="icon-preview mt-2">
+                    <span class="label">Preview:</span>
+                    <span class="preview">
+                        <MudIcon Icon="@vm.EditingLoanType.IconKey" />
+                    </span>
+                </div>
             </MudItem>
         </MudGrid>
     </MudPaper>
 
-    <MudDivider Class="my-3" />
-
-    <MudText Typo="Typo.h6">Loan Type Rules</MudText>
+    <MudText Typo="Typo.h6" Class="section-title">Loan Type Rules</MudText>
 
     <MudText Typo="Typo.body2" Class="mb-3 mud-text-secondary">
         Configure which documents generate by default and which generate conditionally.
@@ -189,12 +188,14 @@
     <!-- Output Rules -->
     @foreach (var rule in vm.OutputRulesUi)
     {
-        <OutputRuleEditor Rule="rule"
+        var r = rule; // stable capture
+        <OutputRuleEditor @key="r"
+                          Rule="r"
                           MasterDocumentDTOs="vm.MasterDocumentDtos"
                           Fields="vm.Fields"
                           FieldValues="vm.FieldValues"
                           OnChanged="OnRulesChanged"
-                          OnRemoveRequested="@(() => RemoveRule(rule))" />
+                          OnRemoveRequested="@(() => RemoveRule(r))" />
     }
 
     <div class="d-flex align-center mt-3" style="gap:10px;">
@@ -222,7 +223,7 @@
         </MudButton>
     </div>
 
-</MudContainer>
+</div>
 
 @code {
     [Parameter] public EventCallback<LoanType> OnLoanTypeComplete { get; set; }
@@ -246,22 +247,40 @@
         SyncUiToModel();
     }
 
-    private void AddRule()
+    private async Task AddRule()
     {
         vm.AddOutputRule();
         SyncUiToModel();
+        await InvokeAsync(StateHasChanged);
     }
 
-    private void RemoveRule(OutputRule rule)
+    private async Task RemoveRule(OutputRule rule)
     {
-        vm.RemoveOutputRule(rule);
+        // Some view-model implementations rehydrate/clamp rules, which can make a "delete" look like it did nothing.
+        // Remove it from the UI list first (source of truth for the editor), then sync back to the model.
+        if (vm.OutputRulesUi is System.Collections.Generic.IList<OutputRule> list)
+        {
+            list.Remove(rule);
+        }
+        else
+        {
+            vm.RemoveOutputRule(rule);
+        }
+
         SyncUiToModel();
+        await InvokeAsync(StateHasChanged);
     }
 
-    private void RemoveAllLogic()
+    private async Task RemoveAllLogic()
     {
         vm.ClearAllLogic();
+
+        // Also clear the UI list so the editor actually collapses immediately.
+        if (vm.OutputRulesUi is System.Collections.Generic.IList<OutputRule> list)
+            list.Clear();
+
         SyncUiToModel();
+        await InvokeAsync(StateHasChanged);
     }
 
     private void RemoveDefaultDoc(Guid id)
@@ -352,55 +371,24 @@
 
     private string GetDocNameById(Guid id)
     {
-        var doc = vm.MasterDocumentDtos.FirstOrDefault(x => x.Id == id);
-        return doc is not null ? doc.Name : "Unknown Document";
+        var match = vm.MasterDocumentDtos?.FirstOrDefault(d => d.Id == id);
+        return match?.Name ?? id.ToString();
     }
 
     private static IReadOnlyList<(string Key, string Icon)> BuildIconOptions()
     {
-        var t = typeof(Icons.Material.Filled);
-
-        var fields = t.GetFields(BindingFlags.Public | BindingFlags.Static)
-            .Where(f => f.FieldType == typeof(string))
-            .OrderBy(f => f.Name);
-
-        var props = t.GetProperties(BindingFlags.Public | BindingFlags.Static)
-            .Where(p => p.PropertyType == typeof(string))
-            .OrderBy(p => p.Name);
-
-        var list = new List<(string Key, string Icon)>();
-
-        foreach (var f in fields)
+        // Keep it simple: list common MudBlazor icons by string value.
+        return new List<(string Key, string Icon)>
         {
-            var icon = f.GetValue(null) as string;
-            if (!string.IsNullOrWhiteSpace(icon))
-                list.Add((f.Name, icon));
-        }
-
-        foreach (var p in props)
-        {
-            var icon = p.GetValue(null) as string;
-            if (!string.IsNullOrWhiteSpace(icon) && !list.Any(x => x.Key == p.Name))
-                list.Add((p.Name, icon));
-        }
-
-        return list;
+            (Icons.Material.Filled.AccountCircle, "AccountCircle"),
+            (Icons.Material.Filled.Business, "Business"),
+            (Icons.Material.Filled.Description, "Description"),
+            (Icons.Material.Filled.Gavel, "Gavel"),
+            (Icons.Material.Filled.Home, "Home"),
+            (Icons.Material.Filled.Person, "Person"),
+            (Icons.Material.Filled.RequestQuote, "RequestQuote"),
+            (Icons.Material.Filled.Rule, "Rule"),
+            (Icons.Material.Filled.Settings, "Settings"),
+        };
     }
-
-    private string GetIconByKey(string? key)
-    {
-        if (string.IsNullOrWhiteSpace(key))
-            return Icons.Material.Filled.HelpOutline;
-
-        var match = IconOptions.FirstOrDefault(x => string.Equals(x.Key, key, StringComparison.OrdinalIgnoreCase));
-        return string.IsNullOrWhiteSpace(match.Icon) ? Icons.Material.Filled.HelpOutline : match.Icon;
-    }
-
-    private void GoToLoanTypeList()
-    {
-        // Your list page is: @page "/loantypelist"
-        // Force-load ensures navigation even if some UI layer is blocking SPA routing.
-        Nav.NavigateTo("/loantypelist", forceLoad: true);
-    }
-
 }

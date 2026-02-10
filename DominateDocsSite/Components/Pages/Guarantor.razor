@@ -210,14 +210,14 @@ else
                             <EntityOwner OnEntityOwnerComplete="OnEntityOwnerComplete" OnEntityOwnerCanceled="OnEntityOwnerCanceled" OwnerList="@vm.EditingRecord.EntityOwners" />
                         }
 
-                    <MudSwitch Class="pl-4 pr-4" T="bool" @bind-Value="vm.EditingRecord.IsAliasNamesUsed" Color="Color.Primary">>Alias Names(@(vm.EditingRecord.AliasNames?.Count))</MudSwitch>
+                    <MudSwitch Class="pl-4 pr-4" T="bool" @bind-Value="vm.EditingRecord.IsAliasNamesUsed" Color="Color.Primary">Alias Names(@(vm.EditingRecord.AliasNames?.Count))</MudSwitch>
 
                         @if (vm.EditingRecord.IsAliasNamesUsed)
                         {
                             <AkaAlias OnAliasComplete="OnAliasComplete" OnAliasCanceled="OnAliasCanceled" AliasList="@vm.EditingRecord.AliasNames" />
                         }
 
-                    <MudSwitch Class="pl-4 pr-4" T="bool" @bind-Value="vm.EditingRecord.IsSignatureAuthority" Color="Color.Primary">>Signature Authority Names(@(vm.EditingRecord.SigningAuthorities?.Count))</MudSwitch>
+                    <MudSwitch Class="pl-4 pr-4" T="bool" @bind-Value="vm.EditingRecord.IsSignatureAuthority" Color="Color.Primary">Signature Authority Names(@(vm.EditingRecord.SigningAuthorities?.Count))</MudSwitch>
 
                         @if (vm.EditingRecord.IsSignatureAuthority)
                         {

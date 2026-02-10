@@ -1,4 +1,4 @@
-﻿@using MudBlazor
+﻿﻿@using MudBlazor
 @using DominateDocsData.Models
 @using DominateDocsData.Models.RulesEngine
 @using System.Reflection
@@ -12,7 +12,11 @@
         <MudIconButton Icon="@Icons.Material.Filled.DeleteOutline"
                        Color="Color.Error"
                        Size="Size.Small"
-                       OnClick="@(() => OnRemoveRequested.InvokeAsync())" />
+                       OnClick="@(async () =>
+                                              {
+                           if (OnRemoveRequested.HasDelegate)
+                               await OnRemoveRequested.InvokeAsync();
+                       })" />
     </div>
 
     <RuleGroupEditor Title=""
@@ -49,51 +53,58 @@
 @code {
     [Parameter, EditorRequired] public OutputRule Rule { get; set; } = default!;
 
-    // ✅ Force the correct Document type
+    // Keep your exact DTO typing
     [Parameter, EditorRequired]
-    public IReadOnlyList<DominateDocsData.Models.DTOs.DocumentListDTO> MasterDocumentDTOs { get; set; } = Array.Empty<DominateDocsData.Models.DTOs.DocumentListDTO>();
+    public IReadOnlyList<DominateDocsData.Models.DTOs.DocumentListDTO> MasterDocumentDTOs { get; set; }
+        = Array.Empty<DominateDocsData.Models.DTOs.DocumentListDTO>();
+
+    // Your rich field metadata from the parent
+    [Parameter, EditorRequired]
+    public IReadOnlyList<(string Key, string Label)> Fields { get; set; }
+        = Array.Empty<(string, string)>();
 
     [Parameter, EditorRequired]
-    public IReadOnlyList<(string Key, string Label)> Fields { get; set; } = Array.Empty<(string, string)>();
-
-    [Parameter, EditorRequired]
-    public IReadOnlyDictionary<string, IReadOnlyList<(string Display, string Value)>> FieldValues { get; set; } = new Dictionary<string, IReadOnlyList<(string, string)>>();
+    public IReadOnlyDictionary<string, IReadOnlyList<(string Display, string Value)>> FieldValues { get; set; }
+        = new Dictionary<string, IReadOnlyList<(string, string)>>(StringComparer.OrdinalIgnoreCase);
 
     [Parameter] public EventCallback OnRemoveRequested { get; set; }
-
     [Parameter] public EventCallback OnChanged { get; set; }
 
-    private IEnumerable<string> RuleGroupFields => (Fields ?? Array.Empty<(string Key, string Label)>()).Select(f => f.Key);
+    // ✅ RuleGroupEditor expects IEnumerable<string> (keys only)
+    private IEnumerable<string> RuleGroupFields =>
+        (Fields ?? Array.Empty<(string Key, string Label)>())
+            .Select(f => f.Key)
+            .Where(k => !string.IsNullOrWhiteSpace(k));
 
+    // ✅ RuleGroupEditor expects IDictionary<string, IEnumerable<string>> (values only)
     private IDictionary<string, IEnumerable<string>> RuleGroupFieldValues =>
-        (FieldValues ?? new Dictionary<string, IReadOnlyList<(string Display, string Value)>>())
+        (FieldValues ?? new Dictionary<string, IReadOnlyList<(string Display, string Value)>>(StringComparer.OrdinalIgnoreCase))
             .ToDictionary(
                 kvp => kvp.Key,
-                kvp => (IEnumerable<string>)(kvp.Value?.Select(x => x.Value) ?? Enumerable.Empty<string>())
+                kvp => (IEnumerable<string>)((kvp.Value ?? Array.Empty<(string Display, string Value)>())
+                    .Select(x => x.Value)
+                    .Where(v => !string.IsNullOrWhiteSpace(v)))
             );
 
     private string GetDocName(Guid id)
     {
-        var doc = MasterDocumentDTOs.FirstOrDefault(X => X.Id == id);
-
-        string name = doc is not null ? doc.Name : "Unknown Document";
-
-        return name;
+        var doc = MasterDocumentDTOs.FirstOrDefault(x => x.Id == id);
+        return doc is not null ? doc.Name : "Unknown Document";
     }
 
     private void RemoveThenDoc(Guid docId)
     {
         Rule.ThenGenerateDocumentIds ??= new List<Guid>();
         Rule.ThenGenerateDocumentIds.Remove(docId);
-        _ = OnChanged.InvokeAsync();
+
+        if (OnChanged.HasDelegate)
+            _ = OnChanged.InvokeAsync();
     }
 
     private async Task OpenThenDocsPicker()
     {
         Rule.ThenGenerateDocumentIds ??= new List<Guid>();
         var selected = new HashSet<Guid>(Rule.ThenGenerateDocumentIds);
-
-        IDialogReference? dialogRef = null;
 
         var parameters = new DialogParameters
         {
@@ -102,38 +113,36 @@
             ["SelectedIds"] = selected,
             ["OnSelected"] = (Action<Guid>)(id =>
             {
+                if (id == Guid.Empty) return;
+
                 Rule.ThenGenerateDocumentIds ??= new List<Guid>();
                 if (!Rule.ThenGenerateDocumentIds.Contains(id))
                     Rule.ThenGenerateDocumentIds.Add(id);
 
-                // keep the filter list in sync so it disappears
                 selected.Add(id);
-
                 InvokeAsync(StateHasChanged);
             })
         };
 
-
         var options = new DialogOptions { CloseButton = true, FullWidth = true, MaxWidth = MaxWidth.Medium };
 
-        dialogRef = DialogService.Show<DocumentPickerDialog>("Select Documents", parameters, options);
+        var dialogRef = DialogService.Show<DocumentPickerDialog>("Select Documents", parameters, options);
 
         var result = await dialogRef.Result;
 
         if (!result.Canceled && result.Data is HashSet<Guid> picked)
         {
-            foreach (var id in picked.Where(x => x != Guid.Empty).Distinct().ToList())
+            foreach (var id in picked.Where(x => x != Guid.Empty).Distinct())
             {
-                if (!Rule.ThenGenerateDocumentIds.Contains(id)) Rule.ThenGenerateDocumentIds.Add(id);
+                if (!Rule.ThenGenerateDocumentIds.Contains(id))
+                    Rule.ThenGenerateDocumentIds.Add(id);
             }
-                       
-            await OnChanged.InvokeAsync();
+
+            if (OnChanged.HasDelegate)
+                await OnChanged.InvokeAsync();
         }
     }
 
-    private Task OnRuleChanged() => OnChanged.InvokeAsync();
-
-    
-    
+    private Task OnRuleChanged()
+        => OnChanged.HasDelegate ? OnChanged.InvokeAsync() : Task.CompletedTask;
 }
-

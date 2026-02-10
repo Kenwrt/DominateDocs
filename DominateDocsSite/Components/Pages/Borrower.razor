@@ -17,8 +17,8 @@
 
 <MudText class="pl-4 mt-5" Typo="Typo.h4">Borrower Add/Edit</MudText>
 
-    @if (!String.IsNullOrEmpty(searchString))
-    {
+ @if (!String.IsNullOrEmpty(searchString))
+ {
         <MudText class="pl-4 mt-5" Typo="Typo.h6">Existing Borrowers</MudText>
         <MudTable class="mb-3" Items="FilteredList" Context="borrowerContext" Hover="true" Bordered="true" Dense="true" @bind-SelectedItem="vm.EditingRecord" @ref="searchTable" RowClick="OnSelectedBorrower" T="DominateDocsData.Models.Borrower">
             <ToolBarContent>
@@ -67,18 +67,10 @@
                 </MudText>
             </NoRecordsContent>
         </MudTable>
-    }
-    else
-    {
-            <MudButton Class="rounded-4 mt-5 ml-4"
-                       Disabled="@AddButtonDisabled"
-                       Variant="Variant.Filled"
-                       Size="Size.Small"
-                       Color="Color.Primary"
-                       OnClick="AddButton">
-                Add Borrower
-            </MudButton>
-
+ }
+ else
+ {
+          
     <MudItem xs="12" Class="mt-3 mb-3 ml-5">
         <MudText Typo="Typo.h5">Borrower</MudText>
 

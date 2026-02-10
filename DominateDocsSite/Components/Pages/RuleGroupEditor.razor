@@ -1,4 +1,4 @@
-﻿﻿@using MudBlazor
+﻿﻿﻿﻿﻿@using MudBlazor
 @using DominateDocsData.Models.RulesEngine
 @using DominateDocsData.Models.RulesEngine.Enums
 @using DominateDocsData.Models.RulesEngine.Fields
@@ -9,7 +9,8 @@
 
     @for (int i = 0; i < Group.Terms.Count; i++)
     {
-        var term = Group.Terms[i];
+        var index = i;              // ✅ capture index (fixes delete not firing correctly)
+        var term = Group.Terms[index];
 
         <MudPaper @key="term" Outlined="true" Class="pa-3 mb-2">
             <div class="d-flex align-center justify-space-between mb-2">
@@ -18,13 +19,13 @@
                 <MudIconButton Icon="@Icons.Material.Filled.DeleteOutline"
                                Color="Color.Error"
                                Size="Size.Small"
-                               OnClick="@(() => RemoveTermAsync(i))" />
+                               OnClick="@(async () => await RemoveTermAsync(index))" />
             </div>
 
             @if (term.Node is ConditionLeaf leaf)
             {
                 <div @key="leaf" class="d-flex flex-wrap gap-3">
-                    @RenderLeafEditor(i, leaf)
+                    @RenderLeafEditor(index, leaf)
                 </div>
             }
             else
@@ -34,7 +35,7 @@
                 </MudAlert>
             }
 
-            @if (i < Group.Terms.Count - 1)
+            @if (index < Group.Terms.Count - 1)
             {
                 <div class="d-flex justify-start mt-2">
                     <MudToggleGroup T="RulesEnums.LogicalOperator"
@@ -102,7 +103,6 @@
                 term.Node = new ConditionLeaf();
             }
 
-
             if (term.Node is ConditionLeaf leaf)
             {
                 leaf.Condition.FieldKey = NormalizeFieldKey(leaf.Condition.FieldKey);
@@ -146,7 +146,6 @@
 
         await ChangedAsync();
     }
-
 
     // ---------------- Registry integration (optional) ----------------
     // Your RuleFieldRegistry API has been evolving. To avoid compile-time breaks, we use reflection
@@ -242,7 +241,14 @@
     };
 
     var options = GetOptions(fieldKeyNorm);
+
     var isMulti = leaf.Condition.Operator is RulesEnums.ConditionalOperator.In or RulesEnums.ConditionalOperator.NotIn;
+
+    // ✅ Boolean operators do NOT take values (bulletproof, type-safe even if operator is serialized oddly)
+    var opText = leaf.Condition.Operator.ToString();
+    var isBoolNoValue =
+    opText.Equals("IsTrue", global::System.StringComparison.OrdinalIgnoreCase) ||
+    opText.Equals("IsFalse", global::System.StringComparison.OrdinalIgnoreCase);
 }
 
     <MudSelect T="RulesEnums.ConditionalOperator"
@@ -258,7 +264,11 @@
         }
     </MudSelect>
 
-@if (isMulti && options.Count > 0)
+@if (isBoolNoValue)
+{
+    // Intentionally no "Values" UI for IsTrue/IsFalse.
+}
+else if (isMulti && options.Count > 0)
 {
     var selected = GetSelectedSet(leaf);
 
@@ -299,12 +309,52 @@ private async Task OnLeafFieldChanged(ConditionLeaf leaf, string newKey)
     leaf.Condition.Values.Clear();
     GetSelectedSet(leaf).Clear();
 
+    // ✅ IMPORTANT: set a default operator based on the registry for this field
+    var fieldKeyNorm = NormalizeFieldKey(leaf.Condition.FieldKey);
+    var opsFromRegistry = TryGetAllowedOperatorsFromRegistry(fieldKeyNorm)?.ToList();
+
+    if (opsFromRegistry is not null && opsFromRegistry.Count > 0)
+    {
+        // Prefer IsTrue if available (your boolean field)
+        if (opsFromRegistry.Any(o => o.ToString().Equals("IsTrue", StringComparison.OrdinalIgnoreCase)))
+        {
+            leaf.Condition.Operator = RulesEnums.ConditionalOperator.IsTrue;
+        }
+        else
+        {
+            // Otherwise take the first allowed operator
+            leaf.Condition.Operator = opsFromRegistry[0];
+        }
+    }
+
+    // If boolean operator, ensure values stay cleared
+    var opText = leaf.Condition.Operator.ToString();
+    if (opText.Equals("IsTrue", StringComparison.OrdinalIgnoreCase) ||
+        opText.Equals("IsFalse", StringComparison.OrdinalIgnoreCase))
+    {
+        leaf.Condition.Values.Clear();
+        GetSelectedSet(leaf).Clear();
+    }
+
     await ChangedAsync();
 }
+
 
 private async Task OnLeafOperatorChanged(ConditionLeaf leaf, RulesEnums.ConditionalOperator op)
 {
     leaf.Condition.Operator = op;
+
+    // ✅ Boolean operators do not use values.
+    var opText = op.ToString();
+    if (opText.Equals("IsTrue", global::System.StringComparison.OrdinalIgnoreCase) ||
+        opText.Equals("IsFalse", global::System.StringComparison.OrdinalIgnoreCase))
+    {
+        leaf.Condition.Values ??= new List<string>();
+        leaf.Condition.Values.Clear();
+        GetSelectedSet(leaf).Clear();
+        await ChangedAsync();
+        return;
+    }
 
     // Keep the model clean when switching operators.
     leaf.Condition.Values ??= new List<string>();
