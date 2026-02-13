@@ -29,10 +29,10 @@ public sealed class MergeWorker : WorkerPoolBackgroundService<MergeJob>
     private readonly IWordServices wordServices;
     private readonly IEnumerable<IMergeCompleteHook> completionHooks;
 
-    // NEW: direct email sender (Postmark implementation)
+    // Kept to avoid breaking DI in your project (even though we no longer email here)
     private readonly IEmailSender emailSender;
 
-    // NEW: DB access for DocumentStore
+    // DB access for DocumentStore
     private readonly IMongoDatabaseRepo dbApp;
 
     public MergeWorker(
@@ -53,7 +53,7 @@ public sealed class MergeWorker : WorkerPoolBackgroundService<MergeJob>
         this.razorLiteService = razorLiteService;
         this.wordServices = wordServices;
         this.completionHooks = completionHooks;
-        this.emailSender = emailSender;
+        this.emailSender = emailSender; // intentionally unused now
         this.dbApp = dbApp;
     }
 
@@ -97,31 +97,21 @@ public sealed class MergeWorker : WorkerPoolBackgroundService<MergeJob>
             {
                 msResult.Position = 0;
 
-                // We do NOT mutate Document.Name here.
-                // Generate a filename for emailing only.
-                string attachmentFileName;
-                string attachmentContentType;
-
                 if (documentMerge.Document.OutputType == DocumentTypes.OutputTypes.DOCX)
                 {
                     documentMerge.MergedDocumentBytes = msResult.ToArray();
-                    attachmentFileName = BuildFileName(documentMerge.Document?.Name, "docx");
-                    attachmentContentType = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
                 }
                 else
                 {
                     var pdfStream = await wordServices.ConvertWordToPdfAsync(msResult).ConfigureAwait(false);
                     pdfStream.Position = 0;
-
                     documentMerge.MergedDocumentBytes = pdfStream.ToArray();
-                    attachmentFileName = BuildFileName(documentMerge.Document?.Name, "pdf");
-                    attachmentContentType = "application/pdf";
                 }
 
                 documentMerge.Status = DocumentMergeState.Status.Complete;
                 documentMerge.MergeCompleteAt = DateTime.UtcNow;
 
-                // 1) Optional hook(s)
+                // Optional hooks
                 foreach (var hook in completionHooks)
                 {
                     try
@@ -134,12 +124,8 @@ public sealed class MergeWorker : WorkerPoolBackgroundService<MergeJob>
                     }
                 }
 
-                // 2) NEW: Email the merged bytes as an attachment if we have an address
-                await TryEmailMergedDocumentAsync(
-                    documentMerge,
-                    attachmentFileName,
-                    attachmentContentType,
-                    ct).ConfigureAwait(false);
+                // ✅ NO EMAIL HERE.
+                // Email is sent once per loan by EmailWorker, triggered by LoanWorker.
             }
             else
             {
@@ -154,11 +140,6 @@ public sealed class MergeWorker : WorkerPoolBackgroundService<MergeJob>
             logger.LogError(ex, "Error processing document {MergeId}", documentMerge.Id);
             documentMerge.Status = DocumentMergeState.Status.Error;
             throw;
-        }
-        finally
-        {
-            // keep it in docState.DocumentList if you want UI to show it; otherwise remove it here
-            // docState.DocumentList.TryRemove(documentMerge.Id, out _);
         }
     }
 
@@ -185,7 +166,7 @@ public sealed class MergeWorker : WorkerPoolBackgroundService<MergeJob>
             }
         }
 
-        // Back-compat fallback (migration period)
+        // Back-compat fallback
         if (doc.TemplateDocumentBytes is not null && doc.TemplateDocumentBytes.Length > 0)
         {
             logger.LogWarning("MergeWorker: using fallback TemplateDocumentBytes (DocStoreId missing or invalid). DocId={DocId} Name={Name}",
@@ -195,85 +176,5 @@ public sealed class MergeWorker : WorkerPoolBackgroundService<MergeJob>
         }
 
         return null;
-    }
-
-    private async Task TryEmailMergedDocumentAsync(
-        DocumentMerge merge,
-        string attachmentFileName,
-        string attachmentContentType,
-        CancellationToken ct)
-    {
-        try
-        {
-            // Primary: LoanAgreement.EmailTo (what your Admin Bench already uses)
-            var to = merge.LoanAgreement?.EmailTo;
-
-            if (string.IsNullOrWhiteSpace(to))
-            {
-                // No email, no problem. (Actually yes, it's a problem, but not ours.)
-                logger.LogInformation("📭 Merge complete but no EmailTo on LoanAgreement. MergeId={MergeId}", merge.Id);
-                return;
-            }
-
-            var bytes = merge.MergedDocumentBytes;
-            if (bytes is null || bytes.Length == 0)
-            {
-                logger.LogWarning("📭 Merge complete but no bytes to email. MergeId={MergeId}", merge.Id);
-                return;
-            }
-
-            var loanId = merge.LoanAgreement?.Id;
-            var docName = merge.Document?.Name ?? "Document";
-
-            var subject = $"Documents Ready: {docName}";
-            if (loanId.HasValue && loanId.Value != Guid.Empty)
-                subject += $" (Loan {loanId.Value})";
-
-            var msg = new EmailMsg
-            {
-                To = to.Trim(),
-                Subject = subject,
-                MessageBody = $"Attached is your generated document: {attachmentFileName}",
-                Attachments =
-                {
-                    new EmailAttachment
-                    {
-                        FileName = attachmentFileName,
-                        ContentType = attachmentContentType,
-                        Data = bytes
-                    }
-                }
-            };
-
-            logger.LogInformation("📧 Sending merged document email: MergeId={MergeId} To={To} File={File} Bytes={Bytes}",
-                merge.Id, msg.To, attachmentFileName, bytes.Length);
-
-            await emailSender.SendAsync(msg, ct).ConfigureAwait(false);
-
-            logger.LogInformation("✅ Email sent: MergeId={MergeId} To={To}", merge.Id, msg.To);
-        }
-        catch (Exception ex)
-        {
-            // Email failure should NOT poison merge completion
-            logger.LogError(ex, "❌ Email failed after merge complete. MergeId={MergeId}", merge.Id);
-        }
-    }
-
-    private static string BuildFileName(string? baseName, string ext)
-    {
-        var safe = string.IsNullOrWhiteSpace(baseName) ? "document" : baseName.Trim();
-
-        // Strip any existing extension to avoid "file.pdf.pdf"
-        var dot = safe.LastIndexOf('.');
-        if (dot > 0 && dot < safe.Length - 1)
-            safe = safe.Substring(0, dot);
-
-        return $"{safe}.{ext}";
-    }
-
-    public override Task StartAsync(CancellationToken cancellationToken)
-    {
-        logger.LogInformation("✅ MergeWorker STARTED (MaxThreads={MaxThreads})", options.Value.MaxDocumentMergeThreads);
-        return base.StartAsync(cancellationToken);
     }
 }

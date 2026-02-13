@@ -9,8 +9,9 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using System;
+using System.Collections.Generic;
 using System.Linq;
-using System.Reflection;
+using System.Text;
 
 namespace DocumentManager.Workers;
 
@@ -70,18 +71,40 @@ public sealed class LoanWorker : WorkerPoolBackgroundService<LoanJob>
             docState.LoanList.TryAdd(loan.Id, loan);
             docState.StateHasChanged();
 
-            // Precompute template-friendly strings (keep your existing behavior)
-            loan.LenderNames = await GetLenderNamesAsync(loan).ConfigureAwait(false);
-            loan.BorrowerNames = await GetBorrowerNamesAsync(loan).ConfigureAwait(false);
-            loan.BrokerNames = await GetBrokerNamesAsync(loan).ConfigureAwait(false);
+            // =========================================================
+            // ✅ AdminBench overrides MUST be copied onto the Loan itself
+            // so MergeWorker/EmailWorker sees EmailTo + OutputType.
+            // =========================================================
+            if (loan.AdminBench?.Enabled == true)
+            {
+                if (loan.AdminBench.OutputTypeOverride.HasValue)
+                    loan.OutputType = loan.AdminBench.OutputTypeOverride.Value;
 
-            // Run then-generate evaluation and produce the Document list
+                if (!string.IsNullOrWhiteSpace(loan.AdminBench.EmailToOverride))
+                    loan.EmailTo = loan.AdminBench.EmailToOverride;
+            }
+
+            // =========================================================
+            // ✅ Build formatted name fields (Loan + Party records)
+            // =========================================================
+            PopulateLoanAndPartyFormattedFields(loan);
+
+            // Persist formatted fields + AdminBench overrides so RazorLite merge always sees them.
+            await dbApp.UpSertRecordAsync(loan).ConfigureAwait(false);
+
+            // ThenGenerate -> Documents
             var docs = await EvaluateThenGenerateDocsAsync(loan, ct).ConfigureAwait(false);
 
-            // ✅ Build persisted delivery plan (includes Copies + OutputType per document)
+            // Persist delivery plan (also persists the loan)
             await SaveDeliveriesAsync(loan, docs, ct).ConfigureAwait(false);
 
-            // ✅ Queue merges from the persisted delivery plan unless suppressed
+            // AdminBench owns merge queueing when SuppressMerge is true
+            if (loan.AdminBench?.Enabled == true && loan.AdminBench.SuppressMerge)
+            {
+                logger.LogInformation("LoanWorker: AdminBench.SuppressMerge=true, skipping merge enqueue. LoanId={LoanId}", loan.Id);
+                return;
+            }
+
             await QueueMergeFromDeliveriesAsync(loan, ct).ConfigureAwait(false);
         }
         catch (Exception ex)
@@ -92,6 +115,302 @@ public sealed class LoanWorker : WorkerPoolBackgroundService<LoanJob>
         {
             docState.StateHasChanged();
         }
+    }
+
+    // ==========================================================
+    // FORMATTING (NO REFLECTION)
+    // ==========================================================
+
+    private static void PopulateLoanAndPartyFormattedFields(LoanAgreement loan)
+    {
+        // Lenders
+        if (loan.Lenders is not null && loan.Lenders.Count > 0)
+        {
+            foreach (var l in loan.Lenders)
+            {
+                l.FormattedName = BuildLenderFormattedName(l);
+            }
+
+            loan.LenderNames = BuildLenderNames(loan.Lenders);
+        }
+        else
+        {
+            loan.LenderNames = string.Empty;
+        }
+
+        // Borrowers
+        if (loan.Borrowers is not null && loan.Borrowers.Count > 0)
+        {
+            foreach (var b in loan.Borrowers)
+            {
+                b.FormattedName = BuildPartyFormattedName(b);
+                b.SigningAuthoritiesFormatted = BuildSigningAuthorities(b.SigningAuthorities);
+                b.AliasNamesFormatted = BuildAliasNames(b.AliasNames);
+                b.EntityOwnersFormatted = BuildEntityOwners(b.EntityOwners);
+                // SignatureLinesFormatted intentionally not generated (you said you do this in-doc)
+            }
+
+            loan.BorrowerNames = BuildPartyNames(loan.Borrowers);
+        }
+        else
+        {
+            loan.BorrowerNames = string.Empty;
+        }
+
+        // Brokers
+        if (loan.Brokers is not null && loan.Brokers.Count > 0)
+        {
+            foreach (var b in loan.Brokers)
+            {
+                b.FormattedName = BuildPartyFormattedName(b);
+                b.SigningAuthoritiesFormatted = BuildSigningAuthorities(b.SigningAuthorities);
+                b.AliasNamesFormatted = BuildAliasNames(b.AliasNames);
+                b.EntityOwnersFormatted = BuildEntityOwners(b.EntityOwners);
+            }
+
+            loan.BrokerNames = BuildPartyNames(loan.Brokers);
+        }
+        else
+        {
+            loan.BrokerNames = string.Empty;
+        }
+
+        // Guarantors
+        if (loan.Guarantors is not null && loan.Guarantors.Count > 0)
+        {
+            foreach (var g in loan.Guarantors)
+            {
+                g.FormattedName = BuildPartyFormattedName(g);
+                g.SigningAuthoritiesFormatted = BuildSigningAuthorities(g.SigningAuthorities);
+                g.AliasNamesFormatted = BuildAliasNames(g.AliasNames);
+                g.EntityOwnersFormatted = BuildEntityOwners(g.EntityOwners);
+            }
+
+            loan.GuarantorNames = BuildPartyNames(loan.Guarantors);
+        }
+        else
+        {
+            loan.GuarantorNames = string.Empty;
+        }
+
+        // Properties
+        if (loan.Properties is not null && loan.Properties.Count > 0)
+        {
+            foreach (var p in loan.Properties)
+            {
+                // Property owners are parties too
+                if (p.PropertyOwners is not null && p.PropertyOwners.Count > 0)
+                {
+                    foreach (var owner in p.PropertyOwners)
+                    {
+                        owner.FormattedName = BuildPartyFormattedName(owner);
+                        owner.SigningAuthoritiesFormatted = BuildSigningAuthorities(owner.SigningAuthorities);
+                        owner.AliasNamesFormatted = BuildAliasNames(owner.AliasNames);
+                        owner.EntityOwnersFormatted = BuildEntityOwners(owner.EntityOwners);
+                    }
+
+                    p.PropertyOwnersFormatted = BuildPartyNames(p.PropertyOwners);
+                }
+                else
+                {
+                    p.PropertyOwnersFormatted = string.Empty;
+                }
+
+                p.EntityOwnersFormatted = BuildEntityOwners(p.EntityOwners);
+            }
+
+            loan.PropertyAddresses = BuildPropertyAddresses(loan.Properties);
+        }
+        else
+        {
+            loan.PropertyAddresses = string.Empty;
+        }
+    }
+
+    private static string BuildPartyFormattedName(IPartyNames p)
+    {
+        var isIndividual = p.EntityType == Entity.Types.Individual;
+
+        if (isIndividual)
+            return $"{p.EntityName} a {p.EntityType}".Trim();
+
+        return $"{p.EntityName} a {p.StateOfIncorporationDescription} {p.EntityStructureDescription}".Trim();
+    }
+
+    private static string BuildLenderFormattedName(Lender p)
+    {
+        var baseLine = BuildPartyFormattedName(p);
+
+        if (!string.IsNullOrWhiteSpace(p.NmlsLicenseNumber))
+            return $"{baseLine} (CFL License No.{p.NmlsLicenseNumber})";
+
+        return baseLine;
+    }
+
+    private static string BuildPartyNames<T>(IEnumerable<T> parties) where T : IPartyNames
+    {
+        if (parties is null) return string.Empty;
+
+        var sb = new StringBuilder();
+        var first = true;
+
+        foreach (var p in parties)
+        {
+            var line = BuildPartyFormattedName(p);
+
+            if (string.IsNullOrWhiteSpace(line))
+                continue;
+
+            if (first)
+            {
+                sb.AppendLine(line);
+                first = false;
+            }
+            else
+            {
+                sb.AppendLine($", {line}");
+            }
+        }
+
+        return sb.ToString();
+    }
+
+    private static string BuildLenderNames(IEnumerable<Lender> lenders)
+    {
+        if (lenders is null) return string.Empty;
+
+        var sb = new StringBuilder();
+        var first = true;
+
+        foreach (var l in lenders)
+        {
+            var line = BuildLenderFormattedName(l);
+
+            if (string.IsNullOrWhiteSpace(line))
+                continue;
+
+            if (first)
+            {
+                sb.AppendLine(line);
+                first = false;
+            }
+            else
+            {
+                sb.AppendLine($", {line}");
+            }
+        }
+
+        return sb.ToString();
+    }
+
+    private static string BuildPropertyAddresses(IEnumerable<PropertyRecord> properties)
+    {
+        if (properties is null) return string.Empty;
+
+        var sb = new StringBuilder();
+        var first = true;
+
+        foreach (var p in properties)
+        {
+            if (string.IsNullOrWhiteSpace(p.FullAddress))
+                continue;
+
+            if (first)
+            {
+                sb.AppendLine(p.FullAddress);
+                first = false;
+            }
+            else
+            {
+                sb.AppendLine($", {p.FullAddress}");
+            }
+        }
+
+        return sb.ToString();
+    }
+
+    private static string BuildSigningAuthorities(IEnumerable<SigningAuthority> parties)
+    {
+        if (parties is null) return string.Empty;
+
+        var sb = new StringBuilder();
+        var first = true;
+
+        foreach (var p in parties)
+        {
+            if (string.IsNullOrWhiteSpace(p?.Name) && string.IsNullOrWhiteSpace(p?.Title))
+                continue;
+
+            var line = $"{p.Name} as {p.Title}".Trim();
+
+            if (first)
+            {
+                sb.AppendLine(line);
+                first = false;
+            }
+            else
+            {
+                sb.AppendLine($", {line}");
+            }
+        }
+
+        return sb.ToString();
+    }
+
+    private static string BuildAliasNames(IEnumerable<AkaName> parties)
+    {
+        if (parties is null) return string.Empty;
+
+        var sb = new StringBuilder();
+        var first = true;
+
+        foreach (var p in parties)
+        {
+            if (string.IsNullOrWhiteSpace(p?.Name) && string.IsNullOrWhiteSpace(p?.AlsoKnownAs))
+                continue;
+
+            var line = $"{p.Name} as {p.AlsoKnownAs}".Trim();
+
+            if (first)
+            {
+                sb.AppendLine(line);
+                first = false;
+            }
+            else
+            {
+                sb.AppendLine($", {line}");
+            }
+        }
+
+        return sb.ToString();
+    }
+
+    private static string BuildEntityOwners(IEnumerable<EntityOwner> parties)
+    {
+        if (parties is null) return string.Empty;
+
+        var sb = new StringBuilder();
+        var first = true;
+
+        foreach (var p in parties)
+        {
+            if (string.IsNullOrWhiteSpace(p?.Name))
+                continue;
+
+            var line = $"{p.Name} a {p.PercentOfOwnership}% owner".Trim();
+
+            if (first)
+            {
+                sb.AppendLine(line);
+                first = false;
+            }
+            else
+            {
+                sb.AppendLine($", {line}");
+            }
+        }
+
+        return sb.ToString();
     }
 
     private Task<IReadOnlyList<Document>> EvaluateThenGenerateDocsAsync(LoanAgreement loan, CancellationToken ct)
@@ -124,112 +443,36 @@ public sealed class LoanWorker : WorkerPoolBackgroundService<LoanJob>
             loan.AdminBench.Trace.Clear();
             loan.AdminBench.Trace.Add($"=== LoanWorker Context @ {DateTime.UtcNow:O} UTC ===");
             loan.AdminBench.Trace.Add($"LoanId={loan.Id} | LoanTypeId={loan.LoanTypeId} | DocLibId={loan.DocLibId}");
-            loan.AdminBench.Trace.Add($"DataSnapshot: " +
-                                     $"LenderState={(data.TryGetValue("LenderState", out var ls) ? (ls?.ToString() ?? "<null>") : "<missing>")} | " +
-                                     $"BorrowerState={(data.TryGetValue("BorrowerState", out var bs) ? (bs?.ToString() ?? "<null>") : "<missing>")} | " +
-                                     $"BrokerState={(data.TryGetValue("BrokerState", out var brs) ? (brs?.ToString() ?? "<null>") : "<missing>")}");
-            loan.AdminBench.Trace.Add($"DataKeys: {string.Join(", ", data.Keys.OrderBy(k => k))}");
-            loan.AdminBench.Trace.Add("");
-            loan.AdminBench.Trace.AddRange(trace);
+
+            if (!string.IsNullOrWhiteSpace(trace))
+            {
+                foreach (var line in trace.Split(new[] { "\r\n", "\n", "\r" }, StringSplitOptions.None))
+                    loan.AdminBench.Trace.Add(item: line);
+            }
         }
         else
         {
             docIds = DocumentOutputEvaluator.BuildFinalDocumentIds(loanType, data);
         }
 
-        logger.LogInformation("ThenGenerate(DB): LoanId={LoanId} LoanTypeId={LoanTypeId} -> {Count} doc id(s)",
-            loan.Id, loan.LoanTypeId, docIds.Count);
-
         if (docIds.Count == 0)
             return Task.FromResult<IReadOnlyList<Document>>(Array.Empty<Document>());
 
-        // ✅ NEW: Resolve documents from DocumentLibrary.Documents (NOT the old top-level Documents collection)
-        var docPool = GetAllLibraryDocuments();
-        var docsById = docPool.ToDictionary(d => d.Id, d => d);
-
-        var resolved = new List<Document>(docIds.Count);
+        var resolved = new List<Document>();
 
         foreach (var id in docIds)
         {
-            if (docsById.TryGetValue(id, out var doc))
+            var doc = TryResolveLibraryDocumentById(id);
+            if (doc is null)
             {
-                resolved.Add(doc);
+                logger.LogWarning("ThenGenerate: DocumentId not found in DocumentLibrary.Documents. DocId={DocId}", id);
+                continue;
             }
-            else
-            {
-                logger.LogWarning("ThenGenerate(DB): DocumentId={DocumentId} not found in DocumentLibrary.Documents (old Documents collection likely still referenced elsewhere)",
-                    id);
-            }
+
+            resolved.Add(CloneDocument(doc));
         }
 
         return Task.FromResult<IReadOnlyList<Document>>(resolved);
-    }
-
-    // -------------------------
-    // Existing helpers (your file already has these; keep them as-is below)
-    // -------------------------
-
-    public Dictionary<string, object?> BuildEvalData(DominateDocsData.Models.LoanAgreement loan)
-    {
-        // Keep this intentionally dumb/simple: add keys as your rules expand.
-        // This is the rule "key bag". If the UI lets you pick a field name,
-        // then this method is the contract that provides it.
-        var data = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
-
-
-        //State
-        var lenderState = TryGetNestedString(loan, "Lenders", 0, "State")
-                       ?? TryGetNestedString(loan, "Lender", "State")
-                       ?? TryGetNestedString(loan, "LenderState");
-
-        var brokerState = TryGetNestedString(loan, "Brokers", 0, "State")
-                      ?? TryGetNestedString(loan, "Broker", "State")
-                      ?? TryGetNestedString(loan, "BrokerState");
-
-        var borrowerState = TryGetNestedString(loan, "Borrowers", 0, "State")
-                        ?? TryGetNestedString(loan, "Borrower", "State")
-                        ?? TryGetNestedString(loan, "BorrowerState");
-
-        var propertyState = TryGetNestedString(loan, "Properties", 0, "State")
-                       ?? TryGetNestedString(loan, "PropertyRecord", "State")
-                       ?? TryGetNestedString(loan, "PropertyState");
-
-
-        //Codes
-        var lenderCode = TryGetNestedString(loan, "Lenders", 0, "Code")
-                     ?? TryGetNestedString(loan, "Lender", "Code")
-                     ?? TryGetNestedString(loan, "LenderCode");
-
-        var brokerCode = TryGetNestedString(loan, "Brokers", 0, "Code")
-                     ?? TryGetNestedString(loan, "Broker", "Code")
-                     ?? TryGetNestedString(loan, "BrokerCode");
-
-
-        return data;
-
-        //static string? GetState(object? party)
-        //{
-        //    if (party is null) return null;
-
-        //    // Try common names across your models (you change these, because humans)
-        //    var raw =
-        //        GetString(party, "State") ??
-        //        GetString(party, "PreferredStateVenue") ??
-        //        GetString(party, "StateOfIncorporation");
-
-        //    return string.IsNullOrWhiteSpace(raw) ? null : raw.Trim();
-        //}
-
-        //static string? GetString(object? obj, string propName)
-        //{
-        //    if (obj is null) return null;
-        //    try
-        //    {
-        //        var pi = obj.GetType().GetProperty(propName, System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance);
-        //        return pi?.GetValue(obj)?.ToString();
-        //    }
-        //    catch { return null; }
-        //}
     }
 
     private static IReadOnlyDictionary<string, object?> BuildRuleDataBag(LoanAgreement loan)
@@ -242,91 +485,26 @@ public sealed class LoanWorker : WorkerPoolBackgroundService<LoanJob>
             ["PropertyState"] = loan.PropertyState,
             ["LoanTypeName"] = loan.LoanTypeName,
 
-            // Handy identifiers (safe to include; many rules ignore them).
             ["LoanId"] = loan.Id,
             ["LoanTypeId"] = loan.LoanTypeId,
             ["DocLibId"] = loan.DocLibId
         };
 
-        // =========================
-        // Party State Extraction
-        // =========================
-        // Your LoanType rule uses: Field=LenderState
-        // If this key is missing, IF conditions like "LenderState IN CA,TN" will always fail.
-        var lenderState =
-            TryGetNestedString(loan, "Lenders", 0, "State") ??
-            TryGetNestedString(loan, "Lenders", 0, "StateChoiceOfLaw") ??
-            TryGetNestedString(loan, "Lenders", 0, "StateCode") ??
-            TryGetNestedString(loan, "Lender", "State") ??
-            TryGetNestedString(loan, "Lender", "StateChoiceOfLaw") ??
-            TryGetNestedString(loan, "Lender", "StateCode") ??
-            TryGetNestedString(loan, "Lenders", 0, "Address", "State") ??
-            TryGetNestedString(loan, "Lenders", 0, "MailingAddress", "State") ??
-            TryGetNestedString(loan, "Lenders", 0, "MailingAddress", "State") ??
-            TryGetNestedString(loan, "Lenders", 0, "PhysicalAddress", "State") ??
-            TryGetNestedString(loan, "Lender", "Address", "State") ??
-            TryGetNestedString(loan, "Lender", "MailingAddress", "State") ??
-            TryGetNestedString(loan, "Lender", "PhysicalAddress", "State") ??
-            TryGetNestedString(loan, "Lenders", 0, "StateLendingLicenses", 0, "State") ??
-            TryGetNestedString(loan, "Lenders", 0, "LendingLicenses", 0, "State") ??
-            TryGetNestedString(loan, "Lenders", 0, "Licenses", 0, "State") ??
-            TryGetNestedString(loan, "Lender", "StateLendingLicenses", 0, "State") ??
-            TryGetNestedString(loan, "Lender", "LendingLicenses", 0, "State") ??
-            TryGetNestedString(loan, "Lender", "Licenses", 0, "State");
-
-        if (!string.IsNullOrWhiteSpace(lenderState))
-            data["LenderState"] = lenderState!.Trim();
-
-        var borrowerState =
-            TryGetNestedString(loan, "Borrowers", 0, "State") ??
-            TryGetNestedString(loan, "Borrowers", 0, "StateChoiceOfLaw") ??
-            TryGetNestedString(loan, "Borrowers", 0, "StateCode") ??
-            TryGetNestedString(loan, "Borrower", "State") ??
-            TryGetNestedString(loan, "Borrower", "StateChoiceOfLaw") ??
-            TryGetNestedString(loan, "Borrower", "StateCode") ??
-            TryGetNestedString(loan, "Borrowers", 0, "Address", "State") ??
-            TryGetNestedString(loan, "Borrowers", 0, "MailingAddress", "State") ??
-            TryGetNestedString(loan, "Borrowers", 0, "PhysicalAddress", "State") ??
-            TryGetNestedString(loan, "Borrower", "Address", "State") ??
-            TryGetNestedString(loan, "Borrower", "MailingAddress", "State") ??
-            TryGetNestedString(loan, "Borrower", "PhysicalAddress", "State");
-
-        if (!string.IsNullOrWhiteSpace(borrowerState))
-            data["BorrowerState"] = borrowerState!.Trim();
-
-        var brokerState =
-            TryGetNestedString(loan, "Brokers", 0, "State") ??
-            TryGetNestedString(loan, "Brokers", 0, "StateChoiceOfLaw") ??
-            TryGetNestedString(loan, "Brokers", 0, "StateCode") ??
-            TryGetNestedString(loan, "Broker", "State") ??
-            TryGetNestedString(loan, "Broker", "StateChoiceOfLaw") ??
-            TryGetNestedString(loan, "Broker", "StateCode") ??
-            TryGetNestedString(loan, "Brokers", 0, "Address", "State") ??
-            TryGetNestedString(loan, "Brokers", 0, "MailingAddress", "State") ??
-            TryGetNestedString(loan, "Brokers", 0, "PhysicalAddress", "State") ??
-            TryGetNestedString(loan, "Broker", "Address", "State") ??
-            TryGetNestedString(loan, "Broker", "MailingAddress", "State") ??
-            TryGetNestedString(loan, "Broker", "PhysicalAddress", "State");
-
-        if (!string.IsNullOrWhiteSpace(brokerState))
-            data["BrokerState"] = brokerState!.Trim();
-
-        // Allow Admin Bench overrides to win last.
         if (loan.AdminBench?.KeyOverrides is not null)
         {
             foreach (var kvp in loan.AdminBench.KeyOverrides)
                 data[kvp.Key] = kvp.Value;
         }
 
-        // Remove nulls (no LINQ dependency surprises).
         if (data.Count > 0)
         {
-            var keysToRemove = new System.Collections.Generic.List<string>();
+            var keysToRemove = new List<string>();
             foreach (var kvp in data)
             {
                 if (kvp.Value is null)
                     keysToRemove.Add(kvp.Key);
             }
+
             foreach (var k in keysToRemove)
                 data.Remove(k);
         }
@@ -334,47 +512,7 @@ public sealed class LoanWorker : WorkerPoolBackgroundService<LoanJob>
         return data;
     }
 
-    private Task<string> GetLenderNamesAsync(LoanAgreement loan) => Task.FromResult(loan.LenderNames ?? "");
-    private Task<string> GetBorrowerNamesAsync(LoanAgreement loan) => Task.FromResult(loan.BorrowerNames ?? "");
-    private Task<string> GetBrokerNamesAsync(LoanAgreement loan) => Task.FromResult(loan.BrokerNames ?? "");
-
-    private static string? TryGetNestedString(object root, params object[] path)
-    {
-        try
-        {
-            object? cur = root;
-
-            foreach (var seg in path)
-            {
-                if (cur == null) return null;
-
-                if (seg is string propName)
-                {
-                    var pi = cur.GetType().GetProperty(propName, BindingFlags.Public | BindingFlags.Instance);
-                    cur = pi?.GetValue(cur);
-                }
-                else if (seg is int index)
-                {
-                    if (cur is System.Collections.IList list && list.Count > index)
-                        cur = list[index];
-                    else
-                        return null;
-                }
-            }
-
-            return cur?.ToString();
-        }
-        catch { return null; }
-    }
-
-    /// <summary>
-    /// Creates the persisted delivery plan on the LoanAgreement.
-    /// This is what Admin Bench shows, and what Merge queue uses.
-    /// </summary>
-    private async Task SaveDeliveriesAsync(
-    LoanAgreement loan,
-    IReadOnlyList<Document> docs,
-    CancellationToken ct)
+    private async Task SaveDeliveriesAsync(LoanAgreement loan, IReadOnlyList<Document> docs, CancellationToken ct)
     {
         loan.DocumentDeliverys ??= new List<DocumentDelivery>();
         loan.DocumentDeliverys.Clear();
@@ -396,120 +534,91 @@ public sealed class LoanWorker : WorkerPoolBackgroundService<LoanJob>
             });
         }
 
-        // ============================
-        // 🔑 THIS WAS MISSING
-        // Persist the updated loan
-        // ============================
         await dbApp.UpSertRecordAsync(loan).ConfigureAwait(false);
 
-        logger.LogInformation(
-            "✅ Deliveries persisted. LoanId={LoanId} DeliveryCount={Count}",
-            loan.Id,
-            loan.DocumentDeliverys.Count);
+        logger.LogInformation("✅ Deliveries persisted. LoanId={LoanId} DeliveryCount={Count}", loan.Id, loan.DocumentDeliverys.Count);
     }
 
-
-    /// <summary>
-    /// Queues merge jobs based on the persisted delivery plan.
-    /// </summary>
     private async Task QueueMergeFromDeliveriesAsync(LoanAgreement loan, CancellationToken ct)
     {
-        if (loan.AdminBench?.Enabled == true && loan.AdminBench.SuppressMerge)
-        {
-            logger.LogInformation("⛔ Merge suppressed by AdminBench for LoanId={LoanId}", loan.Id);
-            return;
-        }
-
-        if (loan.DocumentDeliverys.Count == 0)
+        if (loan.DocumentDeliverys is null || loan.DocumentDeliverys.Count == 0)
         {
             logger.LogInformation("QueueMergeFromDeliveriesAsync: No deliveries to merge for LoanId={LoanId}", loan.Id);
             return;
         }
 
-        var queued = 0;
-
-        foreach (var delivery in loan.DocumentDeliverys)
+        foreach (var del in loan.DocumentDeliverys)
         {
-            var doc = TryResolveLibraryDocumentById(delivery.DocId);
+            if (ct.IsCancellationRequested) break;
+
+            var doc = TryResolveLibraryDocumentById(del.DocId);
 
             if (doc is null)
             {
-                logger.LogWarning("QueueMergeFromDeliveriesAsync: DocumentId={DocId} not found in DocumentLibrary.Documents", delivery.DocId);
+                logger.LogWarning("QueueMergeFromDeliveriesAsync: DocumentId={DocId} not found in DocumentLibrary.Documents", del.DocId);
                 continue;
             }
 
-            // Delivery output type controls what is produced for THIS document.
-            // IMPORTANT: do NOT mutate the library metadata document instance.
-            var mergeDoc = CloneDocument(doc);
-            mergeDoc.OutputType = delivery.OutputType;
+            var copyCount = del.Copies <= 0 ? 1 : del.Copies;
 
-            var merge = new DocumentMerge
+            for (int i = 0; i < copyCount; i++)
             {
-                LoanAgreement = loan,
-                Document = mergeDoc,
-                Status = DocumentMergeState.Status.Queued
-            };
+                var clone = CloneDocument(source: doc);
+                clone.OutputType = del.OutputType;
+                clone.Copies = 1;
 
-            await mergeQueue.EnqueueAsync(new MergeJob(merge), ct).ConfigureAwait(false);
-            queued++;
-        }
+                var merge = new DocumentMerge
+                {
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow,
+                    LoanAgreement = loan,
+                    Document = clone,
+                    Status = DocumentMergeState.Status.Queued
+                };
 
-        logger.LogInformation("✅ QueueMergeFromDeliveriesAsync: LoanId={LoanId} MergeJobsQueued={Count}",
-            loan.Id, queued);
-    }
-
-    // -------------------------
-    // NEW: Library-based resolution helpers
-    // -------------------------
-
-    private List<Document> GetAllLibraryDocuments()
-    {
-        try
-        {
-            var libs = dbApp.GetRecords<DocumentLibrary>().ToList();
-            return libs
-                .Where(l => l is not null)
-                .SelectMany(l => l.Documents ?? new List<Document>())
-                .ToList();
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "LoanWorker: failed to load DocumentLibrary records");
-            return new List<Document>();
+                await mergeQueue.EnqueueAsync(new MergeJob(merge), ct).ConfigureAwait(false);
+            }
         }
     }
 
     private Document? TryResolveLibraryDocumentById(Guid docId)
     {
-        if (docId == Guid.Empty) return null;
+        try
+        {
+            var libs = dbApp.GetRecords<DocumentLibrary>().ToList();
 
-        var docs = GetAllLibraryDocuments();
-        return docs.FirstOrDefault(d => d.Id == docId);
+            foreach (var lib in libs)
+            {
+                var match = lib.Documents?.FirstOrDefault(d => d.Id == docId);
+                if (match is not null) return match;
+            }
+
+            return null;
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "TryResolveLibraryDocumentById failed. DocId={DocId}", docId);
+            return null;
+        }
     }
 
     private static Document CloneDocument(Document source)
     {
-        // Shallow clone, enough to prevent OutputType (and other per-merge overrides) from mutating library metadata.
         return new Document
         {
             Id = source.Id,
             DocLibId = source.DocLibId,
             Name = source.Name,
             DocStoreId = source.DocStoreId,
-
             TemplateRef = source.TemplateRef,
             MergedRef = source.MergedRef,
-
             MasterTemplateDocumentUsedName = source.MasterTemplateDocumentUsedName,
-
             TemplateDocumentBytes = source.TemplateDocumentBytes,
             MergedDocumentBytes = source.MergedDocumentBytes,
-
             HiddenTagName = source.HiddenTagName,
             HiddenTagValue = source.HiddenTagValue,
             UpdatedAt = source.UpdatedAt,
-
-            GenerateMultipleFor = source.GenerateMultipleFor is null ? new List<DocumentTypes.GenerateMultipleFor>() : new List<DocumentTypes.GenerateMultipleFor>(source.GenerateMultipleFor),
+            GenerateMultipleFor = source.GenerateMultipleFor,
             OutputType = source.OutputType,
             Copies = source.Copies
         };

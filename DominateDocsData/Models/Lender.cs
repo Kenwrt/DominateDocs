@@ -114,4 +114,6 @@ public class Lender : IPartyNames
     public bool IsActive { get; set; } = true;
 
     public decimal InvestmentAmount { get; set; }
+
+    public string FormattedName { get; set; }
 }

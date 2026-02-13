@@ -13,7 +13,7 @@ public class DocumentMergeState
         [System.ComponentModel.Description("Error")]
         Error,
 
-        [System.ComponentModel.Description("Complete")]
+        [System.ComponentModel.Description("Completed")]
         Complete,
 
         [System.ComponentModel.Description("Submittied")]

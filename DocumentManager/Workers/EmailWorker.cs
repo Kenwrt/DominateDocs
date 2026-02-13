@@ -44,9 +44,10 @@ public sealed class EmailWorker : WorkerPoolBackgroundService<EmailJob>
             return;
         }
 
-        // If ZIP requested, give merges a moment to settle.
-        if (job.AttachmentOutput == EmailEnums.AttachmentOutput.ZipFile)
-            await WaitForMergeQuietPeriodAsync(job.LoanId, job.ZipMaxWaitSeconds, ct).ConfigureAwait(false);
+        // ✅ IMPORTANT:
+        // Always wait for a merge quiet period even for IndividualDocument mode.
+        // This is what makes "1 email with N attachments" reliable.
+        await WaitForMergeQuietPeriodAsync(job.LoanId, job.ZipMaxWaitSeconds, ct).ConfigureAwait(false);
 
         var docs = BuildDocumentAttachments(job.LoanId);
 
@@ -131,98 +132,101 @@ public sealed class EmailWorker : WorkerPoolBackgroundService<EmailJob>
         {
             await Task.Delay(500, ct).ConfigureAwait(false);
 
-            var count = CountCompletedMerges(loanId);
-            if (count != lastCount)
+            var nowCount = CountCompletedMerges(loanId);
+            if (nowCount != lastCount)
             {
-                lastCount = count;
+                lastCount = nowCount;
                 stableSince = DateTime.UtcNow;
+                continue;
             }
 
-            // quiet for 1s
-            if ((DateTime.UtcNow - stableSince).TotalMilliseconds >= 1000)
+            // Quiet for 1.5 seconds => treat as settled
+            if ((DateTime.UtcNow - stableSince).TotalMilliseconds >= 1500)
                 return;
         }
     }
 
     private int CountCompletedMerges(Guid loanId)
     {
-        return docState.DocumentList.Values.Count(m =>
-            m is not null
-            && m.LoanAgreement is not null
-            && m.LoanAgreement.Id == loanId
-            && m.Status == DocumentMergeState.Status.Complete
-            && m.MergedDocumentBytes is not null
-            && m.MergedDocumentBytes.Length > 0);
+        try
+        {
+            return docState.DocumentList.Values.Count(m =>
+                m != null &&
+                m.LoanAgreement != null &&
+                m.LoanAgreement.Id == loanId &&
+                m.Status == DocumentMergeState.Status.Complete &&
+                m.MergedDocumentBytes != null &&
+                m.MergedDocumentBytes.Length > 0);
+        }
+        catch
+        {
+            return 0;
+        }
     }
 
     private List<EmailAttachment> BuildDocumentAttachments(Guid loanId)
     {
-        var results = new List<EmailAttachment>();
+        var list = new List<EmailAttachment>();
 
-        // ✅ FIX:
-        // docState.DocumentList is an in-memory running history. If you attach from it directly,
-        // each run accumulates more "Complete" merges and your email attachments multiply.
-        //
-        // We dedupe by Document.Id and keep the most recently-seen merge per document
-        // (Dictionary preserves insertion order; last write wins).
-        var latestByDocId = new Dictionary<Guid, dynamic>();
-
-        foreach (var m in docState.DocumentList.Values)
+        try
         {
-            if (m is null) continue;
-            if (m.LoanAgreement is null) continue;
-            if (m.LoanAgreement.Id != loanId) continue;
-            if (m.Status != DocumentMergeState.Status.Complete) continue;
-            if (m.MergedDocumentBytes is null || m.MergedDocumentBytes.Length == 0) continue;
+            var merges = docState.DocumentList.Values
+                .Where(m =>
+                    m != null &&
+                    m.LoanAgreement != null &&
+                    m.LoanAgreement.Id == loanId &&
+                    m.Status == DocumentMergeState.Status.Complete &&
+                    m.MergedDocumentBytes != null &&
+                    m.MergedDocumentBytes.Length > 0)
+                .ToList();
 
-            var docId = (Guid)(m.Document?.Id ?? Guid.Empty);
-            if (docId == Guid.Empty) continue;
-
-            // Overwrite so the newest merge for this doc wins.
-            latestByDocId[docId] = m;
-        }
-
-        var merges = latestByDocId.Values
-            .OrderBy(m => (string?)(m.Document?.Name) ?? string.Empty)
-            .ToList();
-
-        var total = 0;
-
-        foreach (var m in merges)
-        {
-            if (results.Count >= MaxDocs)
-                break;
-
-            var bytes = (byte[])m.MergedDocumentBytes!;
-            if (bytes.Length == 0) continue;
-
-            // OutputType comes from the Document
-            var outType = (DocumentTypes.OutputTypes)(m.Document?.OutputType ?? DocumentTypes.OutputTypes.PDF);
-
-            var ext = outType == DocumentTypes.OutputTypes.DOCX ? "docx" : "pdf";
-            var contentType = outType == DocumentTypes.OutputTypes.DOCX
-                ? "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-                : "application/pdf";
-
-            var baseName = string.IsNullOrWhiteSpace((string?)m.Document?.Name) ? "document" : (string)m.Document!.Name!;
-            var fileName = NormalizeFileName(baseName, ext);
-
-            if (total + bytes.Length > MaxTotalBytes)
-                break;
-
-            total += bytes.Length;
-
-            results.Add(new EmailAttachment
+            foreach (var m in merges)
             {
-                FileName = fileName,
-                ContentType = contentType,
-                SourceType = EmailEnums.AttachmentSourceType.ByteArray,
-                OutputType = EmailEnums.AttachmentOutput.IndividualDocument,
-                Data = bytes
-            });
+                if (list.Count >= MaxDocs) break;
+
+                var name = (m.Document?.Name ?? "Document").Trim();
+                if (string.IsNullOrWhiteSpace(name)) name = "Document";
+
+                // Determine file extension
+                var ext = (m.Document?.OutputType ?? DocumentTypes.OutputTypes.PDF) == DocumentTypes.OutputTypes.DOCX ? "docx" : "pdf";
+                var fileName = $"{SanitizeFileName(name)}.{ext}";
+
+                var contentType = ext == "docx"
+                    ? "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                    : "application/pdf";
+
+                list.Add(new EmailAttachment
+                {
+                    FileName = fileName,
+                    ContentType = contentType,
+                    Data = m.MergedDocumentBytes!
+                });
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "EmailWorker: BuildDocumentAttachments failed LoanId={LoanId}", loanId);
         }
 
-        return results;
+        // Cap total bytes
+        var total = list.Sum(a => a.Data?.Length ?? 0);
+        if (total > MaxTotalBytes)
+        {
+            logger.LogWarning("EmailWorker: Total attachment bytes exceeded cap. LoanId={LoanId} Bytes={Bytes}", loanId, total);
+            // keep only as many as we can under the cap
+            var trimmed = new List<EmailAttachment>();
+            var running = 0;
+            foreach (var a in list)
+            {
+                var sz = a.Data?.Length ?? 0;
+                if (running + sz > MaxTotalBytes) break;
+                trimmed.Add(a);
+                running += sz;
+            }
+            list = trimmed;
+        }
+
+        return list;
     }
 
     private EmailAttachment? BuildZipAttachment(Guid loanId, List<EmailAttachment> docs)
@@ -232,69 +236,44 @@ public sealed class EmailWorker : WorkerPoolBackgroundService<EmailJob>
         try
         {
             using var ms = new MemoryStream();
-
             using (var zip = new ZipArchive(ms, ZipArchiveMode.Create, leaveOpen: true))
             {
-                foreach (var doc in docs)
+                foreach (var a in docs)
                 {
-                    var bytes = doc.ToBytes();
-                    if (bytes.Length == 0) continue;
-
-                    var safeName = MakeZipSafeFileName(doc.FileName);
-                    var entry = zip.CreateEntry(safeName, CompressionLevel.Optimal);
-
+                    var entry = zip.CreateEntry(a.FileName, CompressionLevel.Optimal);
                     using var entryStream = entry.Open();
-                    entryStream.Write(bytes, 0, bytes.Length);
+                    entryStream.Write(a.Data, 0, a.Data.Length);
                 }
             }
 
             var zipBytes = ms.ToArray();
+            if (zipBytes.Length == 0) return null;
 
-            if (zipBytes.Length == 0 || zipBytes.Length > MaxTotalBytes)
+            if (zipBytes.Length > MaxTotalBytes)
+            {
+                logger.LogWarning("EmailWorker: Zip bytes exceeded cap. LoanId={LoanId} Bytes={Bytes}", loanId, zipBytes.Length);
                 return null;
+            }
 
             return new EmailAttachment
             {
                 FileName = $"Loan_{loanId:N}_Documents.zip",
                 ContentType = "application/zip",
-                SourceType = EmailEnums.AttachmentSourceType.ByteArray,
-                OutputType = EmailEnums.AttachmentOutput.ZipFile,
                 Data = zipBytes
             };
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "❌ EmailWorker: failed to build ZIP for LoanId={LoanId}", loanId);
+            logger.LogError(ex, "EmailWorker: BuildZipAttachment failed LoanId={LoanId}", loanId);
             return null;
         }
     }
 
-    private static string NormalizeFileName(string baseName, string ext)
+    private static string SanitizeFileName(string name)
     {
-        var name = (baseName ?? "document").Trim();
-        var dot = name.LastIndexOf('.');
-        if (dot > 0) name = name.Substring(0, dot);
-
         foreach (var c in Path.GetInvalidFileNameChars())
             name = name.Replace(c, '_');
 
-        name = name.Trim();
-        if (string.IsNullOrWhiteSpace(name))
-            name = "document";
-
-        return $"{name}.{ext}";
-    }
-
-    private static string MakeZipSafeFileName(string fileName)
-    {
-        var name = (fileName ?? "document").Trim();
-        foreach (var c in Path.GetInvalidFileNameChars())
-            name = name.Replace(c, '_');
-
-        name = name.Trim();
-        if (string.IsNullOrWhiteSpace(name))
-            name = "document.pdf";
-
-        return name;
+        return name.Trim();
     }
 }

@@ -24,9 +24,9 @@ public static class LoanAndLookupBogusFactory
             .RuleFor(x => x.State, f => f.Address.StateAbbr())
             .RuleFor(x => x.ZipCode, f => f.Address.ZipCode())
             .RuleFor(x => x.Country, _ => "US")
-            .RuleFor(x => x.SSN, f => f.Random.Replace("###-##-####"))
-            .RuleFor(x => x.EIN, f => f.Random.Replace("##-#######"))
-            .RuleFor(x => x.IsActive, _ => true);
+            .RuleFor(x => x.SSN, f => f.Random.Replace("###-##-####"));
+
+
 
     private static readonly Faker<Lender> LenderFaker =
         new Faker<Lender>()
@@ -45,9 +45,9 @@ public static class LoanAndLookupBogusFactory
             .RuleFor(x => x.City, f => f.Address.City())
             .RuleFor(x => x.State, f => f.Address.StateAbbr())
             .RuleFor(x => x.ZipCode, f => f.Address.ZipCode())
-            .RuleFor(x => x.Country, _ => "US")
-            .RuleFor(x => x.EIN, f => f.Random.Replace("##-#######"))
-            .RuleFor(x => x.IsActive, _ => true);
+            .RuleFor(x => x.Country, _ => "US");
+
+
 
     private static readonly Faker<Guarantor> GuarantorFaker =
         new Faker<Guarantor>()
@@ -68,9 +68,9 @@ public static class LoanAndLookupBogusFactory
             .RuleFor(x => x.State, f => f.Address.StateAbbr())
             .RuleFor(x => x.ZipCode, f => f.Address.ZipCode())
             .RuleFor(x => x.Country, _ => "US")
-            .RuleFor(x => x.SSN, f => f.Random.Replace("###-##-####"))
-            .RuleFor(x => x.EIN, f => f.Random.Replace("##-#######"))
-            .RuleFor(x => x.IsActive, _ => true);
+            .RuleFor(x => x.SSN, f => f.Random.Replace("###-##-####"));
+
+
 
     private static readonly Faker<Broker> BrokerFaker =
         new Faker<Broker>()
@@ -90,8 +90,8 @@ public static class LoanAndLookupBogusFactory
             .RuleFor(x => x.State, f => f.Address.StateAbbr())
             .RuleFor(x => x.ZipCode, f => f.Address.ZipCode())
             .RuleFor(x => x.Country, _ => "US")
-            .RuleFor(x => x.BrokerCommissionPercentage, f => f.Random.Decimal(0.5m, 4m))
-            .RuleFor(x => x.IsActive, _ => true);
+            .RuleFor(x => x.BrokerCommissionPercentage, f => f.Random.Decimal(0.5m, 4m));
+
 
     private static readonly Faker<PropertyRecord> PropertyFaker =
         new Faker<PropertyRecord>()
@@ -104,9 +104,8 @@ public static class LoanAndLookupBogusFactory
             .RuleFor(x => x.ZipCode, f => f.Address.ZipCode())
             .RuleFor(x => x.Country, _ => "US")
             .RuleFor(x => x.ParcelNumber, f => f.Random.AlphaNumeric(10))
-            .RuleFor(x => x.EstimatedValue, f => f.Finance.Amount(250_000, 2_000_000))
-            .RuleFor(x => x.IsActive, _ => true);
-
+            .RuleFor(x => x.EstimatedValue, f => f.Finance.Amount(250_000, 2_000_000));
+           
     private static readonly Faker<Lien> LienFaker =
         new Faker<Lien>()
             .RuleFor(x => x.Id, _ => Guid.NewGuid())

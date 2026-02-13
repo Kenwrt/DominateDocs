@@ -112,5 +112,7 @@ public class Broker : IPartyNames
 
     public string SignatureLinesFormatted { get; set; }
 
+    public string FormattedName { get; set; }
+
     //string test = DominateDocsData.Enums.QuickLoanKen.FormSections.Lender.ToString();
 }

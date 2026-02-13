@@ -34,7 +34,6 @@
                 <MudTh>Address</MudTh>
                 <MudTh>Phone</MudTh>
                 <MudTh>Email</MudTh>
-                <MudTh>Active</MudTh>
                 <MudTh>
                 <MudButton Class="rounded-4"
                            Variant="Variant.Text"
@@ -52,11 +51,7 @@
                 <MudTd DataLabel="Address">@context.FullAddress</MudTd>
                 <MudTd DataLabel="Phone">@context.ContactPhoneNumber</MudTd>
                 <MudTd DataLabel="Email">@context.ContactEmail</MudTd>
-                <MudTd DataLabel="Active">
-                    <MudChip T="bool" Color="@((context.IsActive) ? Color.Success : Color.Error)">
-                        @(context.IsActive ? "Yes" : "No")
-                    </MudChip>
-                </MudTd>
+             
                 <MudTd>
                     <MudButton Class="rounded-4"
                                Variant="Variant.Text"

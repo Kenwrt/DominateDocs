@@ -89,4 +89,6 @@ public class Borrower : IPartyNames
     public string EntityOwnersFormatted { get; set; }
 
     public string SignatureLinesFormatted { get; set; }
+
+    public string FormattedName { get; set; }
 }

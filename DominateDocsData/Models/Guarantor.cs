@@ -102,5 +102,5 @@ public class Guarantor : IPartyNames
 
     public string SignatureLinesFormatted { get; set; }
 
-    public bool IsActive { get; set; } = true;
+    public string FormattedName { get; set; }
 }
