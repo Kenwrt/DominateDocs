@@ -51,6 +51,7 @@
 	  <Content Remove="appsettings.Production.json" />
 	  <Content Remove="Components\Account\Shared\StatusMessageXXXX.razor" />
 	  <Content Remove="Components\AppOld.razor" />
+	  <Content Remove="Components\Layout\MainLayouOLDXXXt.razor" />
 	  <Content Remove="Components\Layout\MainLayoutOld.razor" />
 	  <Content Remove="Components\Layout\NavMenuOld.razor" />
 	  <Content Remove="Components\Pages\AddressAutocomplete2.razor" />

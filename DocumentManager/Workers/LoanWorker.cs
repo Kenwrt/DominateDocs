@@ -1,4 +1,5 @@
-﻿using DocumentManager.Infrastructure;
+﻿using DocumentManager.Email;
+using DocumentManager.Infrastructure;
 using DocumentManager.Jobs;
 using DocumentManager.Services;
 using DocumentManager.State;
@@ -106,6 +107,13 @@ public sealed class LoanWorker : WorkerPoolBackgroundService<LoanJob>
             }
 
             await QueueMergeFromDeliveriesAsync(loan, ct).ConfigureAwait(false);
+
+            // =========================================================
+            // ✅ REAL PIPELINE EMAIL:
+            // Queue exactly ONE EmailJob after merges are queued.
+            // AdminBench will queue its own EmailJob (so we avoid duplicates).
+            // =========================================================
+            await QueueRealPipelineEmailJobAsync(loan, ct).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
@@ -114,6 +122,55 @@ public sealed class LoanWorker : WorkerPoolBackgroundService<LoanJob>
         finally
         {
             docState.StateHasChanged();
+        }
+    }
+
+    private async Task QueueRealPipelineEmailJobAsync(LoanAgreement loan, CancellationToken ct)
+    {
+        // Avoid duplicates: AdminBench explicitly queues email (in AdminBenchViewModel).
+        if (loan.AdminBench?.Enabled == true)
+            return;
+
+        var to = (loan.EmailTo ?? "").Trim();
+        if (string.IsNullOrWhiteSpace(to))
+        {
+            logger.LogInformation("LoanWorker: No EmailTo on LoanAgreement. EmailJob not queued. LoanId={LoanId}", loan.Id);
+            return;
+        }
+
+        var deliveryCount = loan.DocumentDeliverys?.Count ?? 0;
+        if (deliveryCount <= 0)
+        {
+            logger.LogInformation("LoanWorker: No deliveries found. EmailJob not queued. LoanId={LoanId}", loan.Id);
+            return;
+        }
+
+        // Per your instruction:
+        // ✅ Default = 1 email, 1 attachment ZIP containing all documents.
+        var mode = EmailEnums.AttachmentOutput.ZipFile;
+
+        var subject = $"Loan Documents: {(loan.ReferenceName ?? loan.LoanTypeName ?? loan.Id.ToString("N"))}";
+
+        try
+        {
+            using var scope = scopeFactory.CreateScope();
+            var emailQueue = scope.ServiceProvider.GetRequiredService<IJobQueue<EmailJob>>();
+
+            await emailQueue.EnqueueAsync(
+                new EmailJob(
+                    loan.Id,
+                    to,
+                    subject,
+                    mode,
+                    ZipMaxWaitSeconds: 45),
+                ct).ConfigureAwait(false);
+
+            logger.LogInformation("📨 LoanWorker queued EmailJob (real pipeline). LoanId={LoanId} To={To} Mode={Mode} Deliveries={Deliveries}",
+                loan.Id, to, mode, deliveryCount);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "LoanWorker: Failed to enqueue EmailJob. LoanId={LoanId}", loan.Id);
         }
     }
 

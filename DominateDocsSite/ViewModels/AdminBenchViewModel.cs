@@ -86,7 +86,6 @@ public sealed class AdminBenchViewModel
         {
             DocLibIds = outputService.GetDocLibIds();
 
-            // Default DocLib first, because LoanTypes require it.
             if (SelectedDocLibId == Guid.Empty && DocLibIds.Count > 0)
                 SelectedDocLibId = DocLibIds[0];
 
@@ -102,7 +101,6 @@ public sealed class AdminBenchViewModel
             if (SelectedLoanAgreement is null && LoanAgreements.Count > 0)
                 SelectedLoanAgreement = LoanAgreements[0];
 
-            // preload docs if possible
             if (SelectedDocLibId != Guid.Empty)
             {
                 Documents = outputService.GetDocuments(SelectedDocLibId);
@@ -131,7 +129,6 @@ public sealed class AdminBenchViewModel
             Documents = outputService.GetDocuments(SelectedDocLibId);
             RebuildDocNameCache(Documents);
 
-            // LoanTypes are DocLib scoped
             LoanTypes = outputService.GetLoanTypes(SelectedDocLibId);
 
             if (SelectedLoanType is null || (SelectedLoanType.DocLibId != SelectedDocLibId))
@@ -212,11 +209,9 @@ public sealed class AdminBenchViewModel
 
     /// <summary>
     /// ONE BUTTON:
-    /// - Queue LoanJob (LoanWorker populates formatted names + persists loan + deliveries)
-    /// - LoanWorker also queues merges (we do NOT clone/queue merges here)
-    /// - Email behavior:
-    ///   - IndividualDocument: MergeWorker emails each merged doc (NO EmailJob here)
-    ///   - ZipFile: enqueue EmailJob here (single ZIP email)
+    /// - Queue LoanJob (LoanWorker persists formatted names + deliveries and queues merges)
+    /// - Wait for merges complete
+    /// - Queue exactly ONE EmailJob (IndividualDocument => N attachments; ZipFile => 1 zip)
     /// </summary>
     public async Task RunMergeAndEmailAsync()
     {
@@ -232,11 +227,9 @@ public sealed class AdminBenchViewModel
         {
             var loanId = SelectedLoanAgreement!.Id;
 
-            Status = "Queueing LoanWorker (this is where formatted names get persisted)…";
-
+            Status = "Queueing LoanWorker (persists formatted names + deliveries)…";
             await QueueLoanPipelineAsync(runMerges: true).ConfigureAwait(false);
 
-            // Wait for formatted names to exist in DB (LoanWorker persists them via UpSertRecordAsync)
             var ensuredNames = await WaitForFormattedNamesAsync(loanId, timeoutSeconds: 45).ConfigureAwait(false);
             if (!ensuredNames)
             {
@@ -244,10 +237,8 @@ public sealed class AdminBenchViewModel
                 return;
             }
 
-            // Refresh loan from DB (so UI shows persisted fields)
             SelectedLoanAgreement = outputService.GetLoanAgreements().FirstOrDefault(l => l.Id == loanId) ?? SelectedLoanAgreement;
 
-            // If there are deliveries, LoanWorker will have queued merges. If none, there is nothing to merge.
             var deliveryCount = SelectedLoanAgreement?.DocumentDeliverys?.Count ?? 0;
             if (deliveryCount == 0)
             {
@@ -277,24 +268,18 @@ public sealed class AdminBenchViewModel
             var traceCount = SelectedLoanAgreement?.AdminBench?.Trace?.Count ?? 0;
             var subject = $"Admin Bench Results: {SelectedLoanAgreement?.LoanTypeName ?? "Loan"} | Deliveries={deliveryCount} | Trace={traceCount}";
 
-            if (EmailAttachmentOutput == EmailEnums.AttachmentOutput.ZipFile)
-            {
-                var emailJob = new EmailJob(
-                    loanId,
-                    to,
-                    subject,
-                    EmailAttachmentOutput,
-                    ZipMaxWaitSeconds: 10);
+            var emailJob = new EmailJob(
+                loanId,
+                to,
+                subject,
+                EmailAttachmentOutput,
+                ZipMaxWaitSeconds: 20);
 
-                await emailQueue.EnqueueAsync(emailJob, CancellationToken.None).ConfigureAwait(false);
+            await emailQueue.EnqueueAsync(emailJob, CancellationToken.None).ConfigureAwait(false);
 
-                Status = $"✅ Done. Merges complete. Queued ZIP email to {to}.";
-            }
-            else
-            {
-                // IndividualDocument mode: MergeWorker emails each merged document.
-                Status = $"✅ Done. Merges complete. Emails sent per document to {to}.";
-            }
+            Status = EmailAttachmentOutput == EmailEnums.AttachmentOutput.ZipFile
+                ? $"✅ Done. Merges complete. Queued ONE ZIP email to {to}."
+                : $"✅ Done. Merges complete. Queued ONE email with {deliveryCount} attachment(s) to {to}.";
         }
         catch (Exception ex)
         {
@@ -312,11 +297,9 @@ public sealed class AdminBenchViewModel
         if (SelectedLoanAgreement is null || SelectedLoanType is null || SelectedDocLibId == Guid.Empty)
             return;
 
-        // Pull doc pool
         Documents = outputService.GetDocuments(SelectedDocLibId);
         RebuildDocNameCache(Documents);
 
-        // Evaluate (preview)
         var matched = outputService.EvaluateDocuments(SelectedLoanType, SelectedLoanAgreement, Documents);
 
         SelectedLoanAgreement.DocumentDeliverys ??= new List<DocumentDelivery>();
@@ -339,23 +322,18 @@ public sealed class AdminBenchViewModel
     {
         var loanId = SelectedLoanAgreement!.Id;
 
-        // Pull from DB (LoanWorker should work on persisted object)
         var loan = outputService.GetLoanAgreements().FirstOrDefault(l => l.Id == loanId);
         if (loan is null) throw new InvalidOperationException("Loan not found in DB.");
 
-        // Apply AdminBench overrides using the real model type (LoanAgreement.AdminBenchOverrides)
         loan.AdminBench ??= new LoanAgreement.AdminBenchOverrides();
         loan.AdminBench.Enabled = true;
         loan.AdminBench.OutputTypeOverride = OutputType;
 
-        // ✅ CRITICAL:
-        // - IndividualDocument: allow MergeWorker emails by providing EmailToOverride
-        // - ZipFile: suppress per-doc emails by clearing EmailToOverride (LoanWorker won't copy to LoanAgreement.EmailTo)
-        loan.AdminBench.EmailToOverride = EmailAttachmentOutput == EmailEnums.AttachmentOutput.ZipFile ? string.Empty : ResolveEmailTo();
+        // Always set it so LoanWorker persists it onto LoanAgreement.EmailTo (merge templates can use it)
+        loan.AdminBench.EmailToOverride = ResolveEmailTo();
 
         loan.AdminBench.SuppressMerge = !runMerges;
 
-        // Context overrides for rule evaluation
         loan.DocLibId = SelectedDocLibId;
         loan.OutputType = OutputType;
 
@@ -387,16 +365,13 @@ public sealed class AdminBenchViewModel
 
     private static bool HasFormattedNames(LoanAgreement loan)
     {
-        // Loan-level fields used in templates
         if (string.IsNullOrWhiteSpace(loan.LenderNames)) return false;
         if (string.IsNullOrWhiteSpace(loan.BorrowerNames)) return false;
         if (string.IsNullOrWhiteSpace(loan.BrokerNames)) return false;
 
-        // Optional but commonly used
         if (loan.Guarantors is not null && loan.Guarantors.Count > 0 && string.IsNullOrWhiteSpace(loan.GuarantorNames))
             return false;
 
-        // If parties exist, at least one should have FormattedName
         if (loan.Lenders is not null && loan.Lenders.Count > 0)
             return loan.Lenders.Any(x => !string.IsNullOrWhiteSpace(x.FormattedName));
 
@@ -476,9 +451,5 @@ public sealed class AdminBenchViewModel
         }
     }
 
-    private string ResolveEmailTo()
-    {
-        // Bench default is user input; LoanWorker can also read AdminBench.EmailToOverride
-        return EmailTo ?? string.Empty;
-    }
+    private string ResolveEmailTo() => EmailTo ?? string.Empty;
 }
