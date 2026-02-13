@@ -189,12 +189,15 @@
     protected override async Task OnInitializedAsync()
     {
         var auth = await AuthProvider.GetAuthenticationStateAsync();
+        var user = auth.User;
+        var userId = auth.User.GetUserId();
+        var name = auth.User.GetDisplayName();
+
         isAuthenticated = auth.User.Identity.IsAuthenticated;
         userName = auth.User.Identity.Name ?? "";
 
         if (isAuthenticated)
         {
-            var userId = auth.User.GetUserId();
             userProfile = await appState.GetUserProfileByIdAsync(Guid.Parse(userId));
 
             if (userProfile is null)
@@ -203,9 +206,10 @@
                 {
                     UserId = Guid.Parse(userId),
                     UserName = userName,
-                    Name = auth.User.GetDisplayName(),
-                    Email = userName,
+                    Name = name,
+                    Email = auth.User.Identity.Name,
                 };
+
                 appState.CreateUserProfile(userProfile);
             }
 
@@ -213,8 +217,13 @@
             Session.Email = userProfile.Email;
             Session.UserName = userProfile.UserName;
 
+            Session.DocLibId = Guid.Parse("533fb231-20f3-4819-8d83-64ede387bd02");
+
             var roles = appState.GetRoles();
             Session.UserRole = roles.FirstOrDefault();
+
+            if (!appState.ActiveSessions.ContainsKey(userName))
+                appState.ActiveSessions.TryAdd(userName, userProfile);
         }
 
         NavigationManager.LocationChanged += OnLocationChanged;
