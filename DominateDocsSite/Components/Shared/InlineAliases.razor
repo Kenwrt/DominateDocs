@@ -1,0 +1,53 @@
+@using DominateDocsSite.Models
+@* Inline AKA / alias management for any party or signatory *@
+
+<div>
+    @if (Aliases.Count == 0)
+    {
+        <MudLink Color="Color.Primary" Underline="Underline.Hover" Class="mt-1"
+                 Style="font-size:12px;cursor:pointer;" @onclick="AddAlias">
+            + Add AKA
+        </MudLink>
+    }
+    else
+    {
+        <div class="mt-2">
+            <div class="d-flex align-center gap-2 mb-2">
+                <MudText Style="font-size:11px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:0.8px;">
+                    Also Known As
+                </MudText>
+                <MudIconButton Icon="@Icons.Material.Filled.Add" Size="Size.Small" Color="Color.Primary"
+                               OnClick="AddAlias" Style="width:24px;height:24px;" />
+            </div>
+            @for (var i = 0; i < Aliases.Count; i++)
+            {
+                var idx = i;
+                <div class="d-flex align-center gap-2 mb-1">
+                    <MudTextField T="string" Value="@Aliases[idx].Name" Variant="Variant.Outlined"
+                                  Placeholder="Alias name" Margin="Margin.Dense" Style="font-size:13px;"
+                                  ValueChanged="@(v => { Aliases[idx].Name = v; OnChanged.InvokeAsync(); })"
+                                  Immediate="true" />
+                    <MudIconButton Icon="@Icons.Material.Filled.Close" Size="Size.Small" Color="Color.Error"
+                                   OnClick="@(() => RemoveAlias(idx))" Style="width:24px;height:24px;" />
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter] public List<Alias> Aliases { get; set; } = [];
+    [Parameter] public EventCallback OnChanged { get; set; }
+
+    private async Task AddAlias()
+    {
+        Aliases.Add(new Alias());
+        await OnChanged.InvokeAsync();
+    }
+
+    private async Task RemoveAlias(int index)
+    {
+        Aliases.RemoveAt(index);
+        await OnChanged.InvokeAsync();
+    }
+}

@@ -1,8 +1,29 @@
 ﻿@page "/whyarewedifferent"
 
 
-<h3>WhyAreWeDifferent</h3>
+@inject HttpClient Http
+
+@if (pageContent != null)
+{
+    <div>@((MarkupString)pageContent)</div>
+}
 
 @code {
+    private string pageContent;
 
+    protected override async Task OnInitializedAsync()
+    {
+        // Replace with your actual WP API URL
+        var response = await Http.GetFromJsonAsync<List<WpPage>>("https://brandwynb1.sg-host.com");
+        pageContent = response?.FirstOrDefault()?.Content?.Rendered;
+    }
+
+    public class WpPage
+    {
+        public ContentData Content { get; set; }
+    }
+    public class ContentData
+    {
+        public string Rendered { get; set; }
+    }
 }

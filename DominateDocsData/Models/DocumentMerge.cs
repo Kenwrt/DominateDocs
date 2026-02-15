@@ -16,6 +16,10 @@ public class DocumentMerge
 
     public byte[] MergedDocumentBytes { get; set; }
 
+    public byte[] PdfDocumentBytes { get; set; }
+
+    public byte[] WordDocumentBytes { get; set; }
+
     public LoanAgreement LoanAgreement { get; set; }
 
     public string? MergedDocumentPath { get; set; }

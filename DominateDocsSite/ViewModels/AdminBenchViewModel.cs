@@ -29,8 +29,19 @@ public sealed class AdminBenchViewModel
     public List<LoanType> LoanTypes { get; private set; } = new();
     public List<LoanAgreement> LoanAgreements { get; private set; } = new();
 
-    public LoanAgreement? SelectedLoanAgreement { get; set; }
-    public LoanType? SelectedLoanType { get; set; }
+    // ✅ Key fix: bind selects to IDs, not object references.
+    public Guid SelectedLoanAgreementId { get; set; }
+    public Guid SelectedLoanTypeId { get; set; }
+
+    public LoanAgreement? SelectedLoanAgreement
+        => SelectedLoanAgreementId == Guid.Empty
+            ? null
+            : LoanAgreements.FirstOrDefault(x => x is not null && x.Id == SelectedLoanAgreementId);
+
+    public LoanType? SelectedLoanType
+        => SelectedLoanTypeId == Guid.Empty
+            ? null
+            : LoanTypes.FirstOrDefault(x => x is not null && x.Id == SelectedLoanTypeId);
 
     // What the UI renders as “Persisted Deliveries”.
     public IReadOnlyList<DocumentDelivery> SelectedLoanDeliveries
@@ -71,6 +82,8 @@ public sealed class AdminBenchViewModel
 
     public bool CanRunOneButton
         => SelectedDocLibId != Guid.Empty
+           && SelectedLoanAgreementId != Guid.Empty
+           && SelectedLoanTypeId != Guid.Empty
            && SelectedLoanAgreement is not null
            && SelectedLoanType is not null;
 
@@ -95,11 +108,17 @@ public sealed class AdminBenchViewModel
 
             LoanAgreements = outputService.GetLoanAgreements();
 
-            if (SelectedLoanType is null && LoanTypes.Count > 0)
-                SelectedLoanType = LoanTypes[0];
+            // Defaults for LoanType
+            if (SelectedLoanTypeId == Guid.Empty && LoanTypes.Count > 0)
+                SelectedLoanTypeId = LoanTypes[0].Id;
+            else if (SelectedLoanTypeId != Guid.Empty && LoanTypes.All(x => x.Id != SelectedLoanTypeId))
+                SelectedLoanTypeId = LoanTypes.FirstOrDefault()?.Id ?? Guid.Empty;
 
-            if (SelectedLoanAgreement is null && LoanAgreements.Count > 0)
-                SelectedLoanAgreement = LoanAgreements[0];
+            // Defaults for LoanAgreement
+            if (SelectedLoanAgreementId == Guid.Empty && LoanAgreements.Count > 0)
+                SelectedLoanAgreementId = LoanAgreements[0].Id;
+            else if (SelectedLoanAgreementId != Guid.Empty && LoanAgreements.All(x => x.Id != SelectedLoanAgreementId))
+                SelectedLoanAgreementId = LoanAgreements.FirstOrDefault()?.Id ?? Guid.Empty;
 
             if (SelectedDocLibId != Guid.Empty)
             {
@@ -131,8 +150,8 @@ public sealed class AdminBenchViewModel
 
             LoanTypes = outputService.GetLoanTypes(SelectedDocLibId);
 
-            if (SelectedLoanType is null || (SelectedLoanType.DocLibId != SelectedDocLibId))
-                SelectedLoanType = LoanTypes.FirstOrDefault();
+            if (SelectedLoanTypeId == Guid.Empty || LoanTypes.All(x => x.Id != SelectedLoanTypeId))
+                SelectedLoanTypeId = LoanTypes.FirstOrDefault()?.Id ?? Guid.Empty;
 
             RebuildPreviewDeliveries();
 
@@ -225,7 +244,7 @@ public sealed class AdminBenchViewModel
 
         try
         {
-            var loanId = SelectedLoanAgreement!.Id;
+            var loanId = SelectedLoanAgreementId;
 
             Status = "Queueing LoanWorker (persists formatted names + deliveries)…";
             await QueueLoanPipelineAsync(runMerges: true).ConfigureAwait(false);
@@ -237,9 +256,17 @@ public sealed class AdminBenchViewModel
                 return;
             }
 
-            SelectedLoanAgreement = outputService.GetLoanAgreements().FirstOrDefault(l => l.Id == loanId) ?? SelectedLoanAgreement;
+            // Refresh the list (and keep the selected ID stable)
+            LoanAgreements = outputService.GetLoanAgreements();
 
-            var deliveryCount = SelectedLoanAgreement?.DocumentDeliverys?.Count ?? 0;
+            var refreshedLoan = LoanAgreements.FirstOrDefault(l => l.Id == loanId);
+            if (refreshedLoan is null)
+            {
+                Status = "Loan refresh failed after pipeline. Check DB / output service.";
+                return;
+            }
+
+            var deliveryCount = refreshedLoan.DocumentDeliverys?.Count ?? 0;
             if (deliveryCount == 0)
             {
                 Status = "Formatted names persisted, but 0 deliveries matched. No merges to run.";
@@ -265,8 +292,8 @@ public sealed class AdminBenchViewModel
                 return;
             }
 
-            var traceCount = SelectedLoanAgreement?.AdminBench?.Trace?.Count ?? 0;
-            var subject = $"Admin Bench Results: {SelectedLoanAgreement?.LoanTypeName ?? "Loan"} | Deliveries={deliveryCount} | Trace={traceCount}";
+            var traceCount = refreshedLoan.AdminBench?.Trace?.Count ?? 0;
+            var subject = $"Admin Bench Results: {refreshedLoan.LoanTypeName ?? "Loan"} | Deliveries={deliveryCount} | Trace={traceCount}";
 
             var emailJob = new EmailJob(
                 loanId,
@@ -294,20 +321,23 @@ public sealed class AdminBenchViewModel
 
     private void RebuildPreviewDeliveries()
     {
-        if (SelectedLoanAgreement is null || SelectedLoanType is null || SelectedDocLibId == Guid.Empty)
+        var loan = SelectedLoanAgreement;
+        var loanType = SelectedLoanType;
+
+        if (loan is null || loanType is null || SelectedDocLibId == Guid.Empty)
             return;
 
         Documents = outputService.GetDocuments(SelectedDocLibId);
         RebuildDocNameCache(Documents);
 
-        var matched = outputService.EvaluateDocuments(SelectedLoanType, SelectedLoanAgreement, Documents);
+        var matched = outputService.EvaluateDocuments(loanType, loan, Documents);
 
-        SelectedLoanAgreement.DocumentDeliverys ??= new List<DocumentDelivery>();
-        SelectedLoanAgreement.DocumentDeliverys.Clear();
+        loan.DocumentDeliverys ??= new List<DocumentDelivery>();
+        loan.DocumentDeliverys.Clear();
 
         foreach (var doc in matched)
         {
-            SelectedLoanAgreement.DocumentDeliverys.Add(new DocumentDelivery
+            loan.DocumentDeliverys.Add(new DocumentDelivery
             {
                 DocId = doc.Id,
                 OutputType = OutputType,
@@ -320,7 +350,7 @@ public sealed class AdminBenchViewModel
 
     private async Task QueueLoanPipelineAsync(bool runMerges)
     {
-        var loanId = SelectedLoanAgreement!.Id;
+        var loanId = SelectedLoanAgreementId;
 
         var loan = outputService.GetLoanAgreements().FirstOrDefault(l => l.Id == loanId);
         if (loan is null) throw new InvalidOperationException("Loan not found in DB.");
@@ -337,8 +367,11 @@ public sealed class AdminBenchViewModel
         loan.DocLibId = SelectedDocLibId;
         loan.OutputType = OutputType;
 
-        loan.LoanTypeId = SelectedLoanType!.Id;
-        loan.LoanTypeName = SelectedLoanType!.Name;
+        var loanType = SelectedLoanType;
+        if (loanType is null) throw new InvalidOperationException("LoanType not found in selected list.");
+
+        loan.LoanTypeId = loanType.Id;
+        loan.LoanTypeName = loanType.Name;
 
         await loanQueue.EnqueueAsync(new LoanJob(loan), CancellationToken.None).ConfigureAwait(false);
     }
@@ -352,10 +385,7 @@ public sealed class AdminBenchViewModel
             var refreshed = outputService.GetLoanAgreements().FirstOrDefault(l => l.Id == loanId);
 
             if (refreshed is not null && HasFormattedNames(refreshed))
-            {
-                SelectedLoanAgreement = refreshed;
                 return true;
-            }
 
             await Task.Delay(300).ConfigureAwait(false);
         }
@@ -410,13 +440,13 @@ public sealed class AdminBenchViewModel
     {
         try
         {
-            if (SelectedLoanAgreement is null)
+            if (SelectedLoanAgreementId == Guid.Empty)
             {
                 LiveMergeRows = new List<MergeRow>();
                 return;
             }
 
-            var loanId = SelectedLoanAgreement.Id;
+            var loanId = SelectedLoanAgreementId;
 
             var merges = docState.DocumentList.Values
                 .Where(m => m?.LoanAgreement?.Id == loanId)
@@ -428,7 +458,7 @@ public sealed class AdminBenchViewModel
                 Status = m.Status.ToString(),
                 DocumentName = m.Document?.Name ?? GetDocName(m.Document?.Id ?? Guid.Empty),
                 CompletedLocal = m.UpdatedAt.ToLocalTime().ToString("g"),
-                Bytes = m.Document?.MergedDocumentBytes?.Length ?? 0
+                Bytes = (m.PdfDocumentBytes?.Length ?? 0) + (m.WordDocumentBytes?.Length ?? 0) + (m.MergedDocumentBytes?.Length ?? 0)
             }).ToList();
         }
         catch (Exception ex)

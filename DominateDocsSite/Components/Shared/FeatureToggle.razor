@@ -1,0 +1,30 @@
+@* Toggle row for loan features in Settings wizard *@
+
+<div class="d-flex align-center justify-space-between py-4"
+     style="border-bottom:1px solid #f1f5f9;cursor:pointer;"
+     @onclick="Toggle">
+    <div class="d-flex align-center gap-3" style="flex:1;">
+        <MudAvatar Rounded="true" Size="Size.Small"
+                   Style="@($"width:36px;height:36px;{(Value ? "background:#e0f2fe;color:#0ea5e9;" : "background:#f6f8fb;color:#94a3b8;")};transition:all 0.2s;")">
+            <MudIcon Icon="@Icon" Style="font-size:18px;" />
+        </MudAvatar>
+        <div>
+            <MudText Style="@($"font-size:14px;font-weight:600;color:{(Value ? "#0f2b4a" : "#475569")};transition:color 0.2s;")">
+                @Label
+            </MudText>
+            <MudText Typo="Typo.caption" Style="color:#94a3b8;">@Hint</MudText>
+        </div>
+    </div>
+    <MudSwitch T="bool" Value="@Value" ValueChanged="@(v => ValueChanged.InvokeAsync(v))" Color="Color.Primary"
+               @onclick:stopPropagation="true" />
+</div>
+
+@code {
+    [Parameter] public string Label { get; set; } = string.Empty;
+    [Parameter] public string Hint { get; set; } = string.Empty;
+    [Parameter] public string Icon { get; set; } = Icons.Material.Filled.Settings;
+    [Parameter] public bool Value { get; set; }
+    [Parameter] public EventCallback<bool> ValueChanged { get; set; }
+
+    private async Task Toggle() => await ValueChanged.InvokeAsync(!Value);
+}

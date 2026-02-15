@@ -93,7 +93,10 @@ public sealed class EmailWorker : WorkerPoolBackgroundService<EmailJob>
 
         if (msg.Attachments.Count == 0)
         {
+            // This message is useful, but now you’ll ALSO get real diagnostics in logs.
             msg.MessageBody += "\n\n(No completed merge outputs were found in memory. Either merges are not complete, or the in-memory merge list was cleared.)";
+
+            LogInMemoryMergeDiagnostics(job.LoanId);
         }
 
         try
@@ -125,14 +128,14 @@ public sealed class EmailWorker : WorkerPoolBackgroundService<EmailJob>
         if (maxWaitSeconds <= 0) return;
 
         var start = DateTime.UtcNow;
-        var lastCount = CountCompletedMerges(loanId);
+        var lastCount = CountCompletedMergesWithAnyBytes(loanId);
         var stableSince = DateTime.UtcNow;
 
         while (!ct.IsCancellationRequested && (DateTime.UtcNow - start).TotalSeconds < maxWaitSeconds)
         {
             await Task.Delay(500, ct).ConfigureAwait(false);
 
-            var nowCount = CountCompletedMerges(loanId);
+            var nowCount = CountCompletedMergesWithAnyBytes(loanId);
             if (nowCount != lastCount)
             {
                 lastCount = nowCount;
@@ -146,7 +149,7 @@ public sealed class EmailWorker : WorkerPoolBackgroundService<EmailJob>
         }
     }
 
-    private int CountCompletedMerges(Guid loanId)
+    private int CountCompletedMergesWithAnyBytes(Guid loanId)
     {
         try
         {
@@ -155,8 +158,7 @@ public sealed class EmailWorker : WorkerPoolBackgroundService<EmailJob>
                 m.LoanAgreement != null &&
                 m.LoanAgreement.Id == loanId &&
                 m.Status == DocumentMergeState.Status.Complete &&
-                m.MergedDocumentBytes != null &&
-                m.MergedDocumentBytes.Length > 0);
+                HasAnyOutputBytes(m));
         }
         catch
         {
@@ -170,37 +172,73 @@ public sealed class EmailWorker : WorkerPoolBackgroundService<EmailJob>
 
         try
         {
+            // IMPORTANT CHANGE:
+            // Previously this required MergedDocumentBytes only.
+            // Now we accept WordDocumentBytes and/or PdfDocumentBytes (dual format support),
+            // and fall back to MergedDocumentBytes for backward compatibility.
             var merges = docState.DocumentList.Values
                 .Where(m =>
                     m != null &&
                     m.LoanAgreement != null &&
                     m.LoanAgreement.Id == loanId &&
                     m.Status == DocumentMergeState.Status.Complete &&
-                    m.MergedDocumentBytes != null &&
-                    m.MergedDocumentBytes.Length > 0)
+                    HasAnyOutputBytes(m))
                 .ToList();
 
             foreach (var m in merges)
             {
                 if (list.Count >= MaxDocs) break;
 
-                var name = (m.Document?.Name ?? "Document").Trim();
-                if (string.IsNullOrWhiteSpace(name)) name = "Document";
+                var baseName = (m.Document?.Name ?? "Document").Trim();
+                if (string.IsNullOrWhiteSpace(baseName)) baseName = "Document";
+                baseName = SanitizeFileName(baseName);
 
-                // Determine file extension
-                var ext = (m.Document?.OutputType ?? DocumentTypes.OutputTypes.PDF) == DocumentTypes.OutputTypes.DOCX ? "docx" : "pdf";
-                var fileName = $"{SanitizeFileName(name)}.{ext}";
+                var addedAny = false;
 
-                var contentType = ext == "docx"
-                    ? "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-                    : "application/pdf";
-
-                list.Add(new EmailAttachment
+                // Prefer explicit dual outputs if present.
+                if (m.WordDocumentBytes != null && m.WordDocumentBytes.Length > 0)
                 {
-                    FileName = fileName,
-                    ContentType = contentType,
-                    Data = m.MergedDocumentBytes!
-                });
+                    if (list.Count < MaxDocs)
+                    {
+                        list.Add(new EmailAttachment
+                        {
+                            FileName = $"{baseName}.docx",
+                            ContentType = "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                            Data = m.WordDocumentBytes
+                        });
+                        addedAny = true;
+                    }
+                }
+
+                if (m.PdfDocumentBytes != null && m.PdfDocumentBytes.Length > 0)
+                {
+                    if (list.Count < MaxDocs)
+                    {
+                        list.Add(new EmailAttachment
+                        {
+                            FileName = $"{baseName}.pdf",
+                            ContentType = "application/pdf",
+                            Data = m.PdfDocumentBytes
+                        });
+                        addedAny = true;
+                    }
+                }
+
+                // Back-compat fallback: attach MergedDocumentBytes based on OutputType
+                if (!addedAny && m.MergedDocumentBytes != null && m.MergedDocumentBytes.Length > 0)
+                {
+                    var ext = (m.Document?.OutputType ?? DocumentTypes.OutputTypes.PDF) == DocumentTypes.OutputTypes.DOCX ? "docx" : "pdf";
+                    var contentType = ext == "docx"
+                        ? "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                        : "application/pdf";
+
+                    list.Add(new EmailAttachment
+                    {
+                        FileName = $"{baseName}.{ext}",
+                        ContentType = contentType,
+                        Data = m.MergedDocumentBytes
+                    });
+                }
             }
         }
         catch (Exception ex)
@@ -213,9 +251,10 @@ public sealed class EmailWorker : WorkerPoolBackgroundService<EmailJob>
         if (total > MaxTotalBytes)
         {
             logger.LogWarning("EmailWorker: Total attachment bytes exceeded cap. LoanId={LoanId} Bytes={Bytes}", loanId, total);
-            // keep only as many as we can under the cap
+
             var trimmed = new List<EmailAttachment>();
             var running = 0;
+
             foreach (var a in list)
             {
                 var sz = a.Data?.Length ?? 0;
@@ -223,10 +262,19 @@ public sealed class EmailWorker : WorkerPoolBackgroundService<EmailJob>
                 trimmed.Add(a);
                 running += sz;
             }
+
             list = trimmed;
         }
 
         return list;
+    }
+
+    private static bool HasAnyOutputBytes(DominateDocsData.Models.DocumentMerge m)
+    {
+        if (m.MergedDocumentBytes != null && m.MergedDocumentBytes.Length > 0) return true;
+        if (m.WordDocumentBytes != null && m.WordDocumentBytes.Length > 0) return true;
+        if (m.PdfDocumentBytes != null && m.PdfDocumentBytes.Length > 0) return true;
+        return false;
     }
 
     private EmailAttachment? BuildZipAttachment(Guid loanId, List<EmailAttachment> docs)
@@ -266,6 +314,67 @@ public sealed class EmailWorker : WorkerPoolBackgroundService<EmailJob>
         {
             logger.LogError(ex, "EmailWorker: BuildZipAttachment failed LoanId={LoanId}", loanId);
             return null;
+        }
+    }
+
+    private void LogInMemoryMergeDiagnostics(Guid loanId)
+    {
+        try
+        {
+            var all = docState.DocumentList.Values.Where(x => x != null).ToList();
+
+            var total = all.Count;
+            var forLoan = all.Count(m => m.LoanAgreement != null && m.LoanAgreement.Id == loanId);
+
+            var forLoanComplete = all.Count(m =>
+                m.LoanAgreement != null &&
+                m.LoanAgreement.Id == loanId &&
+                m.Status == DocumentMergeState.Status.Complete);
+
+            var forLoanCompleteWithBytes = all.Count(m =>
+                m.LoanAgreement != null &&
+                m.LoanAgreement.Id == loanId &&
+                m.Status == DocumentMergeState.Status.Complete &&
+                HasAnyOutputBytes(m));
+
+            var forLoanNotComplete = all.Count(m =>
+                m.LoanAgreement != null &&
+                m.LoanAgreement.Id == loanId &&
+                m.Status != DocumentMergeState.Status.Complete);
+
+            logger.LogWarning(
+                "EmailWorker DIAGNOSTICS: LoanId={LoanId} docState.DocumentList total={Total} forLoan={ForLoan} complete={Complete} completeWithBytes={CompleteWithBytes} notComplete={NotComplete}",
+                loanId, total, forLoan, forLoanComplete, forLoanCompleteWithBytes, forLoanNotComplete);
+
+            // Also log up to first few entries for this loan to see status/byte presence.
+            var sample = all
+                .Where(m => m.LoanAgreement != null && m.LoanAgreement.Id == loanId)
+                .Take(10)
+                .Select(m => new
+                {
+                    MergeId = m.Id,
+                    Status = m.Status.ToString(),
+                    Doc = m.Document?.Name,
+                    Out = m.Document?.OutputType.ToString(),
+                    HasMerged = m.MergedDocumentBytes != null && m.MergedDocumentBytes.Length > 0,
+                    HasWord = m.WordDocumentBytes != null && m.WordDocumentBytes.Length > 0,
+                    HasPdf = m.PdfDocumentBytes != null && m.PdfDocumentBytes.Length > 0,
+                    MergedLen = m.MergedDocumentBytes?.Length ?? 0,
+                    WordLen = m.WordDocumentBytes?.Length ?? 0,
+                    PdfLen = m.PdfDocumentBytes?.Length ?? 0
+                })
+                .ToList();
+
+            foreach (var s in sample)
+            {
+                logger.LogWarning(
+                    "EmailWorker DIAG SAMPLE: MergeId={MergeId} Status={Status} Doc={Doc} Output={Out} HasMerged={HasMerged} HasWord={HasWord} HasPdf={HasPdf} Lens(Merged/Word/Pdf)={MergedLen}/{WordLen}/{PdfLen}",
+                    s.MergeId, s.Status, s.Doc, s.Out, s.HasMerged, s.HasWord, s.HasPdf, s.MergedLen, s.WordLen, s.PdfLen);
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "EmailWorker: diagnostics failed LoanId={LoanId}", loanId);
         }
     }
 

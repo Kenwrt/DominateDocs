@@ -1,0 +1,91 @@
+@* Repeating fee rows with combobox dropdowns *@
+
+@using DominateDocsSite.Models
+
+<div>
+    <div class="d-flex align-center justify-space-between mb-3">
+        <div class="d-flex align-center gap-2">
+            <MudText Style="font-size:14px;font-weight:700;color:#334155;">@Title</MudText>
+            @if (Fees.Count > 0)
+            {
+                <MudChip T="string" Size="Size.Small" Color="Color.Primary" Variant="Variant.Outlined"
+                         Style="font-size:10px;min-height:20px;height:20px;">@Fees.Count</MudChip>
+            }
+        </div>
+        <MudButton StartIcon="@Icons.Material.Filled.Add" Size="Size.Small" Variant="Variant.Text"
+                   Color="Color.Primary" OnClick="AddFee" Style="text-transform:none;font-size:12px;">
+            Add Fee
+        </MudButton>
+    </div>
+
+    @if (Fees.Count == 0)
+    {
+        <MudText Typo="Typo.caption" Style="color:#94a3b8;font-style:italic;" Class="py-2">
+            No fees added yet
+        </MudText>
+    }
+
+    @for (var i = 0; i < Fees.Count; i++)
+    {
+        var idx = i;
+        var fee = Fees[idx];
+        <MudPaper Class="pa-3 mb-2" Style="background:#f8fafc;border-radius:8px;" Elevation="0">
+            <MudGrid Spacing="2">
+                <MudItem xs="12" sm="@(ShowOwedTo ? 3 : 4)">
+                    <MudTextField T="string" Label="Amount" Variant="Variant.Outlined" Margin="Margin.Dense"
+                                  Adornment="Adornment.Start" AdornmentText="$"
+                                  Value="@fee.Amount" ValueChanged="@(v => { fee.Amount = v; NotifyChanged(); })"
+                                  Immediate="true" />
+                </MudItem>
+                <MudItem xs="12" sm="@(ShowOwedTo ? 3 : 4)">
+                    <ComboSelect Label="Fee Description" Value="@fee.Description" Options="FeeTypes"
+                                 ValueChanged="@(v => { fee.Description = v; NotifyChanged(); })"
+                                 Placeholder="Type or select fee..." />
+                </MudItem>
+                @if (ShowOwedTo)
+                {
+                    <MudItem xs="12" sm="3">
+                        <MudTextField T="string" Label="Who Is Owed the Fee" Variant="Variant.Outlined"
+                                      Margin="Margin.Dense" Placeholder="Entity name"
+                                      Value="@fee.OwedTo" ValueChanged="@(v => { fee.OwedTo = v; NotifyChanged(); })"
+                                      Immediate="true" />
+                    </MudItem>
+                }
+                <MudItem xs="12" sm="@(ShowOwedTo ? 3 : 4)">
+                    <ComboSelect Label="Fee Notes" Value="@fee.Notes" Options="NoteTypes"
+                                 ValueChanged="@(v => { fee.Notes = v; NotifyChanged(); })"
+                                 Placeholder="Type or select note..." />
+                </MudItem>
+            </MudGrid>
+            <div class="d-flex justify-end mt-1">
+                <MudButton Size="Size.Small" Color="Color.Error" Variant="Variant.Text"
+                           OnClick="@(() => RemoveFee(idx))" Style="text-transform:none;font-size:12px;">
+                    Remove Fee
+                </MudButton>
+            </div>
+        </MudPaper>
+    }
+</div>
+
+@code {
+    [Parameter] public string Title { get; set; } = "Fees";
+    [Parameter] public List<Fee> Fees { get; set; } = [];
+    [Parameter] public string[] FeeTypes { get; set; } = [];
+    [Parameter] public string[] NoteTypes { get; set; } = [];
+    [Parameter] public bool ShowOwedTo { get; set; }
+    [Parameter] public EventCallback OnChanged { get; set; }
+
+    private async Task AddFee()
+    {
+        Fees.Add(new Fee());
+        await OnChanged.InvokeAsync();
+    }
+
+    private async Task RemoveFee(int idx)
+    {
+        Fees.RemoveAt(idx);
+        await OnChanged.InvokeAsync();
+    }
+
+    private async Task NotifyChanged() => await OnChanged.InvokeAsync();
+}

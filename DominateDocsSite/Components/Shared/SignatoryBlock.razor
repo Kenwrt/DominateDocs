@@ -1,0 +1,85 @@
+@* Repeating signatory rows: Name, Title, Email, Phone + Aliases *@
+
+@using DominateDocsSite.Models
+
+<div>
+    <div class="d-flex align-center justify-space-between mb-2">
+        <MudText Typo="Typo.caption" Style="font-weight:700;text-transform:uppercase;letter-spacing:0.8px;color:#475569;">
+            @Label
+        </MudText>
+        <MudButton StartIcon="@Icons.Material.Filled.Add" Size="Size.Small" Variant="Variant.Text"
+                   Color="Color.Primary" OnClick="Add" Style="text-transform:none;font-size:12px;">
+            Add Signatory
+        </MudButton>
+    </div>
+
+    @if (Signatories.Count == 0)
+    {
+        <MudText Typo="Typo.caption" Class="py-2" Style="color:#94a3b8;font-style:italic;">
+            No signatories added yet
+        </MudText>
+    }
+
+    @for (var i = 0; i < Signatories.Count; i++)
+    {
+        var idx = i;
+        var sig = Signatories[idx];
+        <MudPaper Outlined="true" Class="pa-3 mb-2" Style="border-radius:8px;">
+            <MudGrid Spacing="2">
+                <MudItem xs="12" sm="@(ShowContactFields ? 3 : 6)">
+                    <MudTextField T="string" Label="Name" Variant="Variant.Outlined" Margin="Margin.Dense"
+                                  Value="@sig.Name" ValueChanged="@(v => { sig.Name = v; NotifyChanged(); })"
+                                  Immediate="true" />
+                </MudItem>
+                <MudItem xs="12" sm="@(ShowContactFields ? 3 : 6)">
+                    <MudTextField T="string" Label="Title" Variant="Variant.Outlined" Margin="Margin.Dense"
+                                  Value="@sig.Title" ValueChanged="@(v => { sig.Title = v; NotifyChanged(); })"
+                                  Immediate="true" />
+                </MudItem>
+                @if (ShowContactFields)
+                {
+                    <MudItem xs="12" sm="3">
+                        <MudTextField T="string" Label="Email" Variant="Variant.Outlined" Margin="Margin.Dense"
+                                      Value="@sig.Email" ValueChanged="@(v => { sig.Email = v; NotifyChanged(); })"
+                                      Immediate="true" InputType="InputType.Email" />
+                    </MudItem>
+                    <MudItem xs="12" sm="3">
+                        <MudTextField T="string" Label="Phone" Variant="Variant.Outlined" Margin="Margin.Dense"
+                                      Value="@sig.Phone" ValueChanged="@(v => { sig.Phone = v; NotifyChanged(); })"
+                                      Immediate="true" InputType="InputType.Telephone" />
+                    </MudItem>
+                }
+            </MudGrid>
+
+            <InlineAliases Aliases="@sig.Aliases" OnChanged="@(() => NotifyChanged())" />
+
+            <div class="d-flex justify-end mt-1">
+                <MudButton Size="Size.Small" Color="Color.Error" Variant="Variant.Text"
+                           OnClick="@(() => Remove(idx))" Style="text-transform:none;font-size:12px;">
+                    Remove
+                </MudButton>
+            </div>
+        </MudPaper>
+    }
+</div>
+
+@code {
+    [Parameter] public string Label { get; set; } = "Authorized Signatories";
+    [Parameter] public List<Signatory> Signatories { get; set; } = [];
+    [Parameter] public bool ShowContactFields { get; set; } = true;
+    [Parameter] public EventCallback OnChanged { get; set; }
+
+    private async Task Add()
+    {
+        Signatories.Add(new Signatory());
+        await OnChanged.InvokeAsync();
+    }
+
+    private async Task Remove(int idx)
+    {
+        Signatories.RemoveAt(idx);
+        await OnChanged.InvokeAsync();
+    }
+
+    private async Task NotifyChanged() => await OnChanged.InvokeAsync();
+}

@@ -28,6 +28,9 @@ public class Entity
         [System.ComponentModel.Description("Sole Member")]
         SoleMember,
 
+        [System.ComponentModel.Description("Executor")]
+        Executor,
+
         [System.ComponentModel.Description("Trustee")]
         Trustee
     }

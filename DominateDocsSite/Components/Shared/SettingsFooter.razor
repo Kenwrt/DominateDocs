@@ -1,0 +1,28 @@
+@* Reusable footer for Settings wizard steps *@
+
+<div class="d-flex justify-space-between align-center mt-9 pt-6" style="border-top:1px solid #e2e8f0;">
+    <div class="d-flex align-center gap-2">
+        <MudIcon Icon="@Icons.Material.Filled.FiberManualRecord" Style="color:#10b981;font-size:8px;" />
+        <MudText Typo="Typo.caption" Style="color:#10b981;font-weight:500;">Auto-saved</MudText>
+    </div>
+    <div class="d-flex gap-2">
+        @if (ShowBack)
+        {
+            <MudButton Variant="Variant.Outlined" OnClick="VM.PrevStep"
+                       StartIcon="@Icons.Material.Filled.ArrowBack"
+                       Style="text-transform:none;font-weight:600;">Back</MudButton>
+        }
+        else
+        {
+            <MudButton Variant="Variant.Text" Style="text-transform:none;color:#94a3b8;">Cancel</MudButton>
+        }
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="VM.NextStep"
+                   EndIcon="@Icons.Material.Filled.ArrowForward"
+                   Style="text-transform:none;font-weight:600;">Continue</MudButton>
+    </div>
+</div>
+
+@code {
+    [Parameter] public SettingsViewModelNew VM { get; set; } = default!;
+    [Parameter] public bool ShowBack { get; set; } = true;
+}

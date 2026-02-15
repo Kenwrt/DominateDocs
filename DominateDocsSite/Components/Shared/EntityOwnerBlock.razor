@@ -1,0 +1,85 @@
+@using DominateDocsSite.Models
+@* Entity owners/members with ownership %, roles, and aliases *@
+
+<div>
+    <div class="d-flex align-center justify-space-between mb-2">
+        <MudText Typo="Typo.caption" Style="font-weight:700;text-transform:uppercase;letter-spacing:0.8px;color:#475569;">
+            Entity Owners / Members
+        </MudText>
+        <MudButton StartIcon="@Icons.Material.Filled.Add" Size="Size.Small" Variant="Variant.Text"
+                   Color="Color.Primary" OnClick="Add" Style="text-transform:none;font-size:12px;">
+            Add Owner
+        </MudButton>
+    </div>
+
+    @if (Owners.Count == 0)
+    {
+        <MudText Typo="Typo.caption" Style="color:#94a3b8;font-style:italic;" Class="py-2">
+            No owners added yet
+        </MudText>
+    }
+
+    @for (var i = 0; i < Owners.Count; i++)
+    {
+        var idx = i;
+        var owner = Owners[idx];
+        <MudPaper Outlined="true" Class="pa-3 mb-2" Style="border-radius:8px;">
+            <MudGrid Spacing="2">
+                <MudItem xs="12" sm="3">
+                    <MudTextField T="string" Label="Name" Variant="Variant.Outlined" Margin="Margin.Dense"
+                                  Value="@owner.Name" ValueChanged="@(v => { owner.Name = v; NotifyChanged(); })"
+                                  Immediate="true" />
+                </MudItem>
+                <MudItem xs="12" sm="3">
+                    <MudTextField T="string" Label="Email" Variant="Variant.Outlined" Margin="Margin.Dense"
+                                  Value="@owner.Email" ValueChanged="@(v => { owner.Email = v; NotifyChanged(); })"
+                                  Immediate="true" InputType="InputType.Email" />
+                </MudItem>
+                <MudItem xs="12" sm="3">
+                    <MudSelect T="string" Label="Role" Variant="Variant.Outlined" Margin="Margin.Dense"
+                               Value="@owner.Role" ValueChanged="@(v => { owner.Role = v; NotifyChanged(); })">
+                        @foreach (var role in Constants.OwnerRoles)
+                        {
+                            <MudSelectItem Value="@role">@role</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" sm="3">
+                    <MudTextField T="string" Label="Ownership %" Variant="Variant.Outlined" Margin="Margin.Dense"
+                                  Adornment="Adornment.End" AdornmentText="%"
+                                  Value="@owner.OwnershipPercent"
+                                  ValueChanged="@(v => { owner.OwnershipPercent = v; NotifyChanged(); })"
+                                  Immediate="true" />
+                </MudItem>
+            </MudGrid>
+
+            <InlineAliases Aliases="@owner.Aliases" OnChanged="@(() => NotifyChanged())" />
+
+            <div class="d-flex justify-end mt-1">
+                <MudButton Size="Size.Small" Color="Color.Error" Variant="Variant.Text"
+                           OnClick="@(() => Remove(idx))" Style="text-transform:none;font-size:12px;">
+                    Remove
+                </MudButton>
+            </div>
+        </MudPaper>
+    }
+</div>
+
+@code {
+    [Parameter] public List<DominateDocsSite.Models.EntityOwner> Owners { get; set; } = [];
+    [Parameter] public EventCallback OnChanged { get; set; }
+
+    private async Task Add()
+    {
+        Owners.Add(new DominateDocsSite.Models.EntityOwner());
+        await OnChanged.InvokeAsync();
+    }
+
+    private async Task Remove(int idx)
+    {
+        Owners.RemoveAt(idx);
+        await OnChanged.InvokeAsync();
+    }
+
+    private async Task NotifyChanged() => await OnChanged.InvokeAsync();
+}

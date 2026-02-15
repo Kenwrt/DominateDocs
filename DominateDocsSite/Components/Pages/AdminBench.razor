@@ -42,8 +42,10 @@
                            Label="Output Type (bench override)"
                            Variant="Variant.Outlined"
                            @bind-Value="vm.OutputType">
-                    <MudSelectItem Value="DocumentTypes.OutputTypes.PDF">PDF</MudSelectItem>
-                    <MudSelectItem Value="DocumentTypes.OutputTypes.DOCX">DOCX</MudSelectItem>
+                    @foreach (var t in Enum.GetValues<DocumentTypes.OutputTypes>())
+                    {
+                        <MudSelectItem T="DocumentTypes.OutputTypes" Value="t">@t.GetDescription()</MudSelectItem>
+                    }
                 </MudSelect>
             </MudItem>
 
@@ -64,27 +66,27 @@
             </MudItem>
 
             <MudItem xs="12" md="6">
-                <MudSelect T="DominateDocsData.Models.LoanAgreement"
+                <MudSelect T="Guid"
                            Label="Loan Agreement"
                            Variant="Variant.Outlined"
-                           @bind-Value="vm.SelectedLoanAgreement"
+                           @bind-Value="vm.SelectedLoanAgreementId"
                            @bind-Value:after="vm.OnLoanAgreementChangedAsync">
                     @foreach (var loan in vm.LoanAgreements)
                     {
-                        <MudSelectItem Value="loan">@vm.GetLoanLabel(loan)</MudSelectItem>
+                        <MudSelectItem Value="loan.Id">@vm.GetLoanLabel(loan)</MudSelectItem>
                     }
                 </MudSelect>
             </MudItem>
 
             <MudItem xs="12" md="6">
-                <MudSelect T="DominateDocsData.Models.LoanType"
+                <MudSelect T="Guid"
                            Label="Loan Type"
                            Variant="Variant.Outlined"
-                           @bind-Value="vm.SelectedLoanType"
+                           @bind-Value="vm.SelectedLoanTypeId"
                            @bind-Value:after="vm.OnLoanTypeChangedAsync">
                     @foreach (var lt in vm.LoanTypes)
                     {
-                        <MudSelectItem Value="lt">@lt.Name</MudSelectItem>
+                        <MudSelectItem Value="lt.Id">@lt.Name</MudSelectItem>
                     }
                 </MudSelect>
             </MudItem>
@@ -176,7 +178,6 @@
         await vm.InitializeAsync();
 
         // Build DocLibId -> Name map for display in dropdown.
-        // If you have 1,000 doc libraries someday, congrats on your success and also your future pain.
         try
         {
             var libs = db.GetRecords<DominateDocsData.Models.DocumentLibrary>();

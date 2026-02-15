@@ -1,0 +1,29 @@
+@* Combobox: type custom text OR select from preset options *@
+
+<MudAutocomplete T="string" Label="@Label" Variant="Variant.Outlined" Margin="Margin.Dense"
+                 Value="@Value" ValueChanged="HandleValueChanged"
+                 SearchFunc="SearchOptions" CoerceText="false" CoerceValue="false"
+                 Placeholder="@Placeholder" Immediate="true"
+                 Dense="true" />
+
+@code {
+    [Parameter] public string Label { get; set; } = string.Empty;
+    [Parameter] public string Value { get; set; } = string.Empty;
+    [Parameter] public EventCallback<string> ValueChanged { get; set; }
+    [Parameter] public string[] Options { get; set; } = [];
+    [Parameter] public string Placeholder { get; set; } = "Type or select...";
+
+    private Task<IEnumerable<string>> SearchOptions(string value, CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            return Task.FromResult(Options.AsEnumerable());
+
+        return Task.FromResult(Options.Where(o =>
+            o.Contains(value, StringComparison.OrdinalIgnoreCase)));
+    }
+
+    private async Task HandleValueChanged(string value)
+    {
+        await ValueChanged.InvokeAsync(value ?? string.Empty);
+    }
+}

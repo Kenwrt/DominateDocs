@@ -1,0 +1,187 @@
+@page "/"
+
+@using DominateDocsSite.Models
+@using DominateDocsSite.Models.Enums
+@using DominateDocsSite.ViewModels
+
+
+@inject DashboardViewModelNew VM
+@inject NavigationManager Nav
+
+<PageTitle>Dominate Docs — Dashboard</PageTitle>
+
+@* ── Header ── *@
+<div class="d-flex justify-space-between align-start mb-6">
+    <div>
+        <MudText Typo="Typo.caption" Style="color:#94a3b8;font-weight:500;">@VM.Greeting</MudText>
+        <MudText Typo="Typo.h4" Style="font-family:'Outfit';color:#0f2b4a;letter-spacing:-0.5px;">
+            Portfolio Dashboard
+        </MudText>
+    </div>
+    <div class="d-flex gap-2">
+        <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Download"
+                   Style="text-transform:none;font-weight:600;">Export</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
+                   Href="/newloannew" Style="text-transform:none;font-weight:600;">New Loan</MudButton>
+    </div>
+</div>
+
+@* ── Stat Cards ── *@
+<MudGrid Spacing="4" Class="mb-6">
+    <MudItem xs="12" sm="6" md="3">
+        <MudPaper Class="pa-5" Elevation="0" Style="border:1px solid #e2e8f0;border-radius:12px;">
+            <div class="d-flex justify-space-between align-center mb-3">
+                <MudAvatar Rounded="true" Style="background:#e0f2fe;color:#0ea5e9;width:38px;height:38px;">
+                    <MudIcon Icon="@Icons.Material.Filled.AttachMoney" Size="Size.Small" />
+                </MudAvatar>
+                <MudChip T="string" Size="Size.Small" Style="background:#f0fdf4;color:#10b981;font-size:12px;font-weight:600;">
+                    ↑ 12%
+                </MudChip>
+            </div>
+            <MudText Style="font-size:28px;font-weight:700;color:#0f2b4a;letter-spacing:-0.5px;line-height:1.1;">
+                @VM.TotalPortfolioDisplay
+            </MudText>
+            <MudText Typo="Typo.caption" Style="color:#94a3b8;font-weight:500;">Total Portfolio</MudText>
+        </MudPaper>
+    </MudItem>
+    <MudItem xs="12" sm="6" md="3">
+        <MudPaper Class="pa-5" Elevation="0" Style="border:1px solid #e2e8f0;border-radius:12px;">
+            <div class="d-flex justify-space-between align-center mb-3">
+                <MudAvatar Rounded="true" Style="background:#d1fae5;color:#10b981;width:38px;height:38px;">
+                    <MudIcon Icon="@Icons.Material.Filled.TrendingUp" Size="Size.Small" />
+                </MudAvatar>
+            </div>
+            <MudText Style="font-size:28px;font-weight:700;color:#0f2b4a;letter-spacing:-0.5px;line-height:1.1;">
+                @VM.AverageRate
+            </MudText>
+            <MudText Typo="Typo.caption" Style="color:#94a3b8;font-weight:500;">Avg. Interest Rate</MudText>
+        </MudPaper>
+    </MudItem>
+    <MudItem xs="12" sm="6" md="3">
+        <MudPaper Class="pa-5" Elevation="0" Style="border:1px solid #e2e8f0;border-radius:12px;">
+            <div class="d-flex justify-space-between align-center mb-3">
+                <MudAvatar Rounded="true" Style="background:#ede9fe;color:#8b5cf6;width:38px;height:38px;">
+                    <MudIcon Icon="@Icons.Material.Filled.Description" Size="Size.Small" />
+                </MudAvatar>
+            </div>
+            <MudText Style="font-size:28px;font-weight:700;color:#0f2b4a;letter-spacing:-0.5px;line-height:1.1;">
+                @VM.AllLoans.Count
+            </MudText>
+            <MudText Typo="Typo.caption" Style="color:#94a3b8;font-weight:500;">Active Loans</MudText>
+        </MudPaper>
+    </MudItem>
+    <MudItem xs="12" sm="6" md="3">
+        <MudPaper Class="pa-5" Elevation="0" Style="border:1px solid #e2e8f0;border-radius:12px;">
+            <div class="d-flex justify-space-between align-center mb-3">
+                <MudAvatar Rounded="true" Style="background:#fef3c7;color:#f59e0b;width:38px;height:38px;">
+                    <MudIcon Icon="@Icons.Material.Filled.Schedule" Size="Size.Small" />
+                </MudAvatar>
+            </div>
+            <MudText Style="font-size:28px;font-weight:700;color:#0f2b4a;letter-spacing:-0.5px;line-height:1.1;">
+                @VM.PendingCount
+            </MudText>
+            <MudText Typo="Typo.caption" Style="color:#94a3b8;font-weight:500;">Pending Review</MudText>
+        </MudPaper>
+    </MudItem>
+</MudGrid>
+
+@* ── Quick Actions ── *@
+<MudPaper Class="pa-4 mb-6 d-flex align-center gap-3 flex-wrap"
+          Style="background:linear-gradient(135deg,#0f2b4a,#1a3a5c);border-radius:12px;" Elevation="0">
+    <MudText Style="font-size:12px;font-weight:600;color:rgba(255,255,255,0.45);text-transform:uppercase;letter-spacing:0.8px;white-space:nowrap;">
+        Quick Actions
+    </MudText>
+    <MudButton Variant="Variant.Outlined" Size="Size.Small" Href="/newloannew"
+               StartIcon="@Icons.Material.Filled.Add"
+               Style="color:rgba(255,255,255,0.75);border-color:rgba(255,255,255,0.15);text-transform:none;font-size:12px;">
+        Bridge Loan
+    </MudButton>
+    <MudButton Variant="Variant.Outlined" Size="Size.Small" Href="/newloannew"
+               StartIcon="@Icons.Material.Filled.Add"
+               Style="color:rgba(255,255,255,0.75);border-color:rgba(255,255,255,0.15);text-transform:none;font-size:12px;">
+        Fix &amp; Flip
+    </MudButton>
+    <MudButton Variant="Variant.Outlined" Size="Size.Small" Href="/newloannew"
+               StartIcon="@Icons.Material.Filled.Add"
+               Style="color:rgba(255,255,255,0.75);border-color:rgba(255,255,255,0.15);text-transform:none;font-size:12px;">
+        DSCR Rental
+    </MudButton>
+</MudPaper>
+
+@* ── Recent Loans Table ── *@
+<MudPaper Elevation="0" Style="border:1px solid #e2e8f0;border-radius:12px;overflow:hidden;">
+    <div class="d-flex align-center justify-space-between pa-4" style="border-bottom:1px solid #f1f5f9;">
+        <div class="d-flex align-center gap-2">
+            <MudText Style="font-size:15px;font-weight:700;color:#0f2b4a;">Recent Loans</MudText>
+            <MudChip T="string" Size="Size.Small" Color="Color.Primary" Variant="Variant.Outlined"
+                     Style="font-size:12px;font-weight:600;">@VM.AllLoans.Count</MudChip>
+        </div>
+        <MudChipSet T="string" SelectedValueChanged="@(v => VM.SetFilter(v ?? "All"))"
+                    SelectionMode="SelectionMode.SingleSelection" Class="gap-1">
+            <MudChip T="string" Value="@("All")" Default="true" Size="Size.Small" Variant="Variant.Text">All</MudChip>
+            <MudChip T="string" Value="@("Active")" Size="Size.Small" Variant="Variant.Text">Active</MudChip>
+            <MudChip T="string" Value="@("Pending")" Size="Size.Small" Variant="Variant.Text">Pending</MudChip>
+            <MudChip T="string" Value="@("Draft")" Size="Size.Small" Variant="Variant.Text">Draft</MudChip>
+        </MudChipSet>
+    </div>
+
+    <MudTable Items="@VM.FilteredLoans" Hover="true" Dense="true" RowClass="cursor-pointer" T="DominateDocsSite.Models.Loan"
+              Style="font-size:13.5px;" OnRowClick="@RowClickEvent">
+        <HeaderContent>
+            <MudTh Style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;color:#94a3b8;">
+                Loan / Property
+            </MudTh>
+            <MudTh Style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;color:#94a3b8;">
+                Amount
+            </MudTh>
+            <MudTh Style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;color:#94a3b8;">
+                Rate
+            </MudTh>
+            <MudTh Style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;color:#94a3b8;">
+                Term
+            </MudTh>
+            <MudTh Style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;color:#94a3b8;">
+                Status
+            </MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd>
+                <div>
+                    <MudText Style="font-weight:600;color:#0f172a;font-size:13.5px;">@context.DisplayName</MudText>
+                    <MudText Typo="Typo.caption" Style="color:#94a3b8;">@context.DisplayAddress</MudText>
+                </div>
+            </MudTd>
+            <MudTd Style="font-weight:600;color:#0f2b4a;font-variant-numeric:tabular-nums;">
+                $@context.Terms.Principal
+            </MudTd>
+            <MudTd Style="font-weight:600;color:#475569;font-variant-numeric:tabular-nums;">
+                @context.Terms.InterestRate%
+            </MudTd>
+            <MudTd Style="color:#475569;font-variant-numeric:tabular-nums;">
+                @context.Terms.Term mo
+            </MudTd>
+            <MudTd>
+                <StatusBadge Status="@context.Status" />
+            </MudTd>
+        </RowTemplate>
+    </MudTable>
+
+    <div class="d-flex align-center justify-space-between pa-3" style="border-top:1px solid #f1f5f9;">
+        <MudText Typo="Typo.caption" Style="color:#94a3b8;">
+            Showing @VM.FilteredLoans.Count of @VM.AllLoans.Count loans
+        </MudText>
+        <MudLink Href="/reportsnew" Typo="Typo.caption" Style="font-weight:600;">
+            View all loans →
+        </MudLink>
+    </div>
+</MudPaper>
+
+@code
+{
+
+    private void RowClickEvent(TableRowClickEventArgs<DominateDocsSite.Models.Loan> args)
+    {
+
+        Nav.NavigateTo("/newloannew");
+    }
+}

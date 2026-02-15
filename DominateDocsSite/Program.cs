@@ -1,16 +1,17 @@
 using DocumentManager;
-using FluentValidation;
-using GemBox.Document;
+using DominateDocsData.Database;
 using DominateDocsData.FluentValidation;
+using DominateDocsData.Helpers;
 using DominateDocsSite.Components;
 using DominateDocsSite.Components.Account;
 using DominateDocsSite.Data;
-using DominateDocsData.Database;
 using DominateDocsSite.Endpoints;
-using DominateDocsData.Helpers;
 using DominateDocsSite.OpenAI;
+using DominateDocsSite.Services;
 using DominateDocsSite.State;
 using DominateDocsSite.ViewModels;
+using FluentValidation;
+using GemBox.Document;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -206,7 +207,7 @@ builder.Services.TryAddSingleton<QuickLenderValidator>();
 builder.Services.TryAddSingleton<QuickServicerValidator>();
 builder.Services.TryAddSingleton<QuickPropertyValidator>();
 builder.Services.TryAddSingleton<DocumentLibraryValidator>();
-//builder.Services.TryAddSingleton<DocumentSetValidator>();
+builder.Services.TryAddSingleton<TrusteeValidator>();
 builder.Services.TryAddSingleton<DocumentValidator>();
 
 builder.Services.AddValidatorsFromAssemblyContaining<AliasValidator>();
@@ -233,6 +234,7 @@ builder.Services.AddValidatorsFromAssemblyContaining<QuickLenderValidator>();
 
 builder.Services.AddValidatorsFromAssemblyContaining<DocumentLibraryValidator>();
 builder.Services.AddValidatorsFromAssemblyContaining<DocumentValidator>();
+builder.Services.AddValidatorsFromAssemblyContaining<TrusteeValidator>();
 
 builder.Services.TryAddSingleton<IEmailSender<DominateDocsSite.Data.ApplicationUser>, IdentityNoOpEmailSender>();
 
@@ -277,6 +279,19 @@ builder.Services.TryAddScoped<UserDefaultProfileViewModel>();
 builder.Services.TryAddScoped<UserDefaultLenderViewModel>();
 builder.Services.TryAddScoped<UserDefaultBrokerViewModel>();
 builder.Services.TryAddScoped<UserDefaultServicerViewModel>();
+builder.Services.TryAddScoped<TrusteeViewModel>();
+
+
+// ViewModels (scoped per circuit)
+builder.Services.AddScoped<DashboardViewModelNew>();
+builder.Services.AddScoped<LoanWizardViewModelNew>();
+builder.Services.AddScoped<SettingsViewModelNew>();
+builder.Services.AddScoped<ReportsViewModelNew>();
+
+// Services
+builder.Services.AddSingleton<ISeedDataService, SeedDataService>();
+builder.Services.AddScoped<ILoanService, InMemoryLoanService>();
+builder.Services.AddScoped<IPartyService, InMemoryPartyService>();
 
 
 //Mongo Stuff

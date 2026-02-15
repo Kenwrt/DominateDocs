@@ -1,0 +1,22 @@
+@* Document include/suppress toggle for Settings *@
+
+<div class="d-flex align-center justify-space-between py-3">
+    <div>
+        <MudText Style="font-size:13px;font-weight:600;color:#0f172a;">@Label</MudText>
+        <MudText Typo="Typo.caption" Style="color:#94a3b8;">@Note</MudText>
+    </div>
+    <div class="d-flex align-center gap-3">
+        <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined"
+                 Style="@(Included ? "background:#d1fae5;color:#10b981;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;" : "background:#fee2e2;color:#ef4444;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;")">
+            @(Included ? "Included" : "Suppressed")
+        </MudChip>
+        <MudSwitch T="bool" Value="@Included" ValueChanged="@(v => IncludedChanged.InvokeAsync(v))" Color="Color.Primary" />
+    </div>
+</div>
+
+@code {
+    [Parameter] public string Label { get; set; } = string.Empty;
+    [Parameter] public string Note { get; set; } = string.Empty;
+    [Parameter] public bool Included { get; set; }
+    [Parameter] public EventCallback<bool> IncludedChanged { get; set; }
+}
