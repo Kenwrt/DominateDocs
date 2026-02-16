@@ -46,4 +46,6 @@ public class EntityOwner : IOwnershipNames
     public Entity.ContactRoles EntityRole { get; set; } = Entity.ContactRoles.Manager;
 
     public int PercentOfOwnership { get; set; }
+
+    public List<AkaName> Aliases { get; set; } = new();
 }

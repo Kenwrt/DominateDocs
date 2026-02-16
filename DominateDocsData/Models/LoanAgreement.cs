@@ -31,6 +31,10 @@ public class LoanAgreement
 
     public Guid LoanTypeId { get; set; } = Guid.Empty;
 
+    public bool IsLoanTypeConstruction { get; set; } = false;
+
+    public bool IsLoanTypeDCSR { get; set; } = false;
+
     public string LoanTypeName { get; set; }
 
     public decimal PrincipalAmount { get; set; } = 0;
@@ -42,6 +46,9 @@ public class LoanAgreement
     public int TermInMonths { get; set; } = 0;
 
     public decimal InitialMargin { get; set; } = 0;
+
+    public string ClosingContact { get; set; } = string.Empty;
+    public string ClosingContactEmail { get; set; } = string.Empty;
 
     public VariableInterestProperties VariableInterestProperties { get; set; } = new();
 
@@ -185,7 +192,7 @@ public class LoanAgreement
 
     public string ClosingContactName { get; set; }
 
-    public string ClosingContactEmail { get; set; }
+    //public string ClosingContactEmail { get; set; }
 
     public DateTime? SignedDate { get; set; }
 

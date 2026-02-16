@@ -1,4 +1,4 @@
-﻿@page "/dashboard"
+﻿@page "/sdsdsdfsd"
 
 @using MudBlazor
 @using DominateDocsData.Models
@@ -11,6 +11,7 @@
 @inject DashboardViewModel lvm
 @inject UserSession Session
 @inject IMongoDatabaseRepo db
+
 
 
 
@@ -179,7 +180,7 @@
 
     protected override async Task OnInitializedAsync()
     {
-
+       
         await lvm.InitDashboardCommand.ExecuteAsync(null);
 
     }

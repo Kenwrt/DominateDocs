@@ -1,4 +1,4 @@
-@page "/"
+@page "/dashboard"
 
 @using DominateDocsSite.Models
 @using DominateDocsSite.Models.Enums
@@ -7,6 +7,7 @@
 
 @inject DashboardViewModelNew VM
 @inject NavigationManager Nav
+@inject AuthenticationStateProvider AuthProvider
 
 <PageTitle>Dominate Docs — Dashboard</PageTitle>
 
@@ -178,6 +179,8 @@
 
 @code
 {
+   
+
 
     private void RowClickEvent(TableRowClickEventArgs<DominateDocsSite.Models.Loan> args)
     {

@@ -44,6 +44,6 @@ public class Trustee : IOwnershipNames
     [BsonRepresentation(BsonType.String)]
     [DataType(DataType.Text)]
     public Entity.ContactRoles TrusteeRole { get; set; } = Entity.ContactRoles.Manager;
-
-    public int PercentOfOwnership { get; set; }
+       
+    public List<AkaName> Aliases { get; set; } = new();
 }

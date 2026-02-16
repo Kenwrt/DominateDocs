@@ -6,6 +6,8 @@
 @using System.Collections.Generic;
 
 @inject Microsoft.AspNetCore.Hosting.IWebHostEnvironment env;
+@inject NavigationManager Navigation
+
 
 <h1>File Upload .Net 5 Blazor</h1>
 
@@ -37,20 +39,27 @@
 
     string labelText = "";
 
-    protected async override Task OnInitializedAsync()
+    
+    protected override void OnInitialized()
     {
-        try
-        {
-
-            await base.OnInitializedAsync();
-        }
-
-        catch (Exception ex)
-        {
-            // _logger.LogError(ex.Message);
-        }
-
+        Navigation.NavigateTo("https://yoursite.com", true);
     }
+
+
+    // protected async override Task OnInitializedAsync()
+    // {
+    //     try
+    //     {
+
+    //         await base.OnInitializedAsync();
+    //     }
+
+    //     catch (Exception ex)
+    //     {
+    //         // _logger.LogError(ex.Message);
+    //     }
+
+    // }
 
     async Task OnInputFileChange(InputFileChangeEventArgs e)
     {

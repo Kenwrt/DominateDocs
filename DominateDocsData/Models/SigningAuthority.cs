@@ -40,5 +40,5 @@ public class SigningAuthority : ISigningPartyNames
 
     public string SSN { get; set; }
 
-    public bool IsActive { get; set; } = true;
+    public List<AkaName> Aliases { get; set; } = new();
 }
