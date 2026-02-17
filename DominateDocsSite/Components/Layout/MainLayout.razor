@@ -10,7 +10,6 @@
 @inject UserSession Session
 @inject IApplicationStateManager appState
 @inject IJSRuntime JS
-@inject NavigationManager Nav
 
 <style>
     :root {
@@ -19,9 +18,6 @@
         --dd-drawer-bg: #3E566E;
     }
 
-    /* ============================
-           Fixed Logo Panel (above drawer, flush left)
-           ============================ */
     .dd-logo-panel-fixed {
         position: fixed;
         top: 0;
@@ -33,7 +29,7 @@
         align-items: center;
         padding: 0 14px;
         border-right: 1px solid rgba(0,0,0,0.08);
-        z-index: 1301; /* higher than appbar (default 1100-ish) */
+        z-index: 1301;
     }
 
     .dd-top-logo {
@@ -42,18 +38,15 @@
         display: block;
     }
 
-    /* ============================
-           Single Header (black) shifted right of logo panel
-           ============================ */
     .top-header {
         background-color: #0a1929 !important;
         color: white !important;
         height: var(--dd-topbar-height) !important;
         min-height: var(--dd-topbar-height) !important;
         font-size: 13px;
-        padding-left: 0 !important;
-        /* Push header content right so it doesn't sit under the fixed logo panel */
-        margin-left: var(--dd-drawer-width);
+        left: var(--dd-drawer-width) !important;
+        width: calc(100% - var(--dd-drawer-width)) !important;
+        margin-left: 0 !important;
     }
 
         .top-header .mud-icon-root {
@@ -61,7 +54,6 @@
             font-size: 1.2rem;
         }
 
-    /* Main content accounts for the single header height */
     .mud-main-content {
         padding-top: var(--dd-topbar-height) !important;
     }
@@ -77,25 +69,22 @@
     .auth-links {
         display: flex;
         gap: 15px;
+        align-items: center;
     }
 
-    .auth-link {
-        color: white !important;
-        text-decoration: none;
+    .dd-login-btn {
+        border: 1px solid rgba(255,255,255,0.55) !important;
+        color: #fff !important;
+        border-radius: 8px !important;
+        padding: 6px 14px !important;
+        text-transform: none !important;
+        font-weight: 600 !important;
     }
 
-        .auth-link:hover {
-            text-decoration: underline;
-        }
-
-    /* ============================
-           Drawer + Nav Styling
-           ============================ */
     #nav-drawer {
         background-color: var(--dd-drawer-bg) !important;
     }
 
-    /* Drawer menu starts under the header/logo panel */
     .dd-drawer-menu {
         padding-top: var(--dd-topbar-height);
         padding-left: 6px;
@@ -103,7 +92,6 @@
         padding-bottom: 12px;
     }
 
-    /* Readable nav on dark drawer */
     #nav-drawer .mud-nav-link,
     #nav-drawer .mud-nav-group,
     #nav-drawer .mud-nav-group > .mud-nav-link {
@@ -123,30 +111,13 @@
         opacity: 0.95;
     }
 
-    #nav-drawer .mud-nav-group > .mud-nav-link {
-        padding-top: 6px !important;
-        padding-bottom: 4px !important;
-        margin-bottom: 0 !important;
+    #nav-drawer .mud-nav-link:hover {
+        background-color: rgba(255,255,255,0.10) !important;
     }
 
-    #nav-drawer .mud-nav-link {
-        padding-top: 6px !important;
-        padding-bottom: 6px !important;
-        border-radius: 6px;
-    }
-
-        #nav-drawer .mud-nav-link:hover {
-            background-color: rgba(255,255,255,0.10) !important;
-        }
-
-        #nav-drawer .mud-nav-link.mud-nav-link-active {
-            background-color: rgba(255,255,255,0.16) !important;
-            font-weight: 600;
-        }
-
-    #nav-drawer .mud-nav-group {
-        margin-top: 4px !important;
-        margin-bottom: 4px !important;
+    #nav-drawer .mud-nav-link.mud-nav-link-active {
+        background-color: rgba(255,255,255,0.16) !important;
+        font-weight: 600;
     }
 </style>
 
@@ -155,17 +126,14 @@
 <CascadingAuthenticationState>
     <MudLayout>
 
-        @* Fixed logo panel, aligned with drawer, above it, flush left *@
         <MudLink Href="/" Style="text-decoration:none;">
             <div class="dd-logo-panel-fixed">
                 <img src="images/DominateDocs_NoCrop.png" class="dd-top-logo" alt="Dominate Docs Logo" />
             </div>
         </MudLink>
 
-        @* --- SINGLE HEADER: Black bar (starts to the right of the fixed logo panel) --- *@
         <MudAppBar Elevation="0" Class="top-header" Fixed="true">
 
-            @* Hamburger now sits at the left edge of the black header (right next to logo panel) *@
             @if (isAuthenticated)
             {
                 <MudIconButton Icon="@Icons.Material.Filled.Menu"
@@ -195,8 +163,12 @@
             <div class="auth-links">
                 @if (!isAuthenticated)
                 {
-                    <MudLink Href="/Account/Register" Class="auth-link">Sign up</MudLink>
-                    <MudLink Href="/Account/Login" Class="auth-link">Login</MudLink>
+                    <MudButton Href="/Account/Login"
+                               Variant="Variant.Outlined"
+                               Color="Color.Inherit"
+                               Class="dd-login-btn">
+                        Login
+                    </MudButton>
                 }
                 else
                 {
@@ -220,8 +192,7 @@
             </div>
         </MudAppBar>
 
-        @* --- SIDEBAR (starts under the logo/header) --- *@
-        @if (ShowAppSidebar)
+        @if (ShowAppSidebar && isAuthenticated)
         {
             <MudDrawer id="nav-drawer"
                        @bind-Open="_drawerOpen"
@@ -231,7 +202,10 @@
                        Width="260px">
 
                 <div class="dd-drawer-menu">
-                    <MudBlazorNavMenu />
+                    @* ✅ Pass logout delegate down to the nav menu *@
+                    <CascadingValue Value="(Func<Task>)SubmitLogout" IsFixed="true">
+                        <MudBlazorNavMenu />
+                    </CascadingValue>
                 </div>
 
             </MudDrawer>
@@ -260,7 +234,7 @@
     [CascadingParameter] public bool ShowAppSidebar { get; set; } = true;
 
     private bool IsDark = false;
-    private bool _drawerOpen = true;
+    private bool _drawerOpen = false;
 
     private bool isAuthenticated = false;
     private string userName = string.Empty;
@@ -308,8 +282,7 @@
                 appState.ActiveSessions.TryAdd(userName, userProfile);
         }
 
-        _drawerOpen = ShowAppSidebar;
-
+        _drawerOpen = isAuthenticated && ShowAppSidebar;
         NavigationManager.LocationChanged += OnLocationChanged;
     }
 
@@ -319,7 +292,7 @@
 
     private void DrawerToggle()
     {
-        if (!ShowAppSidebar)
+        if (!ShowAppSidebar || !isAuthenticated)
             return;
 
         _drawerOpen = !_drawerOpen;

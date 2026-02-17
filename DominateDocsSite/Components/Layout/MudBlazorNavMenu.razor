@@ -1,4 +1,5 @@
 ﻿﻿@using Microsoft.AspNetCore.Components.Authorization
+@using MudBlazor
 
 <MudNavMenu Class="dd-navmenu">
 
@@ -9,13 +10,13 @@
         My Loans
     </MudNavLink>
 
-    <MudNavLink Href="/loan/new"
+    <MudNavLink Href="/newloannew"
                 Icon="@Icons.Material.Filled.AddCircleOutline">
         New Loan
     </MudNavLink>
 
-    <MudNavLink Href="/logout"
-                Icon="@Icons.Material.Filled.Logout">
+    @* ✅ Logout must POST via the hidden form, so we trigger the delegate *@
+    <MudNavLink Icon="@Icons.Material.Filled.Logout" OnClick="OnLogoutClicked">
         Logout
     </MudNavLink>
 
@@ -23,7 +24,7 @@
 
     <MudText Class="dd-nav-heading">Admin</MudText>
 
-    <MudNavLink Href="/settings"
+    <MudNavLink Href="/userdefaultprofile"
                 Icon="@Icons.Material.Filled.Settings">
         Settings
     </MudNavLink>
@@ -35,28 +36,41 @@
 
     <MudDivider Class="dd-nav-divider" />
 
-        <MudText Class="dd-nav-heading">Dev Settings</MudText>
-        <MudNavGroup Title="Lists" Expanded="false">
-        <MudNavLink Href="/lenders" Icon="@Icons.Material.Filled.Check">Lender List</MudNavLink>
-        <MudNavLink Href="/brokers" Icon="@Icons.Material.Filled.Check">Broker List</MudNavLink>
-        <MudNavLink Href="/guarantors" Icon="@Icons.Material.Filled.Check">Guarantor List</MudNavLink>
-        <MudNavLink Href="/borrowers" Icon="@Icons.Material.Filled.Check">Borrower List</MudNavLink>
-        <MudNavLink Href="/users" Icon="@Icons.Material.Filled.Check">User List</MudNavLink>
-        <MudNavLink Href="/propertyowners" Icon="@Icons.Material.Filled.Check">Property Owner List</MudNavLink>
-        <MudNavLink Href="/properties" Icon="@Icons.Material.Filled.Check">Property List</MudNavLink>
-        <MudNavLink Href="/aka" Icon="@Icons.Material.Filled.Check">AKA Alias List</MudNavLink>
-        <MudNavLink Href="/loantypes" Icon="@Icons.Material.Filled.Check">Loan Type List</MudNavLink>
-        <MudNavLink Href="/liens" Icon="@Icons.Material.Filled.Check">Lien List</MudNavLink>
-        <MudNavLink Href="/loanapplications" Icon="@Icons.Material.Filled.Check">Loan Application List</MudNavLink>
-        <MudNavLink Href="/trustees" Icon="@Icons.Material.Filled.Check">Trustee List</MudNavLink>
-        <MudNavLink Href="/signingauthorites" Icon="@Icons.Material.Filled.Check">Signing Authority List</MudNavLink>
+    <MudText Class="dd-nav-heading">Dev Settings</MudText>
 
+    <MudNavGroup Title="Lists" Expanded="true">
+        <MudNavLink Href="/lenderlist" Icon="@Icons.Material.Filled.Check">Lender List</MudNavLink>
+        <MudNavLink Href="/brokerlist" Icon="@Icons.Material.Filled.Check">Broker List</MudNavLink>
+        <MudNavLink Href="/guarantorlist" Icon="@Icons.Material.Filled.Check">Guarantor List</MudNavLink>
+        <MudNavLink Href="/borrowerlist" Icon="@Icons.Material.Filled.Check">Borrower List</MudNavLink>
+        <MudNavLink Href="/userlist" Icon="@Icons.Material.Filled.Check">User List</MudNavLink>
+        <MudNavLink Href="/propertyownerlist" Icon="@Icons.Material.Filled.Check">Property Owner List</MudNavLink>
+        <MudNavLink Href="/propertylist" Icon="@Icons.Material.Filled.Check">Property List</MudNavLink>
+        <MudNavLink Href="/akalist" Icon="@Icons.Material.Filled.Check">AKA Alias List</MudNavLink>
+        <MudNavLink Href="/loantypelist" Icon="@Icons.Material.Filled.Check">Loan Type List</MudNavLink>
+        <MudNavLink Href="/lienlist" Icon="@Icons.Material.Filled.Check">Lien List</MudNavLink>
+        <MudNavLink Href="/loanapplications" Icon="@Icons.Material.Filled.Check">Loan Application List</MudNavLink>
+        <MudNavLink Href="/trustee" Icon="@Icons.Material.Filled.Check">Trustee List</MudNavLink>
+        <MudNavLink Href="/signingauthority" Icon="@Icons.Material.Filled.Check">Signing Authority List</MudNavLink>
     </MudNavGroup>
+
     <MudNavLink Href="/registeruser" Icon="@Icons.Material.Filled.PersonAdd">Register User</MudNavLink>
-    <MudNavLink Href="/documents" Icon="@Icons.Material.Filled.LibraryBooks">Document Library</MudNavLink>
+    <MudNavLink Href="/documentlibrary" Icon="@Icons.Material.Filled.LibraryBooks">Document Library</MudNavLink>
     <MudNavLink Href="/adminbench" Icon="@Icons.Material.Filled.Build">Admin Bench</MudNavLink>
     <MudNavLink Href="/chatgpt" Icon="@Icons.Material.Filled.Chat">ChatGpt</MudNavLink>
     <MudNavLink Href="/uploadtemplate" Icon="@Icons.Material.Filled.UploadFile">Upload Edited Template</MudNavLink>
     <MudNavLink Href="/encrypt" Icon="@Icons.Material.Filled.Lock">Encrypt Decrypt Content</MudNavLink>
 
 </MudNavMenu>
+
+@code {
+    [CascadingParameter] public Func<Task>? LogoutAsync { get; set; }
+
+    private async Task OnLogoutClicked()
+    {
+        if (LogoutAsync is null)
+            return;
+
+        await LogoutAsync.Invoke();
+    }
+}
