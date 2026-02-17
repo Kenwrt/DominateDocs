@@ -1,7 +1,8 @@
-﻿@using DominateDocsSite.State
+﻿﻿@using DominateDocsSite.State
 @using MudBlazor.StaticInput
 @using MudBlazor
 
+@implements IDisposable
 @inherits LayoutComponentBase
 
 @inject AuthenticationStateProvider AuthProvider
@@ -12,12 +13,47 @@
 @inject NavigationManager Nav
 
 <style>
+    :root {
+        --dd-topbar-height: 80px;
+        --dd-drawer-width: 260px;
+        --dd-drawer-bg: #3E566E;
+    }
+
+    /* ============================
+           Fixed Logo Panel (above drawer, flush left)
+           ============================ */
+    .dd-logo-panel-fixed {
+        position: fixed;
+        top: 0;
+        left: 0;
+        height: var(--dd-topbar-height);
+        width: var(--dd-drawer-width);
+        background: #ffffff;
+        display: flex;
+        align-items: center;
+        padding: 0 14px;
+        border-right: 1px solid rgba(0,0,0,0.08);
+        z-index: 1301; /* higher than appbar (default 1100-ish) */
+    }
+
+    .dd-top-logo {
+        height: 56px;
+        width: auto;
+        display: block;
+    }
+
+    /* ============================
+           Single Header (black) shifted right of logo panel
+           ============================ */
     .top-header {
-        background-color: #0a1929 !important; /* Dark Navy/Black */
+        background-color: #0a1929 !important;
         color: white !important;
-        height: 40px !important;
-        min-height: 40px !important;
+        height: var(--dd-topbar-height) !important;
+        min-height: var(--dd-topbar-height) !important;
         font-size: 13px;
+        padding-left: 0 !important;
+        /* Push header content right so it doesn't sit under the fixed logo panel */
+        margin-left: var(--dd-drawer-width);
     }
 
         .top-header .mud-icon-root {
@@ -25,29 +61,9 @@
             font-size: 1.2rem;
         }
 
-    .main-header {
-        background-color: white !important;
-        color: #333 !important;
-        height: 80px !important;
-        top: 40px !important; /* Offset by top header height */
-    }
-
-    .menu-link {
-        color: #333 !important;
-        text-decoration: none;
-        font-weight: 500;
-        padding: 0 15px;
-        font-size: 16px;
-        transition: color 0.3s;
-    }
-
-        .menu-link:hover {
-            color: #0d6efd !important;
-        }
-
-    /* Adjust main content to account for double header */
+    /* Main content accounts for the single header height */
     .mud-main-content {
-        padding-top: 120px !important;
+        padding-top: var(--dd-topbar-height) !important;
     }
 
     .contact-info-item {
@@ -71,31 +87,104 @@
         .auth-link:hover {
             text-decoration: underline;
         }
+
+    /* ============================
+           Drawer + Nav Styling
+           ============================ */
+    #nav-drawer {
+        background-color: var(--dd-drawer-bg) !important;
+    }
+
+    /* Drawer menu starts under the header/logo panel */
+    .dd-drawer-menu {
+        padding-top: var(--dd-topbar-height);
+        padding-left: 6px;
+        padding-right: 6px;
+        padding-bottom: 12px;
+    }
+
+    /* Readable nav on dark drawer */
+    #nav-drawer .mud-nav-link,
+    #nav-drawer .mud-nav-group,
+    #nav-drawer .mud-nav-group > .mud-nav-link {
+        color: #ffffff !important;
+    }
+
+        #nav-drawer .mud-nav-link .mud-nav-link-text,
+        #nav-drawer .mud-nav-group .mud-nav-link-text {
+            color: #ffffff !important;
+            opacity: 0.95;
+        }
+
+    #nav-drawer .mud-nav-link-icon,
+    #nav-drawer .mud-nav-link-expand-icon,
+    #nav-drawer .mud-icon-root {
+        color: #ffffff !important;
+        opacity: 0.95;
+    }
+
+    #nav-drawer .mud-nav-group > .mud-nav-link {
+        padding-top: 6px !important;
+        padding-bottom: 4px !important;
+        margin-bottom: 0 !important;
+    }
+
+    #nav-drawer .mud-nav-link {
+        padding-top: 6px !important;
+        padding-bottom: 6px !important;
+        border-radius: 6px;
+    }
+
+        #nav-drawer .mud-nav-link:hover {
+            background-color: rgba(255,255,255,0.10) !important;
+        }
+
+        #nav-drawer .mud-nav-link.mud-nav-link-active {
+            background-color: rgba(255,255,255,0.16) !important;
+            font-weight: 600;
+        }
+
+    #nav-drawer .mud-nav-group {
+        margin-top: 4px !important;
+        margin-bottom: 4px !important;
+    }
 </style>
 
 <MudThemeProvider Theme="(IsDark ? DominateDocsTheme.Dark : DominateDocsTheme.Light)" />
-<MudPopoverProvider />
-<MudDialogProvider />
-<MudSnackbarProvider />
 
 <CascadingAuthenticationState>
     <MudLayout>
 
-        @* --- TOP BLACK HEADER --- *@
+        @* Fixed logo panel, aligned with drawer, above it, flush left *@
+        <MudLink Href="/" Style="text-decoration:none;">
+            <div class="dd-logo-panel-fixed">
+                <img src="images/DominateDocs_NoCrop.png" class="dd-top-logo" alt="Dominate Docs Logo" />
+            </div>
+        </MudLink>
+
+        @* --- SINGLE HEADER: Black bar (starts to the right of the fixed logo panel) --- *@
         <MudAppBar Elevation="0" Class="top-header" Fixed="true">
-            @if (isAuthenticated && (Session.UserRole == "Admin" || Session.UserRole == "DevAdmin"))
+
+            @* Hamburger now sits at the left edge of the black header (right next to logo panel) *@
+            @if (isAuthenticated)
             {
-                <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" OnClick="@DrawerToggle" Class="mr-2" />
+                <MudIconButton Icon="@Icons.Material.Filled.Menu"
+                               Color="Color.Inherit"
+                               Edge="Edge.Start"
+                               OnClick="@DrawerToggle"
+                               Class="mr-2" />
             }
 
             <div class="contact-info-item">
                 <MudIcon Icon="@Icons.Material.Filled.Phone" Size="Size.Small" />
                 <MudText Typo="Typo.body2">+1 (949) 500-7417</MudText>
             </div>
+
             <div class="contact-info-item">
                 <MudIcon Icon="@Icons.Material.Filled.Email" Size="Size.Small" />
                 <MudText Typo="Typo.body2">info@dominatedocs.ai</MudText>
             </div>
+
             <div class="contact-info-item">
                 <MudIcon Icon="@Icons.Material.Filled.LocationOn" Size="Size.Small" />
                 <MudText Typo="Typo.body2">1600 Whispering Hills Drive Franklin, TN 37069</MudText>
@@ -131,27 +220,20 @@
             </div>
         </MudAppBar>
 
-        @* --- MAIN WHITE HEADER --- *@
-        <MudAppBar Elevation="1" Class="main-header" Fixed="true" Dense="false">
-            <MudLink Href="/">
-                <img src="images/DominateDocs_NoCrop.png" height="50" alt="Dominate Docs Logo" />
-            </MudLink>
-
-            <MudSpacer />
-
-            <div class="d-flex align-center">
-               @*  <MudLink Href="/whyarewedifferent" Class="menu-link">Why We Are Different</MudLink>
-                <MudLink Href="/about" Class="menu-link">About Us</MudLink>
-                <MudLink Href="/faqs" Class="menu-link">FAQs</MudLink>
-                <MudLink Href="/contactus" Class="menu-link">Contact Us</MudLink> *@
-            </div>
-        </MudAppBar>
-
-        @* --- SIDEBAR --- *@
+        @* --- SIDEBAR (starts under the logo/header) --- *@
         @if (ShowAppSidebar)
         {
-            <MudDrawer id="nav-drawer" @bind-Open="_drawerOpen" ClipMode="DrawerClipMode.Never" Elevation="2">
-                <MudBlazorNavMenu />
+            <MudDrawer id="nav-drawer"
+                       @bind-Open="_drawerOpen"
+                       Variant="DrawerVariant.Responsive"
+                       ClipMode="DrawerClipMode.Never"
+                       Elevation="2"
+                       Width="260px">
+
+                <div class="dd-drawer-menu">
+                    <MudBlazorNavMenu />
+                </div>
+
             </MudDrawer>
         }
 
@@ -178,7 +260,8 @@
     [CascadingParameter] public bool ShowAppSidebar { get; set; } = true;
 
     private bool IsDark = false;
-    private bool _drawerOpen = false;
+    private bool _drawerOpen = true;
+
     private bool isAuthenticated = false;
     private string userName = string.Empty;
     private UserProfile userProfile;
@@ -189,12 +272,11 @@
     protected override async Task OnInitializedAsync()
     {
         var auth = await AuthProvider.GetAuthenticationStateAsync();
-        var user = auth.User;
         var userId = auth.User.GetUserId();
         var name = auth.User.GetDisplayName();
 
-        isAuthenticated = auth.User.Identity.IsAuthenticated;
-        userName = auth.User.Identity.Name ?? "";
+        isAuthenticated = auth.User.Identity?.IsAuthenticated ?? false;
+        userName = auth.User.Identity?.Name ?? "";
 
         if (isAuthenticated)
         {
@@ -207,7 +289,7 @@
                     UserId = Guid.Parse(userId),
                     UserName = userName,
                     Name = name,
-                    Email = auth.User.Identity.Name,
+                    Email = auth.User.Identity?.Name,
                 };
 
                 appState.CreateUserProfile(userProfile);
@@ -226,6 +308,8 @@
                 appState.ActiveSessions.TryAdd(userName, userProfile);
         }
 
+        _drawerOpen = ShowAppSidebar;
+
         NavigationManager.LocationChanged += OnLocationChanged;
     }
 
@@ -233,7 +317,13 @@
 
     private async Task SubmitLogout() => await JS.InvokeVoidAsync("submitLogoutForm", _logoutForm);
 
-    void DrawerToggle() => _drawerOpen = !_drawerOpen;
+    private void DrawerToggle()
+    {
+        if (!ShowAppSidebar)
+            return;
+
+        _drawerOpen = !_drawerOpen;
+    }
 
     public void Dispose() => NavigationManager.LocationChanged -= OnLocationChanged;
 }

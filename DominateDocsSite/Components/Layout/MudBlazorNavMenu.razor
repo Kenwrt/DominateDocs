@@ -1,114 +1,62 @@
-﻿@implements IDisposable
+﻿﻿@using Microsoft.AspNetCore.Components.Authorization
 
-@inject NavigationManager NavigationManager
+<MudNavMenu Class="dd-navmenu">
 
-@inherits LayoutComponentBase
+    <MudText Class="dd-nav-heading">Main</MudText>
 
-@inject AuthenticationStateProvider AuthenticationStateProvider
+    <MudNavLink Href="/dashboard" Match="NavLinkMatch.Prefix"
+                Icon="@Icons.Material.Filled.Dashboard">
+        My Loans
+    </MudNavLink>
 
+    <MudNavLink Href="/loan/new"
+                Icon="@Icons.Material.Filled.AddCircleOutline">
+        New Loan
+    </MudNavLink>
 
+    <MudNavLink Href="/logout"
+                Icon="@Icons.Material.Filled.Logout">
+        Logout
+    </MudNavLink>
 
+    <MudDivider Class="dd-nav-divider" />
 
-<MudNavMenu>
-    
-    
-    <AuthorizeView Policy="RequiresUser">
-        <Authorized>
-            <MudNavMenu Color="Color.Primary">
-            <MudNavLink Class="mt-10" Icon="@Icons.Material.Filled.Dashboard" Color="Color.Primary" Href="/dashboard" Match="NavLinkMatch.All">Dashboard</MudNavLink>
-            <MudNavLink Href="Account/Manage" Icon="@Icons.Material.Filled.People" Match="NavLinkMatch.Prefix">My Account Profile</MudNavLink>
+    <MudText Class="dd-nav-heading">Admin</MudText>
 
-            <div class="nav-item px-3">
-                <form action="Account/Logout" method="post">
-                    <AntiforgeryToken />
-                    <input type="hidden" name="ReturnUrl" value="@currentUrl" />
-                    <button type="submit" class="nav-link">
-                            <MudIcon Icon="@Icons.Material.Filled.Logout" Class="me-2" />
-                            Logout
-                    </button>
-                </form>
-            </div>
-            </MudNavMenu>
-        </Authorized>
-    </AuthorizeView>
+    <MudNavLink Href="/settings"
+                Icon="@Icons.Material.Filled.Settings">
+        Settings
+    </MudNavLink>
 
-    <MudDivider Class="my-3" />
-    <AuthorizeView Policy="RequiresAdmin">
-        <Authorized>
-            <MudNavGroup Title="Settings" Icon="@Icons.Material.Filled.Settings" Expanded="true">
-                <MudNavLink Href="/lenderlist" Icon="@Icons.Material.Filled.Checklist" Match="NavLinkMatch.Prefix">Lender List</MudNavLink>
-                <MudNavLink Href="/brokerlist" Icon="@Icons.Material.Filled.Checklist" Match="NavLinkMatch.Prefix">Broker List</MudNavLink>
-                <MudNavLink Href="/guarantorlist" Icon="@Icons.Material.Filled.Checklist" Match="NavLinkMatch.Prefix">Guarantor List</MudNavLink>
-                <MudNavLink Href="/borrowerlist" Icon="@Icons.Material.Filled.Checklist" Match="NavLinkMatch.Prefix">Borrower List</MudNavLink>
-                <MudNavLink Href="/Userlist" Icon="@Icons.Material.Filled.Checklist" Match="NavLinkMatch.Prefix">User List</MudNavLink>
-                <MudNavLink Href="/propertyownerlist" Icon="@Icons.Material.Filled.Checklist" Match="NavLinkMatch.Prefix">Property Owner List</MudNavLink>
-                <MudNavLink Href="/propertylist" Icon="@Icons.Material.Filled.Checklist" Match="NavLinkMatch.Prefix">Property List</MudNavLink>
-                <MudNavLink Href="/akaalias" Icon="@Icons.Material.Filled.Checklist" Match="NavLinkMatch.Prefix">AKA Alias List</MudNavLink>
-                <MudNavLink Href="/documentlibrary" Icon="@Icons.Material.Filled.Settings" Match="NavLinkMatch.Prefix">Document Library</MudNavLink>
-                <MudNavLink Href="/LoanTypeList" Icon="@Icons.Material.Filled.Checklist" Match="NavLinkMatch.Prefix">Loan Type List</MudNavLink>
-                <MudNavLink Href="/adminbench" Icon="@Icons.Material.Filled.Checklist" Match="NavLinkMatch.Prefix">Admin Bench</MudNavLink>
-                               
-            </MudNavGroup>
-        </Authorized>
-    
-    </AuthorizeView>
+    <MudNavLink Href="/reports"
+                Icon="@Icons.Material.Filled.Assessment">
+        Reports
+    </MudNavLink>
 
-    <MudDivider Class="my-3" />
-    <!-- only DevAdmin -->
-    <AuthorizeView Policy="RequiresDevAdmin">
-        <Authorized>
-            <MudNavGroup Title="DevSettings" Icon="@Icons.Material.Filled.Settings" Expanded="true">
+    <MudDivider Class="dd-nav-divider" />
 
-                <!-- new register user item -->
-                <MudNavLink Href="/Register"
-                            Icon="@Icons.Material.Filled.PersonAdd"
-                            Match="NavLinkMatch.All">
-                    Register User
-                </MudNavLink>
+        <MudText Class="dd-nav-heading">Dev Settings</MudText>
+        <MudNavGroup Title="Lists" Expanded="false">
+        <MudNavLink Href="/lenders" Icon="@Icons.Material.Filled.Check">Lender List</MudNavLink>
+        <MudNavLink Href="/brokers" Icon="@Icons.Material.Filled.Check">Broker List</MudNavLink>
+        <MudNavLink Href="/guarantors" Icon="@Icons.Material.Filled.Check">Guarantor List</MudNavLink>
+        <MudNavLink Href="/borrowers" Icon="@Icons.Material.Filled.Check">Borrower List</MudNavLink>
+        <MudNavLink Href="/users" Icon="@Icons.Material.Filled.Check">User List</MudNavLink>
+        <MudNavLink Href="/propertyowners" Icon="@Icons.Material.Filled.Check">Property Owner List</MudNavLink>
+        <MudNavLink Href="/properties" Icon="@Icons.Material.Filled.Check">Property List</MudNavLink>
+        <MudNavLink Href="/aka" Icon="@Icons.Material.Filled.Check">AKA Alias List</MudNavLink>
+        <MudNavLink Href="/loantypes" Icon="@Icons.Material.Filled.Check">Loan Type List</MudNavLink>
+        <MudNavLink Href="/liens" Icon="@Icons.Material.Filled.Check">Lien List</MudNavLink>
+        <MudNavLink Href="/loanapplications" Icon="@Icons.Material.Filled.Check">Loan Application List</MudNavLink>
+        <MudNavLink Href="/trustees" Icon="@Icons.Material.Filled.Check">Trustee List</MudNavLink>
+        <MudNavLink Href="/signingauthorites" Icon="@Icons.Material.Filled.Check">Signing Authority List</MudNavLink>
 
-                <MudNavLink Href="/signingauthority" Icon="@Icons.Material.Filled.Checklist" Match="NavLinkMatch.Prefix">Siging Authority</MudNavLink>
-                <MudNavLink Href="/Trusteelist" Icon="@Icons.Material.Filled.Checklist" Match="NavLinkMatch.Prefix">Trustee</MudNavLink>
-                <MudNavLink Href="/loanagreementssecurity" Icon="@Icons.Material.Filled.Checklist" Match="NavLinkMatch.Prefix">Loan Application List</MudNavLink>
-                <MudNavLink Href="/lienlist" Icon="@Icons.Material.Filled.Checklist" Match="NavLinkMatch.Prefix">Lien List</MudNavLink>
-                <MudNavLink Href="/chatgpt" Icon="@Icons.Material.Filled.Checklist" Match="NavLinkMatch.Prefix">ChatGpt</MudNavLink>
-                <MudNavLink Href="/uploadfile" Icon="@Icons.Material.Filled.Checklist" Match="NavLinkMatch.Prefix">Upload Edited Template</MudNavLink>
-                <MudNavLink Href="/encryptdecrypt" Icon="@Icons.Material.Filled.Checklist" Match="NavLinkMatch.Prefix">Encrypt Decrypt Content</MudNavLink>
-               
+    </MudNavGroup>
+    <MudNavLink Href="/registeruser" Icon="@Icons.Material.Filled.PersonAdd">Register User</MudNavLink>
+    <MudNavLink Href="/documents" Icon="@Icons.Material.Filled.LibraryBooks">Document Library</MudNavLink>
+    <MudNavLink Href="/adminbench" Icon="@Icons.Material.Filled.Build">Admin Bench</MudNavLink>
+    <MudNavLink Href="/chatgpt" Icon="@Icons.Material.Filled.Chat">ChatGpt</MudNavLink>
+    <MudNavLink Href="/uploadtemplate" Icon="@Icons.Material.Filled.UploadFile">Upload Edited Template</MudNavLink>
+    <MudNavLink Href="/encrypt" Icon="@Icons.Material.Filled.Lock">Encrypt Decrypt Content</MudNavLink>
 
-               
-
-            </MudNavGroup>
-        </Authorized>
-    </AuthorizeView>
-    
 </MudNavMenu>
-
-@code {
-
-   
-    private string? currentUrl;
- 
-
-    protected override async Task OnInitializedAsync()
-    {
-        // var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
-        // var user = authState.User;
-
-        currentUrl = NavigationManager.ToBaseRelativePath(NavigationManager.Uri);
-        NavigationManager.LocationChanged += OnLocationChanged;
-    }
-
-    private void OnLocationChanged(object? sender, LocationChangedEventArgs e)
-    { 
-        currentUrl = NavigationManager.ToBaseRelativePath(e.Location);
-        StateHasChanged();
-    }
-
-   
-
-    public void Dispose()
-    {
-        NavigationManager.LocationChanged -= OnLocationChanged;
-    }
-
-}

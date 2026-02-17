@@ -103,6 +103,9 @@ public class Broker : IPartyNames
     public string SigningAuthoritiesFormatted { get; set; }
 
     public List<AkaName> AliasNames { get; set; } = new();
+
+    public List<string> AliasNameList { get; set; } = new();
+
     public string AliasNamesFormatted { get; set; }
 
     public bool IsAliasNamesUsed { get; set; } = false;

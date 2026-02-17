@@ -1,4 +1,4 @@
-﻿@* App.razor — Blazor Server host with a single Google Maps load (classic markers) *@
+﻿﻿@* App.razor — Blazor Server host with a single Google Maps load (classic markers) *@
 <!DOCTYPE html>
 <html lang="en">
 
@@ -15,9 +15,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 
-
     <ImportMap />
-    @* <link rel="icon" type="image/png" href="favicon.png" /> *@
     <link rel="icon" type="image/x-icon" href="favicon.ico" />
     <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png" />
     <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png" />
@@ -30,6 +28,14 @@
 </head>
 
 <body>
+    @* IMPORTANT:
+       With .NET 8 interactive routing, these providers MUST be in the same interactive render tree
+       as the Routes component. So they need @rendermode="PageRenderMode". *@
+
+    <MudPopoverProvider @rendermode="PageRenderMode" />
+    <MudDialogProvider @rendermode="PageRenderMode" />
+    <MudSnackbarProvider @rendermode="PageRenderMode" />
+
     <Routes @rendermode="PageRenderMode" />
 
     <!-- App scripts -->
@@ -42,9 +48,6 @@
     <!-- Blazor-friendly interop -->
     <script src="/js/googlemaps.js" defer></script>
 
-    @* Old scripts intentionally not used *@
-    @* <script src=@Assets["js/googlemaps.js"]></script> *@
-    @* <script src=@Assets["js/address-autocomplete.js"]></script> *@
     <script src=@Assets["/js/logout.js"]></script>
     <script src=@Assets["/js/dd-input-masks.js"]></script>
     <script src="_framework/blazor.web.js"></script>

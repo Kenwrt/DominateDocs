@@ -192,6 +192,8 @@ public class LoanAgreement
 
     public string ClosingContactName { get; set; }
 
+    public string DefaultLender { get; set; }
+
     //public string ClosingContactEmail { get; set; }
 
     public DateTime? SignedDate { get; set; }
