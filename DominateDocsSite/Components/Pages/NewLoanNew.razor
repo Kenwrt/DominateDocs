@@ -91,30 +91,73 @@
 }
 
 @* ── WIZARD ── *@
-<div class="d-flex gap-6">
-    @* ── Sticky Sidebar ── *@
-    <div style="width:200px;flex-shrink:0;position:sticky;top:80px;align-self:flex-start;">
-        <MudText Typo="Typo.caption" Style="font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:1px;" Class="mb-3">
-            Sections
-        </MudText>
-        @foreach (var sec in LoanWizardViewModelNew.Sections)
-        {
-            var isActive = VM.ActiveSection == sec.Id;
-            var isComplete = VM.IsSectionComplete(sec.Id);
-            <MudButton FullWidth="true" Variant="Variant.Text" Size="Size.Small"
-                       OnClick="@(() => VM.ScrollToSection(sec.Id))"
-                       StartIcon="@(isComplete ? Icons.Material.Filled.CheckCircle : Icons.Material.Filled.RadioButtonUnchecked)"
-                       IconColor="@(isComplete ? Color.Success : isActive ? Color.Primary : Color.Default)"
-                       Style="@($"text-transform:none;justify-content:flex-start;font-weight:{(isActive ? "700" : "500")};color:{(isActive ? "#0ea5e9" : "#475569")};font-size:13px;margin-bottom:2px;")">
-                @sec.Label
-            </MudButton>
-        }
+<div style="max-width:100%;margin:0 auto;background-color:#fcfcfc;padding:20px;border-radius:16px;">
+    @* ── Header ── *@
+    <div class="d-flex justify-space-between align-center mb-4">
+        <div>
+            <MudText Typo="Typo.h4" Style="font-family:'Outfit';color:#0f2b4a;letter-spacing:-0.5px;">
+                New Loan Package
+            </MudText>
+            <MudText Typo="Typo.caption" Style="color:#94a3b8;">
+                @if (VM.Loan.LoanType.HasValue)
+                {
+                    <span>@VM.Loan.LoanType.Value.ToDisplayString()</span>
+                    @if (!string.IsNullOrEmpty(VM.Loan.Terms.Principal))
+                    {
+                        <span> · $@VM.Loan.Terms.Principal</span>
+                    }
+                    @if (!string.IsNullOrEmpty(VM.Loan.Terms.InterestRate))
+                    {
+                        <span> · @(VM.Loan.Terms.InterestRate)%</span>
+                    }
+                    @if (!string.IsNullOrEmpty(VM.Loan.Terms.Term))
+                    {
+                        <span> · @(VM.Loan.Terms.Term)mo</span>
+                    }
+                }
+                else
+                {
+                    <span>Saved ✓</span>
+                }
+            </MudText>
+        </div>
 
-        <MudDivider Class="my-4" />
-        <MudText Typo="Typo.caption" Style="color:#94a3b8;font-weight:600;">@VM.CompletionPercent% Complete</MudText>
-        <MudProgressLinear Value="@VM.CompletionPercent" Color="Color.Primary" Rounded="true" Size="Size.Small" Class="mt-1" />
+    </div>
 
-        <div class="d-flex align-center gap-1 mt-4">
+    @* ── Horizontal Stepper (Chips) ── *@
+    <div class="mb-6" style="background:#f3f4f6;padding:16px 20px;border-radius:12px;border:1px solid #e5e7eb;">
+        <div class="d-flex align-center justify-space-between">
+            <div class="d-flex align-center flex-wrap" style="gap:10px;">
+                @{
+                    var sections = LoanWizardViewModelNew.Sections.ToList();
+                    for (int i = 0; i < sections.Count; i++)
+                    {
+                        var sec = sections[i];
+                        var isActive = VM.ActiveSection == sec.Id;
+                        var isComplete = VM.IsSectionComplete(sec.Id);
+
+                        <MudChip T="string"
+                                 OnClick="@(() => VM.ScrollToSection(sec.Id))"
+                                 Variant="Variant.Filled"
+                                 Color="@(isComplete ? Color.Success : isActive ? Color.Primary : Color.Default)"
+                                 Style="font-weight:600;cursor:pointer;">
+                            @if (isComplete)
+                            {
+                                <MudIcon Icon="@Icons.Material.Filled.Check" Size="Size.Small" Class="mr-1" />
+                            }
+                            @sec.Label
+                        </MudChip>
+                    }
+                }
+            </div>
+
+            <div class="d-flex align-center" style="gap:12px;min-width:220px;">
+                <MudText Typo="Typo.caption" Style="color:#475569;font-weight:600;white-space:nowrap;">@VM.CompletionPercent% Complete</MudText>
+                <MudProgressLinear Value="@VM.CompletionPercent" Color="Color.Primary" Rounded="true" Size="Size.Small" Style="flex:1;" />
+            </div>
+        </div>
+
+        <div class="d-flex align-center mt-2" style="gap:6px;">
             <MudIcon Icon="@Icons.Material.Filled.FiberManualRecord" Size="Size.Small"
                      Style="@($"color:{(VM.AutoSaveStatus == "saved" ? "#10b981" : "#f59e0b")};font-size:8px;")" />
             <MudText Typo="Typo.caption" Style="@($"color:{(VM.AutoSaveStatus == "saved" ? "#10b981" : "#f59e0b")};font-weight:500;font-size:11px;")">
@@ -123,735 +166,864 @@
         </div>
     </div>
 
-    @* ── Main Content ── *@
-    <div style="flex:1;min-width:0;max-width:900px;">
-        <div class="d-flex justify-space-between align-center mb-6">
-            <div>
-                <MudText Typo="Typo.h4" Style="font-family:'Outfit';color:#0f2b4a;letter-spacing:-0.5px;">
-                    @(VM.Loan.LoanType.HasValue ? VM.Loan.LoanType.Value.ToDisplayString() : "New Loan")
-                </MudText>
-                <MudText Typo="Typo.caption" Style="color:#94a3b8;">Fill in deal terms. Smart defaults applied from your profile.</MudText>
-            </div>
-            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="VM.GenerateCommand.ExecuteAsync"
-                       StartIcon="@Icons.Material.Filled.AutoAwesome"
-                       Style="text-transform:none;font-weight:700;font-size:14px;padding:10px 24px;"
-                       Disabled="@VM.IsGenerating">
-                Generate Documents
-            </MudButton>
-        </div>
-
-        <MudExpansionPanels MultiExpansion="true" Elevation="0">
-
-            @* ═══ SECTION 1: Loan Type ═══ *@
-            <MudExpansionPanel @bind-IsExpanded="_loanSetupOpen" Style="border:1px solid #e2e8f0;border-radius:12px !important;margin-bottom:12px;">
-                <TitleContent>
-                    <div class="d-flex align-center gap-3">
-                        <MudIcon Icon="@Icons.Material.Filled.FlashOn" Color="@(VM.IsSectionComplete("loanSetup") ? Color.Success : Color.Default)" />
-                        <MudText Style="font-weight:700;font-size:15px;color:#0f2b4a;">Loan Type</MudText>
-                        @if (VM.Loan.LoanType.HasValue)
-                        {
-                            <MudChip T="string" Size="Size.Small" Color="Color.Success" Variant="Variant.Outlined"
-                                     Style="font-size:11px;">@VM.Loan.LoanType.Value.ToDisplayString()</MudChip>
-                        }
+    @* ── Main Content (Two-Column Layout) ── *@
+    <MudGrid Spacing="4">
+        @* ── LEFT: Deal Summary Sidebar ── *@
+        <MudItem xs="12" md="3">
+            <div style="position:sticky;top:20px;">
+                <MudPaper Class="pa-4" Elevation="1" Style="border-radius:12px;background:#fafafa;border:1px solid #e5e7eb;">
+                    <div class="d-flex align-center justify-space-between mb-3">
+                        <MudText Typo="Typo.subtitle1" Style="font-weight:700;color:#0f2b4a;">Deal Summary</MudText>
+                        <MudIconButton Icon="@Icons.Material.Filled.ChevronLeft" Size="Size.Small" Style="color:#94a3b8;" />
                     </div>
-                </TitleContent>
-                <ChildContent>
-                    <MudGrid Spacing="3">
-                        @foreach (var lt in Enum.GetValues<DominateDocsSite.Models.Enums.LoanType>())
-                        {
-                            var selected = VM.Loan.LoanType == lt;
-                            <MudItem xs="12" sm="4">
-                                <MudPaper Class="pa-5 text-center cursor-pointer"
-                                          Style="@($"border:2px solid {(selected ? "#0ea5e9" : "#e2e8f0")};border-radius:12px;background:{(selected ? "#f0f9ff" : "white")};transition:all 0.2s;")"
-                                          @onclick="@(() => VM.SelectLoanType(lt))" Elevation="0">
-                                    <MudText Style="font-size:24px;margin-bottom:8px;">@GetLoanIcon(lt)</MudText>
-                                    <MudText Style="font-size:14px;font-weight:700;color:#0f172a;">@lt.ToDisplayString()</MudText>
-                                </MudPaper>
-                            </MudItem>
-                        }
-                    </MudGrid>
-                </ChildContent>
-            </MudExpansionPanel>
 
-            @* ═══ SECTION 2: Loan Terms ═══ *@
-            <MudExpansionPanel @bind-IsExpanded="_loanTermsOpen" Style="border:1px solid #e2e8f0;border-radius:12px !important;margin-bottom:12px;">
-                <TitleContent>
-                    <div class="d-flex align-center gap-3">
-                        <MudIcon Icon="@Icons.Material.Filled.AttachMoney" Color="@(VM.IsSectionComplete("loanTerms") ? Color.Success : Color.Default)" />
-                        <MudText Style="font-weight:700;font-size:15px;color:#0f2b4a;">Loan Terms</MudText>
+                    @* Deal Section *@
+                    <div class="mb-4">
+                        <MudText Typo="Typo.caption" Style="font-weight:700;text-transform:uppercase;color:#94a3b8;letter-spacing:0.5px;" Class="mb-2">
+                            Deal
+                        </MudText>
+                        <div class="d-flex align-center gap-2 mb-2">
+                            <MudIcon Icon="@Icons.Material.Filled.AttachMoney" Size="Size.Small" Style="color:#64748b;" />
+                            <div style="flex:1;">
+                                <MudText Typo="Typo.caption" Style="color:#64748b;font-size:11px;">Loan Amount</MudText>
+                                <MudText Typo="Typo.body2" Style="font-weight:600;color:#0f2b4a;">
+                                    @(!string.IsNullOrEmpty(VM.Loan.Terms.Principal) ? $"${VM.Loan.Terms.Principal}" : "—")
+                                </MudText>
+                            </div>
+                        </div>
+                        <div class="d-flex align-center gap-2 mb-2">
+                            <MudIcon Icon="@Icons.Material.Filled.Percent" Size="Size.Small" Style="color:#64748b;" />
+                            <div style="flex:1;">
+                                <MudText Typo="Typo.caption" Style="color:#64748b;font-size:11px;">Interest Rate</MudText>
+                                <MudText Typo="Typo.body2" Style="font-weight:600;color:#0f2b4a;">
+                                    @(!string.IsNullOrEmpty(VM.Loan.Terms.InterestRate) ? $"{VM.Loan.Terms.InterestRate}%" : "—")
+                                </MudText>
+                            </div>
+                        </div>
                     </div>
-                </TitleContent>
-                <ChildContent>
-                    <MudGrid Spacing="3">
-                        <MudItem xs="12" sm="4">
-                            <MudTextField T="string" Label="Principal Amount" Variant="Variant.Outlined"
-                                          Adornment="Adornment.Start" AdornmentText="$"
-                                          @bind-Value="VM.Loan.Terms.Principal" Immediate="true" />
-                        </MudItem>
-                        <MudItem xs="12" sm="4">
-                            <MudSelect T="RateType" Label="Rate Type" Variant="Variant.Outlined"
-                                       @bind-Value="VM.Loan.Terms.RateType">
-                                <MudSelectItem Value="RateType.Fixed">Fixed</MudSelectItem>
-                                <MudSelectItem Value="RateType.Adjustable">Adjustable</MudSelectItem>
-                            </MudSelect>
-                        </MudItem>
-                        <MudItem xs="12" sm="4">
-                            <MudTextField T="string" Label="Interest Rate" Variant="Variant.Outlined"
-                                          Adornment="Adornment.End" AdornmentText="%"
-                                          @bind-Value="VM.Loan.Terms.InterestRate" Immediate="true" />
-                        </MudItem>
-                        <MudItem xs="12" sm="4">
-                            <MudTextField T="string" Label="Default Rate" Variant="Variant.Outlined"
-                                          Adornment="Adornment.End" AdornmentText="%"
-                                          @bind-Value="VM.Loan.Terms.DefaultRate" Immediate="true" />
-                        </MudItem>
-                        <MudItem xs="12" sm="4">
-                            <MudTextField T="string" Label="Late Charge" Variant="Variant.Outlined"
-                                          Adornment="Adornment.End" AdornmentText="%"
-                                          @bind-Value="VM.Loan.Terms.LateChargePercent" Immediate="true" />
-                        </MudItem>
-                        <MudItem xs="12" sm="4">
-                            <MudTextField T="string" Label="Grace Period" Variant="Variant.Outlined"
-                                          Adornment="Adornment.End" AdornmentText="days"
-                                          @bind-Value="VM.Loan.Terms.LateChargeDays" Immediate="true" />
-                        </MudItem>
-                        <MudItem xs="12" sm="4">
-                            <MudSelect T="AmortizationType" Label="Amortization" Variant="Variant.Outlined"
-                                       @bind-Value="VM.Loan.Terms.AmortType">
-                                @foreach (var at in Enum.GetValues<AmortizationType>())
-                                {
-                                    <MudSelectItem Value="at">@at.ToDisplayString()</MudSelectItem>
-                                }
-                            </MudSelect>
-                        </MudItem>
-                        <MudItem xs="12" sm="4">
-                            <MudSelect T="RepaymentSchedule" Label="Repayment" Variant="Variant.Outlined"
-                                       @bind-Value="VM.Loan.Terms.RepaymentSchedule">
-                                <MudSelectItem Value="RepaymentSchedule.Monthly">Monthly</MudSelectItem>
-                                <MudSelectItem Value="RepaymentSchedule.Quarterly">Quarterly</MudSelectItem>
-                                <MudSelectItem Value="RepaymentSchedule.Annual">Annual</MudSelectItem>
-                            </MudSelect>
-                        </MudItem>
-                        <MudItem xs="12" sm="4">
-                            <MudTextField T="string" Label="Term" Variant="Variant.Outlined"
-                                          Adornment="Adornment.End" AdornmentText="months"
-                                          @bind-Value="VM.Loan.Terms.Term" Immediate="true" />
-                        </MudItem>
-                        <MudItem xs="12" sm="6">
-                            <MudDatePicker Label="Origination Date" Variant="Variant.Outlined"
-                                           @bind-Date="VM.Loan.Terms.OriginationDate" />
-                        </MudItem>
-                        <MudItem xs="12" sm="6">
-                            <MudDatePicker Label="First Payment Date" Variant="Variant.Outlined"
-                                           @bind-Date="VM.Loan.Terms.FirstPaymentDate" />
-                        </MudItem>
-                    </MudGrid>
 
-                    @* Construction toggle for Bridge type *@
-                    @if (VM.Loan.LoanType == DominateDocsSite.Models.Enums.LoanType.Bridge)
-                    {
-                        <MudDivider Class="my-4" />
-                        <MudSwitch T="bool" @bind-Value="VM.Loan.ShowConstruction" Color="Color.Primary"
-                                   Label="Include Construction / Rehab Details" />
-                        @if (VM.Loan.ShowConstruction)
-                        {
-                            <MudPaper Class="pa-4 mt-3" Style="border-left:2px solid #14b8a6;background:#f8fafc;border-radius:0 8px 8px 0;">
-                                <MudGrid Spacing="3">
-                                    <MudItem xs="12">
-                                        <MudSwitch T="bool" @bind-Value="VM.Loan.Construction.HasContractor"
-                                                   Color="Color.Primary" Label="Include Assignment of Contractor's Contract" />
-                                    </MudItem>
-                                    @if (VM.Loan.Construction.HasContractor)
-                                    {
-                                        <MudItem xs="6">
-                                            <MudTextField T="string" Label="Contractor Name" Variant="Variant.Outlined"
-                                                          @bind-Value="VM.Loan.Construction.ContractorName" Immediate="true" />
-                                        </MudItem>
-                                        <MudItem xs="6">
-                                            <MudTextField T="string" Label="Contractor Role" Variant="Variant.Outlined"
-                                                          @bind-Value="VM.Loan.Construction.ContractorRole" Immediate="true" />
-                                        </MudItem>
+                    @* Parties Section *@
+                    <MudDivider Class="mb-3" />
+                    <div class="mb-4">
+                        <MudText Typo="Typo.caption" Style="font-weight:700;text-transform:uppercase;color:#94a3b8;letter-spacing:0.5px;" Class="mb-2">
+                            Parties
+                        </MudText>
+                        <div class="d-flex align-center gap-2 mb-2">
+                            <MudIcon Icon="@Icons.Material.Filled.Person" Size="Size.Small" Style="color:#64748b;" />
+                            <div style="flex:1;">
+                                <MudText Typo="Typo.caption" Style="color:#64748b;">Borrower</MudText>
+                                <MudText Typo="Typo.body2" Style="font-weight:600;color:#0f2b4a;">
+                                    @(VM.Loan.Borrowers.Count > 0 && !string.IsNullOrEmpty(VM.Loan.Borrowers[0].Name) ? VM.Loan.Borrowers[0].Name : "—")
+                                </MudText>
+                            </div>
+                        </div>
+                        <div class="d-flex align-center gap-2 mb-2">
+                            <MudIcon Icon="@Icons.Material.Filled.AccountBalance" Size="Size.Small" Style="color:#64748b;" />
+                            <div style="flex:1;">
+                                <MudText Typo="Typo.caption" Style="color:#64748b;font-size:11px;">Lender</MudText>
+                                <MudText Typo="Typo.body2" Style="font-weight:600;color:#0f2b4a;">
+                                    @(VM.Loan.Lenders.Count > 0 && !string.IsNullOrEmpty(VM.Loan.Lenders[0].Name) ? VM.Loan.Lenders[0].Name : "—")
+                                </MudText>
+                            </div>
+                        </div>
+                    </div>
+
+                    @* Collateral Section *@
+                    <MudDivider Class="mb-3" />
+                    <div class="mb-4">
+                        <MudText Typo="Typo.caption" Style="font-weight:700;text-transform:uppercase;color:#94a3b8;letter-spacing:0.5px;" Class="mb-2">
+                            Collateral
+                        </MudText>
+                        <div class="d-flex align-center gap-2 mb-2">
+                            <MudIcon Icon="@Icons.Material.Filled.Home" Size="Size.Small" Style="color:#64748b;" />
+                            <div style="flex:1;">
+                                <MudText Typo="Typo.caption" Style="color:#64748b;font-size:11px;">Property</MudText>
+                                <MudText Typo="Typo.body2" Style="font-weight:600;color:#0f2b4a;font-size:12px;">
+                                    @(VM.Loan.Properties.Count > 0 && !string.IsNullOrEmpty(VM.Loan.Properties[0].Address) ? VM.Loan.Properties[0].Address : "—")
+                                </MudText>
+                            </div>
+                        </div>
+                    </div>
+
+                    @* Fees Section *@
+                    <MudDivider Class="mb-3" />
+                    <div class="mb-4">
+                        <MudText Typo="Typo.caption" Style="font-weight:700;text-transform:uppercase;color:#94a3b8;letter-spacing:0.5px;" Class="mb-2">
+                            Fees
+                        </MudText>
+                        <div class="d-flex align-center gap-2 mb-2">
+                            <MudIcon Icon="@Icons.Material.Filled.ReceiptLong" Size="Size.Small" Style="color:#64748b;" />
+                            <div style="flex:1;">
+                                <MudText Typo="Typo.caption" Style="color:#64748b;font-size:11px;">Origination Fee</MudText>
+                                <MudText Typo="Typo.body2" Style="font-weight:600;color:#0f2b4a;">
+                                    @{
+                                        var originationFee = VM.Loan.LenderFees.FirstOrDefault(f => f.Description?.Contains("Origination") == true);
                                     }
-                                    <MudItem xs="12">
-                                        <MudSwitch T="bool" @bind-Value="VM.Loan.Construction.HasDesignPro"
-                                                   Color="Color.Primary" Label="Include Assignment of Design Professional's Plans" />
-                                    </MudItem>
-                                    <MudItem xs="12">
-                                        <MudSwitch T="bool" @bind-Value="VM.Loan.Construction.DutchInterest"
-                                                   Color="Color.Primary" Label="Dutch Interest Charged" />
-                                    </MudItem>
-                                    <MudItem xs="4">
-                                        <MudTextField T="string" Label="Holdback Amount" Variant="Variant.Outlined"
-                                                      Adornment="Adornment.Start" AdornmentText="$"
-                                                      @bind-Value="VM.Loan.Construction.HoldbackAmount" Immediate="true" />
-                                    </MudItem>
-                                    <MudItem xs="4">
-                                        <MudTextField T="string" Label="Holdback Paid To" Variant="Variant.Outlined"
-                                                      @bind-Value="VM.Loan.Construction.HoldbackPaidTo" Immediate="true" />
-                                    </MudItem>
-                                    <MudItem xs="4">
-                                        <ComboSelect Label="How Will Holdback be Paid"
-                                                     Value="@VM.Loan.Construction.HoldbackPaymentDue"
-                                                     ValueChanged="@(v => { VM.Loan.Construction.HoldbackPaymentDue = v; VM.NotifyLoanChanged(); })"
-                                                     Options="Constants.HoldbackPaymentOptions" />
-                                    </MudItem>
-                                </MudGrid>
-                            </MudPaper>
-                        }
-                    }
+                                    @(originationFee != null && !string.IsNullOrEmpty(originationFee.Amount) ? $"${originationFee.Amount}" : "—")
+                                </MudText>
+                            </div>
+                        </div>
+                        <div class="d-flex align-center gap-2 mb-2">
+                            <MudIcon Icon="@Icons.Material.Filled.Receipt" Size="Size.Small" Style="color:#64748b;" />
+                            <div style="flex:1;">
+                                <MudText Typo="Typo.caption" Style="color:#64748b;font-size:11px;">Appraisal Fee</MudText>
+                                <MudText Typo="Typo.body2" Style="font-weight:600;color:#0f2b4a;">
+                                    @{
+                                        var appraisalFee = VM.Loan.OtherFees.FirstOrDefault(f => f.Description?.Contains("Appraisal") == true);
+                                    }
+                                    @(appraisalFee != null && !string.IsNullOrEmpty(appraisalFee.Amount) ? $"${appraisalFee.Amount}" : "—")
+                                </MudText>
+                            </div>
+                        </div>
+                    </div>
 
-                    @* DSCR details *@
-                    @if (VM.Loan.LoanType == DominateDocsSite.Models.Enums.LoanType.DSCR)
-                    {
-                        <MudDivider Class="my-4" />
-                        <MudText Typo="Typo.subtitle2" Style="font-weight:700;color:#0f2b4a;" Class="mb-3">DSCR Details</MudText>
+                    @* Documents Section *@
+                    <MudDivider Class="mb-3" />
+                    <div>
+                        <MudText Typo="Typo.caption" Style="font-weight:700;text-transform:uppercase;color:#94a3b8;letter-spacing:0.5px;" Class="mb-2">
+                            Documents
+                        </MudText>
+                        <MudButton Variant="Variant.Filled" Color="Color.Primary" FullWidth="true" Size="Size.Small"
+                                   StartIcon="@Icons.Material.Filled.AutoAwesome"
+                                   OnClick="VM.GenerateCommand.ExecuteAsync"
+                                   Disabled="@VM.IsGenerating"
+                                   Style="text-transform:none;font-weight:600;margin-top:8px;">
+                            Generate Documents
+                        </MudButton>
+                    </div>
+                </MudPaper>
+            </div>
+        </MudItem>
+
+        @* ── RIGHT: Form Sections ── *@
+        <MudItem xs="12" md="9">
+            <MudExpansionPanels MultiExpansion="true" Elevation="0">
+
+                @* ═══ SECTION 1: Loan Type ═══ *@
+                <MudExpansionPanel @bind-IsExpanded="_loanSetupOpen" Style="border:1px solid #e2e8f0;border-radius:12px !important;margin-bottom:12px;">
+                    <TitleContent>
+                        <div class="d-flex align-center gap-3">
+                            <MudIcon Icon="@Icons.Material.Filled.FlashOn" Color="@(VM.IsSectionComplete("loanSetup") ? Color.Success : Color.Default)" />
+                            <MudText Style="font-weight:700;font-size:15px;color:#0f2b4a;">Loan Type</MudText>
+                            @if (VM.Loan.LoanType.HasValue)
+                            {
+                                <MudChip T="string" Size="Size.Small" Color="Color.Success" Variant="Variant.Outlined"
+                                         Style="font-size:11px;">@VM.Loan.LoanType.Value.ToDisplayString()</MudChip>
+                            }
+                        </div>
+                    </TitleContent>
+                    <ChildContent>
                         <MudGrid Spacing="3">
-                            <MudItem xs="6">
-                                <MudTextField T="string" Label="DSCR Ratio" Variant="Variant.Outlined"
-                                              @bind-Value="VM.Loan.DSCR.Ratio" Immediate="true" Placeholder="1.25" />
+                            @foreach (var lt in Enum.GetValues<DominateDocsSite.Models.Enums.LoanType>())
+                            {
+                                var selected = VM.Loan.LoanType == lt;
+                                <MudItem xs="12" sm="4">
+                                    <MudPaper Class="pa-5 text-center cursor-pointer"
+                                              Style="@($"border:2px solid {(selected ? "#0ea5e9" : "#e2e8f0")};border-radius:12px;background:{(selected ? "#f0f9ff" : "white")};transition:all 0.2s;")"
+                                              @onclick="@(() => VM.SelectLoanType(lt))" Elevation="0">
+                                        <MudText Style="font-size:24px;margin-bottom:8px;">@GetLoanIcon(lt)</MudText>
+                                        <MudText Style="font-size:14px;font-weight:700;color:#0f172a;">@lt.ToDisplayString()</MudText>
+                                    </MudPaper>
+                                </MudItem>
+                            }
+                        </MudGrid>
+                    </ChildContent>
+                </MudExpansionPanel>
+
+                @* ═══ SECTION 2: Loan Terms ═══ *@
+                <MudExpansionPanel @bind-IsExpanded="_loanTermsOpen" Style="border:1px solid #e2e8f0;border-radius:12px !important;margin-bottom:12px;">
+                    <TitleContent>
+                        <div class="d-flex align-center gap-3">
+                            <MudIcon Icon="@Icons.Material.Filled.AttachMoney" Color="@(VM.IsSectionComplete("loanTerms") ? Color.Success : Color.Default)" />
+                            <MudText Style="font-weight:700;font-size:15px;color:#0f2b4a;">Loan Terms</MudText>
+                        </div>
+                    </TitleContent>
+                    <ChildContent>
+                        <MudGrid Spacing="3">
+                            <MudItem xs="12" sm="4">
+                                <MudTextField T="string" Label="Principal Amount" Variant="Variant.Outlined"
+                                              Adornment="Adornment.Start" AdornmentText="$"
+                                              @bind-Value="VM.Loan.Terms.Principal" Immediate="true" />
                             </MudItem>
-                            <MudItem xs="6">
-                                <MudSwitch T="bool" @bind-Value="VM.Loan.DSCR.ReserveAccount" Color="Color.Primary"
-                                           Label="DSCR Reserve Account" />
+                            <MudItem xs="12" sm="4">
+                                <MudSelect T="RateType" Label="Rate Type" Variant="Variant.Outlined"
+                                           @bind-Value="VM.Loan.Terms.RateType">
+                                    <MudSelectItem Value="RateType.Fixed">Fixed</MudSelectItem>
+                                    <MudSelectItem Value="RateType.Adjustable">Adjustable</MudSelectItem>
+                                </MudSelect>
+                            </MudItem>
+                            <MudItem xs="12" sm="4">
+                                <MudTextField T="string" Label="Interest Rate" Variant="Variant.Outlined"
+                                              Adornment="Adornment.End" AdornmentText="%"
+                                              @bind-Value="VM.Loan.Terms.InterestRate" Immediate="true" />
+                            </MudItem>
+                            <MudItem xs="12" sm="4">
+                                <MudTextField T="string" Label="Default Rate" Variant="Variant.Outlined"
+                                              Adornment="Adornment.End" AdornmentText="%"
+                                              @bind-Value="VM.Loan.Terms.DefaultRate" Immediate="true" />
+                            </MudItem>
+                            <MudItem xs="12" sm="4">
+                                <MudTextField T="string" Label="Late Charge" Variant="Variant.Outlined"
+                                              Adornment="Adornment.End" AdornmentText="%"
+                                              @bind-Value="VM.Loan.Terms.LateChargePercent" Immediate="true" />
+                            </MudItem>
+                            <MudItem xs="12" sm="4">
+                                <MudTextField T="string" Label="Grace Period" Variant="Variant.Outlined"
+                                              Adornment="Adornment.End" AdornmentText="days"
+                                              @bind-Value="VM.Loan.Terms.LateChargeDays" Immediate="true" />
+                            </MudItem>
+                            <MudItem xs="12" sm="4">
+                                <MudSelect T="AmortizationType" Label="Amortization" Variant="Variant.Outlined"
+                                           @bind-Value="VM.Loan.Terms.AmortType">
+                                    @foreach (var at in Enum.GetValues<AmortizationType>())
+                                    {
+                                        <MudSelectItem Value="at">@at.ToDisplayString()</MudSelectItem>
+                                    }
+                                </MudSelect>
+                            </MudItem>
+                            <MudItem xs="12" sm="4">
+                                <MudSelect T="RepaymentSchedule" Label="Repayment" Variant="Variant.Outlined"
+                                           @bind-Value="VM.Loan.Terms.RepaymentSchedule">
+                                    <MudSelectItem Value="RepaymentSchedule.Monthly">Monthly</MudSelectItem>
+                                    <MudSelectItem Value="RepaymentSchedule.Quarterly">Quarterly</MudSelectItem>
+                                    <MudSelectItem Value="RepaymentSchedule.Annual">Annual</MudSelectItem>
+                                </MudSelect>
+                            </MudItem>
+                            <MudItem xs="12" sm="4">
+                                <MudTextField T="string" Label="Term" Variant="Variant.Outlined"
+                                              Adornment="Adornment.End" AdornmentText="months"
+                                              @bind-Value="VM.Loan.Terms.Term" Immediate="true" />
+                            </MudItem>
+                            <MudItem xs="12" sm="6">
+                                <MudDatePicker Label="Origination Date" Variant="Variant.Outlined"
+                                               @bind-Date="VM.Loan.Terms.OriginationDate" />
+                            </MudItem>
+                            <MudItem xs="12" sm="6">
+                                <MudDatePicker Label="First Payment Date" Variant="Variant.Outlined"
+                                               @bind-Date="VM.Loan.Terms.FirstPaymentDate" />
                             </MudItem>
                         </MudGrid>
-                    }
-                </ChildContent>
-            </MudExpansionPanel>
 
-            @* ═══ SECTION 3: Parties ═══ *@
-            <MudExpansionPanel @bind-IsExpanded="_partiesOpen" Style="border:1px solid #e2e8f0;border-radius:12px !important;margin-bottom:12px;">
-                <TitleContent>
-                    <div class="d-flex align-center gap-3">
-                        <MudIcon Icon="@Icons.Material.Filled.People" Color="@(VM.IsSectionComplete("parties") ? Color.Success : Color.Default)" />
-                        <MudText Style="font-weight:700;font-size:15px;color:#0f2b4a;">Parties</MudText>
-                    </div>
-                </TitleContent>
-                <ChildContent>
-                    @* ── Borrowers ── *@
-                    <div class="d-flex align-center justify-space-between mb-3">
-                        <MudText Typo="Typo.subtitle2" Style="font-weight:700;color:#0f2b4a;">Borrowers</MudText>
-                        <MudButton StartIcon="@Icons.Material.Filled.Add" Size="Size.Small" Variant="Variant.Text"
-                                   Color="Color.Primary" OnClick="VM.AddBorrower" Style="text-transform:none;">Add Borrower</MudButton>
-                    </div>
-                    @for (var i = 0; i < VM.Loan.Borrowers.Count; i++)
-                    {
-                        var idx = i;
-                        var b = VM.Loan.Borrowers[idx];
-                        <MudPaper Class="pa-4 mb-3" Outlined="true" Style="border-radius:10px;">
-                            @if (VM.Loan.Borrowers.Count > 1)
+                        @* Construction toggle for Bridge type *@
+                        @if (VM.Loan.LoanType == DominateDocsSite.Models.Enums.LoanType.Bridge)
+                        {
+                            <MudDivider Class="my-4" />
+                            <MudSwitch T="bool" @bind-Value="VM.Loan.ShowConstruction" Color="Color.Primary"
+                                       Label="Include Construction / Rehab Details" />
+                            @if (VM.Loan.ShowConstruction)
                             {
-                                <div class="d-flex justify-space-between mb-2">
-                                    <MudText Typo="Typo.caption" Style="font-weight:700;text-transform:uppercase;color:#94a3b8;">Borrower @(idx + 1)</MudText>
-                                    <MudButton Size="Size.Small" Color="Color.Error" Variant="Variant.Text"
-                                               OnClick="@(() => VM.RemoveBorrower(idx))" Style="text-transform:none;font-size:12px;">Remove</MudButton>
-                                </div>
+                                <MudPaper Class="pa-4 mt-3" Style="border-left:2px solid #14b8a6;background:#f8fafc;border-radius:0 8px 8px 0;">
+                                    <MudGrid Spacing="3">
+                                        <MudItem xs="12">
+                                            <MudSwitch T="bool" @bind-Value="VM.Loan.Construction.HasContractor"
+                                                       Color="Color.Primary" Label="Include Assignment of Contractor's Contract" />
+                                        </MudItem>
+                                        @if (VM.Loan.Construction.HasContractor)
+                                        {
+                                            <MudItem xs="6">
+                                                <MudTextField T="string" Label="Contractor Name" Variant="Variant.Outlined"
+                                                              @bind-Value="VM.Loan.Construction.ContractorName" Immediate="true" />
+                                            </MudItem>
+                                            <MudItem xs="6">
+                                                <MudTextField T="string" Label="Contractor Role" Variant="Variant.Outlined"
+                                                              @bind-Value="VM.Loan.Construction.ContractorRole" Immediate="true" />
+                                            </MudItem>
+                                        }
+                                        <MudItem xs="12">
+                                            <MudSwitch T="bool" @bind-Value="VM.Loan.Construction.HasDesignPro"
+                                                       Color="Color.Primary" Label="Include Assignment of Design Professional's Plans" />
+                                        </MudItem>
+                                        <MudItem xs="12">
+                                            <MudSwitch T="bool" @bind-Value="VM.Loan.Construction.DutchInterest"
+                                                       Color="Color.Primary" Label="Dutch Interest Charged" />
+                                        </MudItem>
+                                        <MudItem xs="4">
+                                            <MudTextField T="string" Label="Holdback Amount" Variant="Variant.Outlined"
+                                                          Adornment="Adornment.Start" AdornmentText="$"
+                                                          @bind-Value="VM.Loan.Construction.HoldbackAmount" Immediate="true" />
+                                        </MudItem>
+                                        <MudItem xs="4">
+                                            <MudTextField T="string" Label="Holdback Paid To" Variant="Variant.Outlined"
+                                                          @bind-Value="VM.Loan.Construction.HoldbackPaidTo" Immediate="true" />
+                                        </MudItem>
+                                        <MudItem xs="4">
+                                            <ComboSelect Label="How Will Holdback be Paid"
+                                                         Value="@VM.Loan.Construction.HoldbackPaymentDue"
+                                                         ValueChanged="@(v => { VM.Loan.Construction.HoldbackPaymentDue = v; VM.NotifyLoanChanged(); })"
+                                                         Options="Constants.HoldbackPaymentOptions" />
+                                        </MudItem>
+                                    </MudGrid>
+                                </MudPaper>
                             }
-                            <MudGrid Spacing="2">
-                                <MudItem xs="12" sm="4">
-                                    <MudSelect T="EntityType" Label="Type" Variant="Variant.Outlined" @bind-Value="b.EntityType">
-                                        @foreach (var et in Enum.GetValues<EntityType>())
-                                        { <MudSelectItem Value="et">@et.ToDisplayString()</MudSelectItem> }
-                                    </MudSelect>
+                        }
+
+                        @* DSCR details *@
+                        @if (VM.Loan.LoanType == DominateDocsSite.Models.Enums.LoanType.DSCR)
+                        {
+                            <MudDivider Class="my-4" />
+                            <MudText Typo="Typo.subtitle2" Style="font-weight:700;color:#0f2b4a;" Class="mb-3">DSCR Details</MudText>
+                            <MudGrid Spacing="3">
+                                <MudItem xs="6">
+                                    <MudTextField T="string" Label="DSCR Ratio" Variant="Variant.Outlined"
+                                                  @bind-Value="VM.Loan.DSCR.Ratio" Immediate="true" Placeholder="1.25" />
                                 </MudItem>
-                                <MudItem xs="12" sm="4">
-                                    <MudTextField T="string" Label="@(b.EntityType == EntityType.Trust ? "Trust Name" : "Name")"
-                                                  Variant="Variant.Outlined" @bind-Value="b.Name" Immediate="true" />
+                                <MudItem xs="6">
+                                    <MudSwitch T="bool" @bind-Value="VM.Loan.DSCR.ReserveAccount" Color="Color.Primary"
+                                               Label="DSCR Reserve Account" />
                                 </MudItem>
-                                @if (b.EntityType == EntityType.Entity)
-                                {
-                                    <MudItem xs="12" sm="4">
-                                        <MudSelect T="EntityStructure?" Label="Entity Structure" Variant="Variant.Outlined" @bind-Value="b.Structure">
-                                            @foreach (var es in Enum.GetValues<EntityStructure>())
-                                            { <MudSelectItem Value="@((EntityStructure?)es)">@es.ToDisplayString()</MudSelectItem> }
-                                        </MudSelect>
-                                    </MudItem>
-                                }
-                                @if (b.EntityType == EntityType.Trust)
-                                {
-                                    <MudItem xs="12" sm="4">
-                                        <MudSelect T="string" Label="State Organized" Variant="Variant.Outlined" @bind-Value="b.StateOrganized">
-                                            @foreach (var s in Constants.USStates)
-                                            { <MudSelectItem Value="s">@s</MudSelectItem> }
-                                        </MudSelect>
-                                    </MudItem>
-                                }
                             </MudGrid>
-                            @if (b.EntityType != EntityType.Individual)
-                            {
-                                <MudGrid Spacing="2" Class="mt-2">
-                                    <MudItem xs="12" sm="6">
-                                        <MudSelect T="string" Label="@(b.EntityType == EntityType.Entity ? "State of Formation" : "State")"
-                                                   Variant="Variant.Outlined" @bind-Value="b.FormationState">
-                                            @foreach (var s in Constants.USStates)
-                                            { <MudSelectItem Value="s">@s</MudSelectItem> }
+                        }
+                    </ChildContent>
+                </MudExpansionPanel>
+
+                @* ═══ SECTION 3: Parties ═══ *@
+                <MudExpansionPanel @bind-IsExpanded="_partiesOpen" Style="border:1px solid #e2e8f0;border-radius:12px !important;margin-bottom:12px;">
+                    <TitleContent>
+                        <div class="d-flex align-center gap-3">
+                            <MudIcon Icon="@Icons.Material.Filled.People" Color="@(VM.IsSectionComplete("parties") ? Color.Success : Color.Default)" />
+                            <MudText Style="font-weight:700;font-size:15px;color:#0f2b4a;">Parties</MudText>
+                        </div>
+                    </TitleContent>
+                    <ChildContent>
+                        @* ── Borrowers ── *@
+                        <div class="d-flex align-center justify-space-between mb-3">
+                            <MudText Typo="Typo.subtitle2" Style="font-weight:700;color:#0f2b4a;">Borrowers</MudText>
+                            <MudButton StartIcon="@Icons.Material.Filled.Add" Size="Size.Small" Variant="Variant.Text"
+                                       Color="Color.Primary" OnClick="VM.AddBorrower" Style="text-transform:none;">Add Borrower</MudButton>
+                        </div>
+                        @for (var i = 0; i < VM.Loan.Borrowers.Count; i++)
+                        {
+                            var idx = i;
+                            var b = VM.Loan.Borrowers[idx];
+                            <MudPaper Class="pa-4 mb-3" Outlined="true" Style="border-radius:10px;">
+                                @if (VM.Loan.Borrowers.Count > 1)
+                                {
+                                    <div class="d-flex justify-space-between mb-2">
+                                        <MudText Typo="Typo.caption" Style="font-weight:700;text-transform:uppercase;color:#94a3b8;">Borrower @(idx + 1)</MudText>
+                                        <MudButton Size="Size.Small" Color="Color.Error" Variant="Variant.Text"
+                                                   OnClick="@(() => VM.RemoveBorrower(idx))" Style="text-transform:none;font-size:12px;">Remove</MudButton>
+                                    </div>
+                                }
+                                <MudGrid Spacing="2">
+                                    <MudItem xs="12" sm="4">
+                                        <MudSelect T="EntityType" Label="Type" Variant="Variant.Outlined" @bind-Value="b.EntityType">
+                                            @foreach (var et in Enum.GetValues<EntityType>())
+                                            {
+                                                <MudSelectItem Value="et">@et.ToDisplayString()</MudSelectItem>
+                                            }
                                         </MudSelect>
+                                    </MudItem>
+                                    <MudItem xs="12" sm="4">
+                                        <MudTextField T="string" Label="@(b.EntityType == EntityType.Trust ? "Trust Name" : "Name")"
+                                                      Variant="Variant.Outlined" @bind-Value="b.Name" Immediate="true" />
                                     </MudItem>
                                     @if (b.EntityType == EntityType.Entity)
                                     {
-                                        <MudItem xs="12" sm="6">
-                                            <MudTextField T="string" Label="EIN" Variant="Variant.Outlined"
-                                                          @bind-Value="b.EIN" Immediate="true" Placeholder="XX-XXXXXXX" />
+                                        <MudItem xs="12" sm="4">
+                                            <MudSelect T="EntityStructure?" Label="Entity Structure" Variant="Variant.Outlined" @bind-Value="b.Structure">
+                                                @foreach (var es in Enum.GetValues<EntityStructure>())
+                                                {
+                                                    <MudSelectItem Value="@((EntityStructure?)es)">@es.ToDisplayString()</MudSelectItem>
+                                                }
+                                            </MudSelect>
+                                        </MudItem>
+                                    }
+                                    @if (b.EntityType == EntityType.Trust)
+                                    {
+                                        <MudItem xs="12" sm="4">
+                                            <MudSelect T="string" Label="State Organized" Variant="Variant.Outlined" @bind-Value="b.StateOrganized">
+                                                @foreach (var s in Constants.USStates)
+                                                {
+                                                    <MudSelectItem Value="s">@s</MudSelectItem>
+                                                }
+                                            </MudSelect>
                                         </MudItem>
                                     }
                                 </MudGrid>
-                            }
-                            <MudTextField T="string" Label="Address" Variant="Variant.Outlined" Class="mt-2"
-                                          @bind-Value="b.Address" Immediate="true" FullWidth="true" />
-                            <InlineAliases Aliases="b.Aliases" OnChanged="VM.NotifyLoanChanged" />
-                            @if (b.EntityType == EntityType.Entity)
-                            {
-                                <MudDivider Class="my-3" />
-                                <EntityOwnerBlock Owners="b.Owners" OnChanged="VM.NotifyLoanChanged" />
-                            }
-                            @if (b.EntityType != EntityType.Individual)
-                            {
-                                <MudDivider Class="my-3" />
-                                <SignatoryBlock Signatories="b.Signatories" OnChanged="VM.NotifyLoanChanged" />
-                            }
-                        </MudPaper>
-                    }
+                                @if (b.EntityType != EntityType.Individual)
+                                {
+                                    <MudGrid Spacing="2" Class="mt-2">
+                                        <MudItem xs="12" sm="6">
+                                            <MudSelect T="string" Label="@(b.EntityType == EntityType.Entity ? "State of Formation" : "State")"
+                                                       Variant="Variant.Outlined" @bind-Value="b.FormationState">
+                                                @foreach (var s in Constants.USStates)
+                                                {
+                                                    <MudSelectItem Value="s">@s</MudSelectItem>
+                                                }
+                                            </MudSelect>
+                                        </MudItem>
+                                        @if (b.EntityType == EntityType.Entity)
+                                        {
+                                            <MudItem xs="12" sm="6">
+                                                <MudTextField T="string" Label="EIN" Variant="Variant.Outlined"
+                                                              @bind-Value="b.EIN" Immediate="true" Placeholder="XX-XXXX" />
+                                            </MudItem>
+                                        }
+                                    </MudGrid>
+                                }
+                                <MudTextField T="string" Label="Address" Variant="Variant.Outlined" Class="mt-2"
+                                              @bind-Value="b.Address" Immediate="true" FullWidth="true" />
+                                <InlineAliases Aliases="b.Aliases" OnChanged="VM.NotifyLoanChanged" />
+                                @if (b.EntityType == EntityType.Entity)
+                                {
+                                    <MudDivider Class="my-3" />
+                                    <EntityOwnerBlock Owners="b.Owners" OnChanged="VM.NotifyLoanChanged" />
+                                }
+                                @if (b.EntityType != EntityType.Individual)
+                                {
+                                    <MudDivider Class="my-3" />
+                                    <SignatoryBlock Signatories="b.Signatories" OnChanged="VM.NotifyLoanChanged" />
+                                }
+                            </MudPaper>
+                        }
 
-                    @* ── Guarantors ── *@
-                    <MudDivider Class="my-4" />
-                    <MudSwitch T="bool" @bind-Value="VM.Loan.HasGuarantor" Color="Color.Primary" Label="Include Guarantor(s)" />
-                    @if (VM.Loan.HasGuarantor)
-                    {
-                        <div class="d-flex align-center justify-space-between my-3">
-                            <MudText Typo="Typo.subtitle2" Style="font-weight:700;color:#0f2b4a;">Guarantors</MudText>
-                            <MudButton StartIcon="@Icons.Material.Filled.Add" Size="Size.Small" Variant="Variant.Text"
-                                       Color="Color.Primary" OnClick="VM.AddGuarantor" Style="text-transform:none;">Add Guarantor</MudButton>
+                        @* ── Guarantors ── *@
+                        <MudDivider Class="my-4" />
+                        <MudSwitch T="bool" @bind-Value="VM.Loan.HasGuarantor" Color="Color.Primary" Label="Include Guarantor(s)" />
+                        @if (VM.Loan.HasGuarantor)
+                        {
+                            <div class="d-flex align-center justify-space-between my-3">
+                                <MudText Typo="Typo.subtitle2" Style="font-weight:700;color:#0f2b4a;">Guarantors</MudText>
+                                <MudButton StartIcon="@Icons.Material.Filled.Add" Size="Size.Small" Variant="Variant.Text"
+                                           Color="Color.Primary" OnClick="VM.AddGuarantor" Style="text-transform:none;">Add Guarantor</MudButton>
+                            </div>
+                            @for (var i = 0; i < VM.Loan.Guarantors.Count; i++)
+                            {
+                                var idx = i;
+                                var g = VM.Loan.Guarantors[idx];
+                                <MudPaper Class="pa-4 mb-3" Outlined="true" Style="border-radius:10px;">
+                                    @if (VM.Loan.Guarantors.Count > 1)
+                                    {
+                                        <div class="d-flex justify-space-between mb-2">
+                                            <MudText Typo="Typo.caption" Style="font-weight:700;text-transform:uppercase;color:#94a3b8;">Guarantor @(idx + 1)</MudText>
+                                            <MudButton Size="Size.Small" Color="Color.Error" Variant="Variant.Text"
+                                                       OnClick="@(() => VM.RemoveGuarantor(idx))" Style="text-transform:none;font-size:12px;">Remove</MudButton>
+                                        </div>
+                                    }
+                                    <MudGrid Spacing="2">
+                                        <MudItem xs="12" sm="4">
+                                            <MudSelect T="EntityType" Label="Type" Variant="Variant.Outlined" @bind-Value="g.EntityType">
+                                                @foreach (var et in Enum.GetValues<EntityType>())
+                                                {
+                                                    <MudSelectItem Value="et">@et.ToDisplayString()</MudSelectItem>
+                                                }
+                                            </MudSelect>
+                                        </MudItem>
+                                        <MudItem xs="12" sm="8">
+                                            <MudTextField T="string" Label="Name" Variant="Variant.Outlined" @bind-Value="g.Name" Immediate="true" />
+                                        </MudItem>
+                                    </MudGrid>
+                                    <MudTextField T="string" Label="Address" Variant="Variant.Outlined" Class="mt-2"
+                                                  @bind-Value="g.Address" Immediate="true" FullWidth="true" />
+                                    <InlineAliases Aliases="g.Aliases" OnChanged="VM.NotifyLoanChanged" />
+                                    @if (g.EntityType != EntityType.Individual)
+                                    {
+                                        <MudDivider Class="my-3" />
+                                        <SignatoryBlock Signatories="g.Signatories" OnChanged="VM.NotifyLoanChanged" />
+                                    }
+                                </MudPaper>
+                            }
+                        }
+
+                        @* ── Lender ── *@
+                        <MudDivider Class="my-4" />
+                        <MudText Typo="Typo.subtitle2" Style="font-weight:700;color:#0f2b4a;" Class="mb-3">Lender</MudText>
+                        @for (var i = 0; i < VM.Loan.Lenders.Count; i++)
+                        {
+                            var lender = VM.Loan.Lenders[i];
+                            <MudPaper Class="pa-4 mb-3" Style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:10px;" Elevation="0">
+                                @if (lender.IsAutoFilled)
+                                {
+                                    <MudAlert Severity="Severity.Info" Dense="true" Class="mb-3" Style="font-size:12px;">
+                                        Auto-filled from your account defaults
+                                    </MudAlert>
+                                }
+                                <MudGrid Spacing="2">
+                                    <MudItem xs="12" sm="6">
+                                        <MudTextField T="string" Label="Entity Name" Variant="Variant.Outlined"
+                                                      @bind-Value="lender.Name" Immediate="true" />
+                                    </MudItem>
+                                    <MudItem xs="12" sm="6">
+                                        <MudTextField T="string" Label="Closing Contact" Variant="Variant.Outlined"
+                                                      @bind-Value="lender.ClosingContact" Immediate="true" />
+                                    </MudItem>
+                                    <MudItem xs="12" sm="6">
+                                        <MudTextField T="string" Label="Closing Contact Email" Variant="Variant.Outlined"
+                                                      @bind-Value="lender.ClosingContactEmail" Immediate="true" />
+                                    </MudItem>
+                                </MudGrid>
+                            </MudPaper>
+                        }
+
+                        @* ── Broker ── *@
+                        <MudDivider Class="my-4" />
+                        <MudSwitch T="bool" @bind-Value="VM.Loan.HasBroker" Color="Color.Primary" Label="Include Broker" />
+                        @if (VM.Loan.HasBroker)
+                        {
+                            @for (var i = 0; i < VM.Loan.Brokers.Count; i++)
+                            {
+                                var broker = VM.Loan.Brokers[i];
+                                <MudPaper Class="pa-4 mt-3" Outlined="true" Style="border-radius:10px;">
+                                    <MudGrid Spacing="2">
+                                        <MudItem xs="12" sm="6">
+                                            <MudTextField T="string" Label="Broker Name" Variant="Variant.Outlined"
+                                                          @bind-Value="broker.Name" Immediate="true" />
+                                        </MudItem>
+                                        <MudItem xs="12" sm="6">
+                                            <MudTextField T="string" Label="Address" Variant="Variant.Outlined"
+                                                          @bind-Value="broker.Address" Immediate="true" />
+                                        </MudItem>
+                                    </MudGrid>
+                                    <MudSwitch T="bool" @bind-Value="broker.IsLicensed" Color="Color.Primary" Label="Licensed" Class="mt-2" />
+                                    @if (broker.IsLicensed)
+                                    {
+                                        <MudGrid Spacing="2" Class="mt-1">
+                                            <MudItem xs="6">
+                                                <MudSelect T="string" Label="State" Variant="Variant.Outlined" @bind-Value="broker.LicenseState">
+                                                    @foreach (var s in Constants.USStates)
+                                                    {
+                                                        <MudSelectItem Value="s">@s</MudSelectItem>
+                                                    }
+                                                </MudSelect>
+                                            </MudItem>
+                                            <MudItem xs="6">
+                                                <MudTextField T="string" Label="License Number" Variant="Variant.Outlined"
+                                                              @bind-Value="broker.LicenseNumber" Immediate="true" />
+                                            </MudItem>
+                                        </MudGrid>
+                                    }
+                                </MudPaper>
+                            }
+                        }
+                    </ChildContent>
+                </MudExpansionPanel>
+
+                @* ═══ SECTION 4: Property ═══ *@
+                <MudExpansionPanel @bind-IsExpanded="_propertyOpen" Style="border:1px solid #e2e8f0;border-radius:12px !important;margin-bottom:12px;">
+                    <TitleContent>
+                        <div class="d-flex align-center gap-3">
+                            <MudIcon Icon="@Icons.Material.Filled.Home" Color="@(VM.IsSectionComplete("property") ? Color.Success : Color.Default)" />
+                            <MudText Style="font-weight:700;font-size:15px;color:#0f2b4a;">Property</MudText>
                         </div>
-                        @for (var i = 0; i < VM.Loan.Guarantors.Count; i++)
+                    </TitleContent>
+                    <ChildContent>
+                        <div class="d-flex justify-end mb-3">
+                            <MudButton StartIcon="@Icons.Material.Filled.Add" Size="Size.Small" Variant="Variant.Text"
+                                       Color="Color.Primary" OnClick="VM.AddProperty" Style="text-transform:none;">Add Property</MudButton>
+                        </div>
+                        @for (var i = 0; i < VM.Loan.Properties.Count; i++)
                         {
                             var idx = i;
-                            var g = VM.Loan.Guarantors[idx];
+                            var prop = VM.Loan.Properties[idx];
                             <MudPaper Class="pa-4 mb-3" Outlined="true" Style="border-radius:10px;">
-                                @if (VM.Loan.Guarantors.Count > 1)
+                                @if (VM.Loan.Properties.Count > 1)
                                 {
                                     <div class="d-flex justify-space-between mb-2">
-                                        <MudText Typo="Typo.caption" Style="font-weight:700;text-transform:uppercase;color:#94a3b8;">Guarantor @(idx + 1)</MudText>
+                                        <MudText Typo="Typo.caption" Style="font-weight:700;text-transform:uppercase;color:#94a3b8;">Property @(idx + 1)</MudText>
                                         <MudButton Size="Size.Small" Color="Color.Error" Variant="Variant.Text"
-                                                   OnClick="@(() => VM.RemoveGuarantor(idx))" Style="text-transform:none;font-size:12px;">Remove</MudButton>
+                                                   OnClick="@(() => VM.RemoveProperty(idx))" Style="text-transform:none;font-size:12px;">Remove</MudButton>
                                     </div>
                                 }
                                 <MudGrid Spacing="2">
                                     <MudItem xs="12" sm="4">
-                                        <MudSelect T="EntityType" Label="Type" Variant="Variant.Outlined" @bind-Value="g.EntityType">
-                                            @foreach (var et in Enum.GetValues<EntityType>())
-                                            { <MudSelectItem Value="et">@et.ToDisplayString()</MudSelectItem> }
+                                        <MudSelect T="PropertyType" Label="Property Type" Variant="Variant.Outlined" @bind-Value="prop.Type">
+                                            @foreach (var pt in Enum.GetValues<PropertyType>())
+                                            {
+                                                <MudSelectItem Value="pt">@pt.ToDisplayString()</MudSelectItem>
+                                            }
                                         </MudSelect>
                                     </MudItem>
                                     <MudItem xs="12" sm="8">
-                                        <MudTextField T="string" Label="Name" Variant="Variant.Outlined" @bind-Value="g.Name" Immediate="true" />
-                                    </MudItem>
-                                </MudGrid>
-                                <MudTextField T="string" Label="Address" Variant="Variant.Outlined" Class="mt-2"
-                                              @bind-Value="g.Address" Immediate="true" FullWidth="true" />
-                                <InlineAliases Aliases="g.Aliases" OnChanged="VM.NotifyLoanChanged" />
-                                @if (g.EntityType != EntityType.Individual)
-                                {
-                                    <MudDivider Class="my-3" />
-                                    <SignatoryBlock Signatories="g.Signatories" OnChanged="VM.NotifyLoanChanged" />
-                                }
-                            </MudPaper>
-                        }
-                    }
-
-                    @* ── Lender ── *@
-                    <MudDivider Class="my-4" />
-                    <MudText Typo="Typo.subtitle2" Style="font-weight:700;color:#0f2b4a;" Class="mb-3">Lender</MudText>
-                    @for (var i = 0; i < VM.Loan.Lenders.Count; i++)
-                    {
-                        var lender = VM.Loan.Lenders[i];
-                        <MudPaper Class="pa-4 mb-3" Style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:10px;" Elevation="0">
-                            @if (lender.IsAutoFilled)
-                            {
-                                <MudAlert Severity="Severity.Info" Dense="true" Class="mb-3" Style="font-size:12px;">
-                                    Auto-filled from your account defaults
-                                </MudAlert>
-                            }
-                            <MudGrid Spacing="2">
-                                <MudItem xs="12" sm="6">
-                                    <MudTextField T="string" Label="Entity Name" Variant="Variant.Outlined"
-                                                  @bind-Value="lender.Name" Immediate="true" />
-                                </MudItem>
-                                <MudItem xs="12" sm="6">
-                                    <MudTextField T="string" Label="Closing Contact" Variant="Variant.Outlined"
-                                                  @bind-Value="lender.ClosingContact" Immediate="true" />
-                                </MudItem>
-                                <MudItem xs="12" sm="6">
-                                    <MudTextField T="string" Label="Closing Contact Email" Variant="Variant.Outlined"
-                                                  @bind-Value="lender.ClosingContactEmail" Immediate="true" />
-                                </MudItem>
-                            </MudGrid>
-                        </MudPaper>
-                    }
-
-                    @* ── Broker ── *@
-                    <MudDivider Class="my-4" />
-                    <MudSwitch T="bool" @bind-Value="VM.Loan.HasBroker" Color="Color.Primary" Label="Include Broker" />
-                    @if (VM.Loan.HasBroker)
-                    {
-                        @for (var i = 0; i < VM.Loan.Brokers.Count; i++)
-                        {
-                            var broker = VM.Loan.Brokers[i];
-                            <MudPaper Class="pa-4 mt-3" Outlined="true" Style="border-radius:10px;">
-                                <MudGrid Spacing="2">
-                                    <MudItem xs="12" sm="6">
-                                        <MudTextField T="string" Label="Broker Name" Variant="Variant.Outlined"
-                                                      @bind-Value="broker.Name" Immediate="true" />
+                                        <MudTextField T="string" Label="Property Address" Variant="Variant.Outlined"
+                                                      @bind-Value="prop.Address" Immediate="true" Placeholder="123 Main St, City, State ZIP" />
                                     </MudItem>
                                     <MudItem xs="12" sm="6">
-                                        <MudTextField T="string" Label="Address" Variant="Variant.Outlined"
-                                                      @bind-Value="broker.Address" Immediate="true" />
+                                        <MudTextField T="string" Label="APN / Parcel" Variant="Variant.Outlined"
+                                                      @bind-Value="prop.ParcelNumber" Immediate="true" />
+                                    </MudItem>
+                                    <MudItem xs="12" sm="6">
+                                        <MudTextField T="string" Label="Legal Description" Variant="Variant.Outlined"
+                                                      @bind-Value="prop.Description" Immediate="true" />
                                     </MudItem>
                                 </MudGrid>
-                                <MudSwitch T="bool" @bind-Value="broker.IsLicensed" Color="Color.Primary" Label="Licensed" Class="mt-2" />
-                                @if (broker.IsLicensed)
+
+                                @* ── Property Owner ── *@
+                                <MudDivider Class="my-3" />
+                                <MudText Typo="Typo.caption" Style="font-weight:700;text-transform:uppercase;color:#475569;letter-spacing:0.8px;" Class="mb-2">
+                                    Property Owner
+                                </MudText>
+                                <MudRadioGroup T="OwnerType" @bind-Value="prop.OwnerType">
+                                    <MudRadio Value="OwnerType.Borrower" Color="Color.Primary" Dense="true">Same as Borrower</MudRadio>
+                                    <MudRadio Value="OwnerType.Guarantor" Color="Color.Primary" Dense="true">Same as Guarantor</MudRadio>
+                                    <MudRadio Value="OwnerType.ThirdParty" Color="Color.Primary" Dense="true">Third-Party Owner</MudRadio>
+                                </MudRadioGroup>
+
+                                @if (prop.OwnerType == OwnerType.Borrower && VM.Loan.Borrowers.Count > 1)
                                 {
-                                    <MudGrid Spacing="2" Class="mt-1">
-                                        <MudItem xs="6">
-                                            <MudSelect T="string" Label="State" Variant="Variant.Outlined" @bind-Value="broker.LicenseState">
-                                                @foreach (var s in Constants.USStates)
-                                                { <MudSelectItem Value="s">@s</MudSelectItem> }
-                                            </MudSelect>
-                                        </MudItem>
-                                        <MudItem xs="6">
-                                            <MudTextField T="string" Label="License Number" Variant="Variant.Outlined"
-                                                          @bind-Value="broker.LicenseNumber" Immediate="true" />
-                                        </MudItem>
-                                    </MudGrid>
-                                }
-                            </MudPaper>
-                        }
-                    }
-                </ChildContent>
-            </MudExpansionPanel>
-
-            @* ═══ SECTION 4: Property ═══ *@
-            <MudExpansionPanel @bind-IsExpanded="_propertyOpen" Style="border:1px solid #e2e8f0;border-radius:12px !important;margin-bottom:12px;">
-                <TitleContent>
-                    <div class="d-flex align-center gap-3">
-                        <MudIcon Icon="@Icons.Material.Filled.Home" Color="@(VM.IsSectionComplete("property") ? Color.Success : Color.Default)" />
-                        <MudText Style="font-weight:700;font-size:15px;color:#0f2b4a;">Property</MudText>
-                    </div>
-                </TitleContent>
-                <ChildContent>
-                    <div class="d-flex justify-end mb-3">
-                        <MudButton StartIcon="@Icons.Material.Filled.Add" Size="Size.Small" Variant="Variant.Text"
-                                   Color="Color.Primary" OnClick="VM.AddProperty" Style="text-transform:none;">Add Property</MudButton>
-                    </div>
-                    @for (var i = 0; i < VM.Loan.Properties.Count; i++)
-                    {
-                        var idx = i;
-                        var prop = VM.Loan.Properties[idx];
-                        <MudPaper Class="pa-4 mb-3" Outlined="true" Style="border-radius:10px;">
-                            @if (VM.Loan.Properties.Count > 1)
-                            {
-                                <div class="d-flex justify-space-between mb-2">
-                                    <MudText Typo="Typo.caption" Style="font-weight:700;text-transform:uppercase;color:#94a3b8;">Property @(idx + 1)</MudText>
-                                    <MudButton Size="Size.Small" Color="Color.Error" Variant="Variant.Text"
-                                               OnClick="@(() => VM.RemoveProperty(idx))" Style="text-transform:none;font-size:12px;">Remove</MudButton>
-                                </div>
-                            }
-                            <MudGrid Spacing="2">
-                                <MudItem xs="12" sm="4">
-                                    <MudSelect T="PropertyType" Label="Property Type" Variant="Variant.Outlined" @bind-Value="prop.Type">
-                                        @foreach (var pt in Enum.GetValues<PropertyType>())
-                                        { <MudSelectItem Value="pt">@pt.ToDisplayString()</MudSelectItem> }
-                                    </MudSelect>
-                                </MudItem>
-                                <MudItem xs="12" sm="8">
-                                    <MudTextField T="string" Label="Property Address" Variant="Variant.Outlined"
-                                                  @bind-Value="prop.Address" Immediate="true" Placeholder="123 Main St, City, State ZIP" />
-                                </MudItem>
-                                <MudItem xs="12" sm="6">
-                                    <MudTextField T="string" Label="APN / Parcel" Variant="Variant.Outlined"
-                                                  @bind-Value="prop.ParcelNumber" Immediate="true" />
-                                </MudItem>
-                                <MudItem xs="12" sm="6">
-                                    <MudTextField T="string" Label="Legal Description" Variant="Variant.Outlined"
-                                                  @bind-Value="prop.Description" Immediate="true" />
-                                </MudItem>
-                            </MudGrid>
-
-                            @* ── Property Owner ── *@
-                            <MudDivider Class="my-3" />
-                            <MudText Typo="Typo.caption" Style="font-weight:700;text-transform:uppercase;color:#475569;letter-spacing:0.8px;" Class="mb-2">
-                                Property Owner
-                            </MudText>
-                            <MudRadioGroup T="OwnerType" @bind-Value="prop.OwnerType">
-                                <MudRadio Value="OwnerType.Borrower" Color="Color.Primary" Dense="true">Same as Borrower</MudRadio>
-                                <MudRadio Value="OwnerType.Guarantor" Color="Color.Primary" Dense="true">Same as Guarantor</MudRadio>
-                                <MudRadio Value="OwnerType.ThirdParty" Color="Color.Primary" Dense="true">Third-Party Owner</MudRadio>
-                            </MudRadioGroup>
-
-                            @if (prop.OwnerType == OwnerType.Borrower && VM.Loan.Borrowers.Count > 1)
-                            {
-                                <MudText Typo="Typo.caption" Class="mt-2 mb-1" Style="color:#475569;">Select which borrower(s) own this property:</MudText>
-                                @for (var bi = 0; bi < VM.Loan.Borrowers.Count; bi++)
-                                {
-                                    var bIdx = bi;
-                                    <MudCheckBox T="bool" Label="@VM.Loan.Borrowers[bIdx].Name" Dense="true"
-                                                 Value="@prop.SelectedBorrowerIndices.Contains(bIdx)"
-                                                 ValueChanged="@(v => ToggleIndex(prop.SelectedBorrowerIndices, bIdx, v))" />
-                                }
-                            }
-
-                            @if (prop.OwnerType == OwnerType.Guarantor && VM.Loan.Guarantors.Count > 1)
-                            {
-                                <MudText Typo="Typo.caption" Class="mt-2 mb-1" Style="color:#475569;">Select which guarantor(s) own this property:</MudText>
-                                @for (var gi = 0; gi < VM.Loan.Guarantors.Count; gi++)
-                                {
-                                    var gIdx = gi;
-                                    <MudCheckBox T="bool" Label="@VM.Loan.Guarantors[gIdx].Name" Dense="true"
-                                                 Value="@prop.SelectedGuarantorIndices.Contains(gIdx)"
-                                                 ValueChanged="@(v => ToggleIndex(prop.SelectedGuarantorIndices, gIdx, v))" />
-                                }
-                            }
-
-                            @if (prop.OwnerType == OwnerType.ThirdParty)
-                            {
-                                <div class="mt-3">
-                                    <div class="d-flex align-center justify-space-between mb-2">
-                                        <MudText Typo="Typo.caption" Style="font-weight:700;color:#475569;">Third-Party Owners</MudText>
-                                        <MudButton StartIcon="@Icons.Material.Filled.Add" Size="Size.Small" Variant="Variant.Text"
-                                                   Color="Color.Primary" OnClick="@(() => VM.AddThirdPartyOwner(prop))" Style="text-transform:none;font-size:12px;">
-                                            Add Owner
-                                        </MudButton>
-                                    </div>
-                                    @for (var oi = 0; oi < prop.ThirdPartyOwners.Count; oi++)
+                                    <MudText Typo="Typo.caption" Class="mt-2 mb-1" Style="color:#475569;">Select which borrower(s) own this property:</MudText>
+                                    @for (var bi = 0; bi < VM.Loan.Borrowers.Count; bi++)
                                     {
-                                        var oIdx = oi;
-                                        var owner = prop.ThirdPartyOwners[oIdx];
-                                        <MudPaper Class="pa-3 mb-2" Style="background:#f8fafc;border-radius:8px;" Elevation="0">
-                                            <MudGrid Spacing="2">
-                                                <MudItem xs="12" sm="4">
-                                                    <MudSelect T="EntityType" Label="Type" Variant="Variant.Outlined" Margin="Margin.Dense" @bind-Value="owner.EntityType">
-                                                        @foreach (var et in Enum.GetValues<EntityType>())
-                                                        { <MudSelectItem Value="et">@et.ToDisplayString()</MudSelectItem> }
-                                                    </MudSelect>
-                                                </MudItem>
-                                                <MudItem xs="12" sm="8">
-                                                    <MudTextField T="string" Label="Name" Variant="Variant.Outlined" Margin="Margin.Dense"
-                                                                  @bind-Value="owner.Name" Immediate="true" />
-                                                </MudItem>
-                                            </MudGrid>
-                                            <MudTextField T="string" Label="Address" Variant="Variant.Outlined" Margin="Margin.Dense" Class="mt-2"
-                                                          @bind-Value="owner.Address" Immediate="true" FullWidth="true" />
-                                            <InlineAliases Aliases="owner.Aliases" OnChanged="VM.NotifyLoanChanged" />
-                                            @if (owner.EntityType != EntityType.Individual)
-                                            {
-                                                <SignatoryBlock Label="Signatories for Deed of Trust" Signatories="owner.Signatories"
-                                                                OnChanged="VM.NotifyLoanChanged" />
-                                            }
-                                            <div class="d-flex justify-end mt-1">
-                                                <MudButton Size="Size.Small" Color="Color.Error" Variant="Variant.Text"
-                                                           OnClick="@(() => VM.RemoveThirdPartyOwner(prop, oIdx))" Style="text-transform:none;font-size:12px;">Remove</MudButton>
-                                            </div>
-                                        </MudPaper>
+                                        var bIdx = bi;
+                                        <MudCheckBox T="bool" Label="@VM.Loan.Borrowers[bIdx].Name" Dense="true"
+                                                     Value="@prop.SelectedBorrowerIndices.Contains(bIdx)"
+                                                     ValueChanged="@(v => ToggleIndex(prop.SelectedBorrowerIndices, bIdx, v))" />
                                     }
-                                </div>
-                            }
-                        </MudPaper>
-                    }
-                </ChildContent>
-            </MudExpansionPanel>
+                                }
 
-            @* ═══ SECTION 5: Fees ═══ *@
-            <MudExpansionPanel @bind-IsExpanded="_feesOpen" Style="border:1px solid #e2e8f0;border-radius:12px !important;margin-bottom:12px;">
-                <TitleContent>
-                    <div class="d-flex align-center gap-3">
-                        <MudIcon Icon="@Icons.Material.Filled.ReceiptLong" Color="Color.Default" />
-                        <MudText Style="font-weight:700;font-size:15px;color:#0f2b4a;">Fees</MudText>
-                        <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined"
-                                 Style="font-size:11px;background:#f1f5f9;color:#64748b;">
-                            @(VM.Loan.LenderFees.Count + VM.Loan.BrokerFees.Count + VM.Loan.OtherFees.Count) fees
-                        </MudChip>
-                    </div>
-                </TitleContent>
-                <ChildContent>
-                    <FeeSection Title="Lender Fees" Fees="VM.Loan.LenderFees"
-                                FeeTypes="Constants.LenderFeeDescriptions" NoteTypes="Constants.LenderFeeNotes"
-                                OnChanged="VM.NotifyLoanChanged" />
-                    @if (VM.Loan.HasBroker)
-                    {
-                        <MudDivider Class="my-4" />
-                        <FeeSection Title="Broker Fees" Fees="VM.Loan.BrokerFees"
-                                    FeeTypes="Constants.BrokerFeeDescriptions" NoteTypes="Constants.BrokerFeeNotes"
-                                    OnChanged="VM.NotifyLoanChanged" />
-                    }
-                    <MudDivider Class="my-4" />
-                    <FeeSection Title="Other Fees" Fees="VM.Loan.OtherFees" ShowOwedTo="true"
-                                FeeTypes="Constants.OtherFeeDescriptions" NoteTypes="Constants.OtherFeeNotes"
-                                OnChanged="VM.NotifyLoanChanged" />
-                </ChildContent>
-            </MudExpansionPanel>
-
-            @* ═══ SECTION 6: Loan Features ═══ *@
-            <MudExpansionPanel @bind-IsExpanded="_featuresOpen" Style="border:1px solid #e2e8f0;border-radius:12px !important;margin-bottom:12px;">
-                <TitleContent>
-                    <div class="d-flex align-center gap-3">
-                        <MudIcon Icon="@Icons.Material.Filled.Settings" Color="Color.Default" />
-                        <MudText Style="font-weight:700;font-size:15px;color:#0f2b4a;">Loan Features</MudText>
-                    </div>
-                </TitleContent>
-                <ChildContent>
-                    <MudText Typo="Typo.caption" Style="color:#94a3b8;" Class="mb-4">Defaults from your profile. Override per deal.</MudText>
-
-                    @* Conditional Extension *@
-                    <MudSwitch T="bool" @bind-Value="VM.Loan.Features.ConditionalExtension" Color="Color.Primary"
-                               Label="Conditional Right to Extend" />
-                    @if (VM.Loan.Features.ConditionalExtension)
-                    {
-                        <MudPaper Class="pa-3 ml-6 mb-2" Style="border-left:2px solid #14b8a6;background:#f8fafc;border-radius:0 8px 8px 0;" Elevation="0">
-                            <MudGrid Spacing="2">
-                                <MudItem xs="4"><MudTextField T="string" Label="Extensions" Variant="Variant.Outlined" Margin="Margin.Dense" @bind-Value="VM.Loan.Features.ExtensionCount" /></MudItem>
-                                <MudItem xs="4"><MudTextField T="string" Label="Extension Term" Variant="Variant.Outlined" Margin="Margin.Dense" Adornment="Adornment.End" AdornmentText="mo" @bind-Value="VM.Loan.Features.ExtensionTermMonths" /></MudItem>
-                                <MudItem xs="4"><MudTextField T="string" Label="Extension Fee" Variant="Variant.Outlined" Margin="Margin.Dense" Adornment="Adornment.End" AdornmentText="%" @bind-Value="VM.Loan.Features.ExtensionFeePercent" /></MudItem>
-                            </MudGrid>
-                        </MudPaper>
-                    }
-
-                    @* Prepayment Penalty *@
-                    <MudSwitch T="bool" @bind-Value="VM.Loan.Features.PrepaymentPenalty" Color="Color.Primary" Label="Prepayment Penalty" />
-                    @if (VM.Loan.Features.PrepaymentPenalty)
-                    {
-                        <MudPaper Class="pa-3 ml-6 mb-2" Style="border-left:2px solid #14b8a6;background:#f8fafc;border-radius:0 8px 8px 0;" Elevation="0">
-                            <MudGrid Spacing="2">
-                                <MudItem xs="6">
-                                    <MudSelect T="PrepayPenaltyType" Label="Penalty Type" Variant="Variant.Outlined" Margin="Margin.Dense" @bind-Value="VM.Loan.Features.PrepayType">
-                                        @foreach (var pt in Enum.GetValues<PrepayPenaltyType>())
-                                        { <MudSelectItem Value="pt">@pt.ToDisplayString()</MudSelectItem> }
-                                    </MudSelect>
-                                </MudItem>
-                                @if (VM.Loan.Features.PrepayType == PrepayPenaltyType.Stepdown)
+                                @if (prop.OwnerType == OwnerType.Guarantor && VM.Loan.Guarantors.Count > 1)
                                 {
+                                    <MudText Typo="Typo.caption" Class="mt-2 mb-1" Style="color:#475569;">Select which guarantor(s) own this property:</MudText>
+                                    @for (var gi = 0; gi < VM.Loan.Guarantors.Count; gi++)
+                                    {
+                                        var gIdx = gi;
+                                        <MudCheckBox T="bool" Label="@VM.Loan.Guarantors[gIdx].Name" Dense="true"
+                                                     Value="@prop.SelectedGuarantorIndices.Contains(gIdx)"
+                                                     ValueChanged="@(v => ToggleIndex(prop.SelectedGuarantorIndices, gIdx, v))" />
+                                    }
+                                }
+
+                                @if (prop.OwnerType == OwnerType.ThirdParty)
+                                {
+                                    <div class="mt-3">
+                                        <div class="d-flex align-center justify-space-between mb-2">
+                                            <MudText Typo="Typo.caption" Style="font-weight:700;color:#475569;">Third-Party Owners</MudText>
+                                            <MudButton StartIcon="@Icons.Material.Filled.Add" Size="Size.Small" Variant="Variant.Text"
+                                                       Color="Color.Primary" OnClick="@(() => VM.AddThirdPartyOwner(prop))" Style="text-transform:none;font-size:12px;">
+                                                Add Owner
+                                            </MudButton>
+                                        </div>
+                                        @for (var oi = 0; oi < prop.ThirdPartyOwners.Count; oi++)
+                                        {
+                                            var oIdx = oi;
+                                            var owner = prop.ThirdPartyOwners[oIdx];
+                                            <MudPaper Class="pa-3 mb-2" Style="background:#f8fafc;border-radius:8px;" Elevation="0">
+                                                <MudGrid Spacing="2">
+                                                    <MudItem xs="12" sm="4">
+                                                        <MudSelect T="EntityType" Label="Type" Variant="Variant.Outlined" Margin="Margin.Dense" @bind-Value="owner.EntityType">
+                                                            @foreach (var et in Enum.GetValues<EntityType>())
+                                                            {
+                                                                <MudSelectItem Value="et">@et.ToDisplayString()</MudSelectItem>
+                                                            }
+                                                        </MudSelect>
+                                                    </MudItem>
+                                                    <MudItem xs="12" sm="8">
+                                                        <MudTextField T="string" Label="Name" Variant="Variant.Outlined" Margin="Margin.Dense"
+                                                                      @bind-Value="owner.Name" Immediate="true" />
+                                                    </MudItem>
+                                                </MudGrid>
+                                                <MudTextField T="string" Label="Address" Variant="Variant.Outlined" Margin="Margin.Dense" Class="mt-2"
+                                                              @bind-Value="owner.Address" Immediate="true" FullWidth="true" />
+                                                <InlineAliases Aliases="owner.Aliases" OnChanged="VM.NotifyLoanChanged" />
+                                                @if (owner.EntityType != EntityType.Individual)
+                                                {
+                                                    <SignatoryBlock Label="Signatories for Deed of Trust" Signatories="owner.Signatories"
+                                                                    OnChanged="VM.NotifyLoanChanged" />
+                                                }
+                                                <div class="d-flex justify-end mt-1">
+                                                    <MudButton Size="Size.Small" Color="Color.Error" Variant="Variant.Text"
+                                                               OnClick="@(() => VM.RemoveThirdPartyOwner(prop, oIdx))" Style="text-transform:none;font-size:12px;">Remove</MudButton>
+                                                </div>
+                                            </MudPaper>
+                                        }
+                                    </div>
+                                }
+                            </MudPaper>
+                        }
+                    </ChildContent>
+                </MudExpansionPanel>
+
+                @* ═══ SECTION 5: Fees ═══ *@
+                <MudExpansionPanel @bind-IsExpanded="_feesOpen" Style="border:1px solid #e2e8f0;border-radius:12px !important;margin-bottom:12px;">
+                    <TitleContent>
+                        <div class="d-flex align-center gap-3">
+                            <MudIcon Icon="@Icons.Material.Filled.ReceiptLong" Color="Color.Default" />
+                            <MudText Style="font-weight:700;font-size:15px;color:#0f2b4a;">Fees</MudText>
+                            <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined"
+                                     Style="font-size:11px;background:#f1f5f9;color:#64748b;">
+                                @(VM.Loan.LenderFees.Count + VM.Loan.BrokerFees.Count + VM.Loan.OtherFees.Count) fees
+                            </MudChip>
+                        </div>
+                    </TitleContent>
+                    <ChildContent>
+                        <FeeSection Title="Lender Fees" Fees="VM.Loan.LenderFees"
+                                    FeeTypes="Constants.LenderFeeDescriptions" NoteTypes="Constants.LenderFeeNotes"
+                                    OnChanged="VM.NotifyLoanChanged" />
+                        @if (VM.Loan.HasBroker)
+                        {
+                            <MudDivider Class="my-4" />
+                            <FeeSection Title="Broker Fees" Fees="VM.Loan.BrokerFees"
+                                        FeeTypes="Constants.BrokerFeeDescriptions" NoteTypes="Constants.BrokerFeeNotes"
+                                        OnChanged="VM.NotifyLoanChanged" />
+                        }
+                        <MudDivider Class="my-4" />
+                        <FeeSection Title="Other Fees" Fees="VM.Loan.OtherFees" ShowOwedTo="true"
+                                    FeeTypes="Constants.OtherFeeDescriptions" NoteTypes="Constants.OtherFeeNotes"
+                                    OnChanged="VM.NotifyLoanChanged" />
+                    </ChildContent>
+                </MudExpansionPanel>
+
+                @* ═══ SECTION 6: Loan Features ═══ *@
+                <MudExpansionPanel @bind-IsExpanded="_featuresOpen" Style="border:1px solid #e2e8f0;border-radius:12px !important;margin-bottom:12px;">
+                    <TitleContent>
+                        <div class="d-flex align-center gap-3">
+                            <MudIcon Icon="@Icons.Material.Filled.Settings" Color="Color.Default" />
+                            <MudText Style="font-weight:700;font-size:15px;color:#0f2b4a;">Loan Features</MudText>
+                        </div>
+                    </TitleContent>
+                    <ChildContent>
+                        <MudText Typo="Typo.caption" Style="color:#94a3b8;" Class="mb-4">Defaults from your profile. Override per deal.</MudText>
+
+                        @* Conditional Extension *@
+                        <MudSwitch T="bool" @bind-Value="VM.Loan.Features.ConditionalExtension" Color="Color.Primary"
+                                   Label="Conditional Right to Extend" />
+                        @if (VM.Loan.Features.ConditionalExtension)
+                        {
+                            <MudPaper Class="pa-3 ml-6 mb-2" Style="border-left:2px solid #14b8a6;background:#f8fafc;border-radius:0 8px 8px 0;" Elevation="0">
+                                <MudGrid Spacing="2">
+                                    <MudItem xs="4"><MudTextField T="string" Label="Extensions" Variant="Variant.Outlined" Margin="Margin.Dense" @bind-Value="VM.Loan.Features.ExtensionCount" /></MudItem>
+                                    <MudItem xs="4"><MudTextField T="string" Label="Extension Term" Variant="Variant.Outlined" Margin="Margin.Dense" Adornment="Adornment.End" AdornmentText="mo" @bind-Value="VM.Loan.Features.ExtensionTermMonths" /></MudItem>
+                                    <MudItem xs="4"><MudTextField T="string" Label="Extension Fee" Variant="Variant.Outlined" Margin="Margin.Dense" Adornment="Adornment.End" AdornmentText="%" @bind-Value="VM.Loan.Features.ExtensionFeePercent" /></MudItem>
+                                </MudGrid>
+                            </MudPaper>
+                        }
+
+                        @* Prepayment Penalty *@
+                        <MudSwitch T="bool" @bind-Value="VM.Loan.Features.PrepaymentPenalty" Color="Color.Primary" Label="Prepayment Penalty" />
+                        @if (VM.Loan.Features.PrepaymentPenalty)
+                        {
+                            <MudPaper Class="pa-3 ml-6 mb-2" Style="border-left:2px solid #14b8a6;background:#f8fafc;border-radius:0 8px 8px 0;" Elevation="0">
+                                <MudGrid Spacing="2">
                                     <MudItem xs="6">
-                                        <MudSelect T="StepdownStructure" Label="Stepdown Structure" Variant="Variant.Outlined" Margin="Margin.Dense" @bind-Value="VM.Loan.Features.StepdownStructure">
-                                            @foreach (var ss in Enum.GetValues<StepdownStructure>())
-                                            { <MudSelectItem Value="ss">@ss.ToDisplayString()</MudSelectItem> }
+                                        <MudSelect T="PrepayPenaltyType" Label="Penalty Type" Variant="Variant.Outlined" Margin="Margin.Dense" @bind-Value="VM.Loan.Features.PrepayType">
+                                            @foreach (var pt in Enum.GetValues<PrepayPenaltyType>())
+                                            {
+                                                <MudSelectItem Value="pt">@pt.ToDisplayString()</MudSelectItem>
+                                            }
                                         </MudSelect>
                                     </MudItem>
-                                }
-                                @if (VM.Loan.Features.PrepayType == PrepayPenaltyType.GuaranteedInterest)
-                                {
-                                    <MudItem xs="6">
-                                        <MudTextField T="string" Label="Guaranteed Months" Variant="Variant.Outlined" Margin="Margin.Dense"
-                                                      Adornment="Adornment.End" AdornmentText="months" @bind-Value="VM.Loan.Features.GuaranteedMonths" />
-                                    </MudItem>
-                                }
-                            </MudGrid>
-                        </MudPaper>
-                    }
-
-                    @* Loan Intended for Sale *@
-                    <MudSwitch T="bool" @bind-Value="VM.Loan.Features.LoanIntendedForSale" Color="Color.Primary" Label="Loan Intended for Sale" />
-                    @if (VM.Loan.Features.LoanIntendedForSale)
-                    {
-                        <MudPaper Class="pa-4 ml-6 mb-2" Style="border-left:2px solid #14b8a6;background:#f8fafc;border-radius:0 8px 8px 0;" Elevation="0">
-                            <div class="d-flex align-center justify-space-between mb-3">
-                                <MudText Style="font-size:14px;font-weight:700;color:#334155;">Assignees</MudText>
-                                <MudButton StartIcon="@Icons.Material.Filled.Add" Size="Size.Small" Variant="Variant.Text"
-                                           Color="Color.Primary" OnClick="VM.AddAssignee" Style="text-transform:none;">Add Assignee</MudButton>
-                            </div>
-                            @for (var ai = 0; ai < VM.Loan.Features.Assignees.Count; ai++)
-                            {
-                                var aIdx = ai;
-                                var assignee = VM.Loan.Features.Assignees[aIdx];
-                                <MudPaper Class="pa-3 mb-3" Outlined="true" Style="border-radius:8px;">
-                                    @if (VM.Loan.Features.Assignees.Count > 1)
+                                    @if (VM.Loan.Features.PrepayType == PrepayPenaltyType.Stepdown)
                                     {
-                                        <div class="d-flex justify-space-between mb-2">
-                                            <MudText Typo="Typo.caption" Style="font-weight:700;text-transform:uppercase;color:#94a3b8;">Assignee @(aIdx + 1)</MudText>
-                                            <MudButton Size="Size.Small" Color="Color.Error" Variant="Variant.Text"
-                                                       OnClick="@(() => VM.RemoveAssignee(aIdx))" Style="text-transform:none;font-size:12px;">Remove</MudButton>
-                                        </div>
-                                    }
-                                    <MudGrid Spacing="2">
-                                        <MudItem xs="4">
-                                            <MudSelect T="EntityType" Label="Type" Variant="Variant.Outlined" Margin="Margin.Dense" @bind-Value="assignee.EntityType">
-                                                @foreach (var et in Enum.GetValues<EntityType>())
-                                                { <MudSelectItem Value="et">@et.ToDisplayString()</MudSelectItem> }
+                                        <MudItem xs="6">
+                                            <MudSelect T="StepdownStructure" Label="Stepdown Structure" Variant="Variant.Outlined" Margin="Margin.Dense" @bind-Value="VM.Loan.Features.StepdownStructure">
+                                                @foreach (var ss in Enum.GetValues<StepdownStructure>())
+                                                {
+                                                    <MudSelectItem Value="ss">@ss.ToDisplayString()</MudSelectItem>
+                                                }
                                             </MudSelect>
                                         </MudItem>
-                                        <MudItem xs="8">
-                                            <MudTextField T="string" Label="Name" Variant="Variant.Outlined" Margin="Margin.Dense" @bind-Value="assignee.Name" Immediate="true" />
-                                        </MudItem>
-                                    </MudGrid>
-                                    <MudTextField T="string" Label="Address" Variant="Variant.Outlined" Margin="Margin.Dense" Class="mt-2"
-                                                  @bind-Value="assignee.Address" Immediate="true" FullWidth="true" />
-                                    <InlineAliases Aliases="assignee.Aliases" OnChanged="VM.NotifyLoanChanged" />
-                                    @if (assignee.EntityType != EntityType.Individual)
-                                    {
-                                        <SignatoryBlock Signatories="assignee.Signatories" OnChanged="VM.NotifyLoanChanged" />
                                     }
-                                </MudPaper>
-                            }
-                        </MudPaper>
-                    }
+                                    @if (VM.Loan.Features.PrepayType == PrepayPenaltyType.GuaranteedInterest)
+                                    {
+                                        <MudItem xs="6">
+                                            <MudTextField T="string" Label="Guaranteed Months" Variant="Variant.Outlined" Margin="Margin.Dense"
+                                                          Adornment="Adornment.End" AdornmentText="months" @bind-Value="VM.Loan.Features.GuaranteedMonths" />
+                                        </MudItem>
+                                    }
+                                </MudGrid>
+                            </MudPaper>
+                        }
 
-                    <MudSwitch T="bool" @bind-Value="VM.Loan.Features.PartialRelease" Color="Color.Primary" Label="Partial Release" />
-                    <MudDivider Class="my-2" />
-                    <MudSwitch T="bool" @bind-Value="VM.Loan.Features.BorrowerServiceFees" Color="Color.Primary" Label="Borrower Responsible for Servicing Fees" />
-                    <MudSwitch T="bool" @bind-Value="VM.Loan.Features.ACHPaymentsRequired" Color="Color.Primary" Label="ACH Payments Required" />
-
-                    @* Exit Fee *@
-                    <MudSwitch T="bool" @bind-Value="VM.Loan.Features.ExitFee" Color="Color.Primary" Label="Exit Fee Included" />
-                    @if (VM.Loan.Features.ExitFee)
-                    {
-                        <MudPaper Class="pa-3 ml-6 mb-2" Style="border-left:2px solid #14b8a6;background:#f8fafc;border-radius:0 8px 8px 0;" Elevation="0">
-                            <MudGrid Spacing="2">
-                                <MudItem xs="6"><MudTextField T="string" Label="Exit Fee Dollar Amount" Variant="Variant.Outlined" Margin="Margin.Dense" Adornment="Adornment.Start" AdornmentText="$" @bind-Value="VM.Loan.Features.ExitFeeDollar" /></MudItem>
-                                <MudItem xs="6"><MudTextField T="string" Label="Exit Fee Percentage" Variant="Variant.Outlined" Margin="Margin.Dense" Adornment="Adornment.End" AdornmentText="%" @bind-Value="VM.Loan.Features.ExitFeePercent" /></MudItem>
-                            </MudGrid>
-                        </MudPaper>
-                    }
-
-                    @* Termination Fee *@
-                    <MudSwitch T="bool" @bind-Value="VM.Loan.Features.TerminationFee" Color="Color.Primary" Label="Termination Fee" />
-                    @if (VM.Loan.Features.TerminationFee)
-                    {
-                        <MudPaper Class="pa-3 ml-6 mb-2" Style="border-left:2px solid #14b8a6;background:#f8fafc;border-radius:0 8px 8px 0;" Elevation="0">
-                            <MudGrid Spacing="2">
-                                <MudItem xs="12">
-                                    <MudSelect T="TerminationFeeType" Label="Fee Type" Variant="Variant.Outlined" Margin="Margin.Dense" @bind-Value="VM.Loan.Features.TerminationType">
-                                        @foreach (var tt in Enum.GetValues<TerminationFeeType>())
-                                        { <MudSelectItem Value="tt">@tt.ToDisplayString()</MudSelectItem> }
-                                    </MudSelect>
-                                </MudItem>
-                                @if (VM.Loan.Features.TerminationType is TerminationFeeType.DollarAmount or TerminationFeeType.GreaterOf)
+                        @* Loan Intended for Sale *@
+                        <MudSwitch T="bool" @bind-Value="VM.Loan.Features.LoanIntendedForSale" Color="Color.Primary" Label="Loan Intended for Sale" />
+                        @if (VM.Loan.Features.LoanIntendedForSale)
+                        {
+                            <MudPaper Class="pa-4 ml-6 mb-2" Style="border-left:2px solid #14b8a6;background:#f8fafc;border-radius:0 8px 8px 0;" Elevation="0">
+                                <div class="d-flex align-center justify-space-between mb-3">
+                                    <MudText Style="font-size:14px;font-weight:700;color:#334155;">Assignees</MudText>
+                                    <MudButton StartIcon="@Icons.Material.Filled.Add" Size="Size.Small" Variant="Variant.Text"
+                                               Color="Color.Primary" OnClick="VM.AddAssignee" Style="text-transform:none;">Add Assignee</MudButton>
+                                </div>
+                                @for (var ai = 0; ai < VM.Loan.Features.Assignees.Count; ai++)
                                 {
-                                    <MudItem xs="6"><MudTextField T="string" Label="Dollar Amount" Variant="Variant.Outlined" Margin="Margin.Dense" Adornment="Adornment.Start" AdornmentText="$" @bind-Value="VM.Loan.Features.TerminationDollar" /></MudItem>
+                                    var aIdx = ai;
+                                    var assignee = VM.Loan.Features.Assignees[aIdx];
+                                    <MudPaper Class="pa-3 mb-3" Outlined="true" Style="border-radius:8px;">
+                                        @if (VM.Loan.Features.Assignees.Count > 1)
+                                        {
+                                            <div class="d-flex justify-space-between mb-2">
+                                                <MudText Typo="Typo.caption" Style="font-weight:700;text-transform:uppercase;color:#94a3b8;">Assignee @(aIdx + 1)</MudText>
+                                                <MudButton Size="Size.Small" Color="Color.Error" Variant="Variant.Text"
+                                                           OnClick="@(() => VM.RemoveAssignee(aIdx))" Style="text-transform:none;font-size:12px;">Remove</MudButton>
+                                            </div>
+                                        }
+                                        <MudGrid Spacing="2">
+                                            <MudItem xs="4">
+                                                <MudSelect T="EntityType" Label="Type" Variant="Variant.Outlined" Margin="Margin.Dense" @bind-Value="assignee.EntityType">
+                                                    @foreach (var et in Enum.GetValues<EntityType>())
+                                                    {
+                                                        <MudSelectItem Value="et">@et.ToDisplayString()</MudSelectItem>
+                                                    }
+                                                </MudSelect>
+                                            </MudItem>
+                                            <MudItem xs="8">
+                                                <MudTextField T="string" Label="Name" Variant="Variant.Outlined" Margin="Margin.Dense" @bind-Value="assignee.Name" Immediate="true" />
+                                            </MudItem>
+                                        </MudGrid>
+                                        <MudTextField T="string" Label="Address" Variant="Variant.Outlined" Margin="Margin.Dense" Class="mt-2"
+                                                      @bind-Value="assignee.Address" Immediate="true" FullWidth="true" />
+                                        <InlineAliases Aliases="assignee.Aliases" OnChanged="VM.NotifyLoanChanged" />
+                                        @if (assignee.EntityType != EntityType.Individual)
+                                        {
+                                            <SignatoryBlock Signatories="assignee.Signatories" OnChanged="VM.NotifyLoanChanged" />
+                                        }
+                                    </MudPaper>
                                 }
-                                @if (VM.Loan.Features.TerminationType is TerminationFeeType.PercentageOfLoan or TerminationFeeType.GreaterOf)
-                                {
-                                    <MudItem xs="6"><MudTextField T="string" Label="Percentage of Loan" Variant="Variant.Outlined" Margin="Margin.Dense" Adornment="Adornment.End" AdornmentText="%" @bind-Value="VM.Loan.Features.TerminationPercent" /></MudItem>
-                                }
-                            </MudGrid>
-                        </MudPaper>
-                    }
+                            </MudPaper>
+                        }
 
-                    <MudDivider Class="my-2" />
-                    <MudSwitch T="bool" @bind-Value="VM.Loan.Features.W9Included" Color="Color.Primary" Label="W-9 to Be Included" />
-                    <MudSwitch T="bool" @bind-Value="VM.Loan.Features.MERSLanguage" Color="Color.Primary" Label="MERS Language to Be Inserted" />
-                    <MudSwitch T="bool" @bind-Value="VM.Loan.Features.SigningAffidavit" Color="Color.Primary" Label="Signing Affidavit Required" />
-                </ChildContent>
-            </MudExpansionPanel>
+                        <MudSwitch T="bool" @bind-Value="VM.Loan.Features.PartialRelease" Color="Color.Primary" Label="Partial Release" />
+                        <MudDivider Class="my-2" />
+                        <MudSwitch T="bool" @bind-Value="VM.Loan.Features.BorrowerServiceFees" Color="Color.Primary" Label="Borrower Responsible for Servicing Fees" />
+                        <MudSwitch T="bool" @bind-Value="VM.Loan.Features.ACHPaymentsRequired" Color="Color.Primary" Label="ACH Payments Required" />
 
-        </MudExpansionPanels>
+                        @* Exit Fee *@
+                        <MudSwitch T="bool" @bind-Value="VM.Loan.Features.ExitFee" Color="Color.Primary" Label="Exit Fee Included" />
+                        @if (VM.Loan.Features.ExitFee)
+                        {
+                            <MudPaper Class="pa-3 ml-6 mb-2" Style="border-left:2px solid #14b8a6;background:#f8fafc;border-radius:0 8px 8px 0;" Elevation="0">
+                                <MudGrid Spacing="2">
+                                    <MudItem xs="6"><MudTextField T="string" Label="Exit Fee Dollar Amount" Variant="Variant.Outlined" Margin="Margin.Dense" Adornment="Adornment.Start" AdornmentText="$" @bind-Value="VM.Loan.Features.ExitFeeDollar" /></MudItem>
+                                    <MudItem xs="6"><MudTextField T="string" Label="Exit Fee Percentage" Variant="Variant.Outlined" Margin="Margin.Dense" Adornment="Adornment.End" AdornmentText="%" @bind-Value="VM.Loan.Features.ExitFeePercent" /></MudItem>
+                                </MudGrid>
+                            </MudPaper>
+                        }
 
-        @* ── Bottom Generate Button ── *@
-        <div class="d-flex justify-end mt-6">
-            <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large"
-                       OnClick="VM.GenerateCommand.ExecuteAsync" StartIcon="@Icons.Material.Filled.AutoAwesome"
-                       Style="text-transform:none;font-weight:700;font-size:15px;padding:12px 32px;"
-                       Disabled="@VM.IsGenerating">
-                Generate Documents
-            </MudButton>
-        </div>
-    </div>
+                        @* Termination Fee *@
+                        <MudSwitch T="bool" @bind-Value="VM.Loan.Features.TerminationFee" Color="Color.Primary" Label="Termination Fee" />
+                        @if (VM.Loan.Features.TerminationFee)
+                        {
+                            <MudPaper Class="pa-3 ml-6 mb-2" Style="border-left:2px solid #14b8a6;background:#f8fafc;border-radius:0 8px 8px 0;" Elevation="0">
+                                <MudGrid Spacing="2">
+                                    <MudItem xs="12">
+                                        <MudSelect T="TerminationFeeType" Label="Fee Type" Variant="Variant.Outlined" Margin="Margin.Dense" @bind-Value="VM.Loan.Features.TerminationType">
+                                            @foreach (var tt in Enum.GetValues<TerminationFeeType>())
+                                            {
+                                                <MudSelectItem Value="tt">@tt.ToDisplayString()</MudSelectItem>
+                                            }
+                                        </MudSelect>
+                                    </MudItem>
+                                    @if (VM.Loan.Features.TerminationType is TerminationFeeType.DollarAmount or TerminationFeeType.GreaterOf)
+                                    {
+                                        <MudItem xs="6"><MudTextField T="string" Label="Dollar Amount" Variant="Variant.Outlined" Margin="Margin.Dense" Adornment="Adornment.Start" AdornmentText="$" @bind-Value="VM.Loan.Features.TerminationDollar" /></MudItem>
+                                    }
+                                    @if (VM.Loan.Features.TerminationType is TerminationFeeType.PercentageOfLoan or TerminationFeeType.GreaterOf)
+                                    {
+                                        <MudItem xs="6"><MudTextField T="string" Label="Percentage of Loan" Variant="Variant.Outlined" Margin="Margin.Dense" Adornment="Adornment.End" AdornmentText="%" @bind-Value="VM.Loan.Features.TerminationPercent" /></MudItem>
+                                    }
+                                </MudGrid>
+                            </MudPaper>
+                        }
+
+                        <MudDivider Class="my-2" />
+                        <MudSwitch T="bool" @bind-Value="VM.Loan.Features.W9Included" Color="Color.Primary" Label="W-9 to Be Included" />
+                        <MudSwitch T="bool" @bind-Value="VM.Loan.Features.MERSLanguage" Color="Color.Primary" Label="MERS Language to Be Inserted" />
+                        <MudSwitch T="bool" @bind-Value="VM.Loan.Features.SigningAffidavit" Color="Color.Primary" Label="Signing Affidavit Required" />
+                    </ChildContent>
+                </MudExpansionPanel>
+
+            </MudExpansionPanels>
+        </MudItem>
+    </MudGrid>
 </div>
 
 @code {
@@ -861,8 +1033,8 @@
     {
         DominateDocsSite.Models.Enums.LoanType.Bridge => "🏗️",
         DominateDocsSite.Models.Enums.LoanType.DSCR => "🏘️",
-        DominateDocsSite.Models.Enums.LoanType.Multifamily => "🏢",
-        DominateDocsSite.Models.Enums.LoanType.Commercial => "🬬",
+        DominateDocsSite.Models.Enums.LoanType.Multifamily => "👥",
+        DominateDocsSite.Models.Enums.LoanType.Commercial => "🏢",
         DominateDocsSite.Models.Enums.LoanType.Land => "🌄",
         _ => "📄"
     };
