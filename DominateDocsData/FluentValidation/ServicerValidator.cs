@@ -10,8 +10,8 @@ public class ServicerValidator : AbstractValidator<Servicer>
     {
         RuleFor(x => x.EntityType).IsInEnum();
         RuleFor(x => x.EntityStructure).IsInEnum();
-        RuleFor(x => x.ContactsRole).IsInEnum();
-        RuleFor(x => x.StateOfIncorporation).IsInEnum();
+        RuleFor(x => x.ContactTitle).IsInEnum();
+        RuleFor(x => x.StateOfOrganization).IsInEnum();
 
         RuleFor(x => x.EntityName)
             .NotEmpty();

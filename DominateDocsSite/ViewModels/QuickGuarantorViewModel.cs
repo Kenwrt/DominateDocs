@@ -53,6 +53,8 @@ public partial class QuickGuarantorViewModel : ObservableObject
     [RelayCommand]
     private async Task UpsertRecord()
     {
+        EditingRecord.EnforceTypeIntegrity();
+
         if (EditingRecord.EntityType == Entity.Types.Individual && !String.IsNullOrEmpty(EditingRecord.ContactName))
         {
             EditingRecord.EntityName = EditingRecord.ContactName;
@@ -125,7 +127,7 @@ public partial class QuickGuarantorViewModel : ObservableObject
         EditingRecord = new DominateDocsData.Models.Guarantor()
         {
             UserId = userId,
-            GuarantorCode = $"G-{DisplayHelper.GenerateIdCode()}"
+            ReferenceCode = $"G-{DisplayHelper.GenerateIdCode()}"
         };
     }
 }

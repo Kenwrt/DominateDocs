@@ -142,7 +142,7 @@ else
                                 <MudNumericField Class="pl-4 mr-5" Style="" HideSpinButtons="true" Adornment="Adornment.Start" AdornmentText="$" Culture="CultureInfo.InvariantCulture"
                                                  Format="N2" @bind-Value="vm.EditingRecord.EstimatedValue" Label="Estimated Value" Variant="Variant.Outlined" Step=".2M" />
 
-                                <MudDatePicker Class="pl-4 mr-5" Style="" Label="Maturity Date" Editable="true" @bind-Date="vm.EditingRecord.LastAppraisalDate" Mask="@(new DateMask("00-00-0000"))" DateFormat="MM-dd-yyyy" Placeholder="mm-dd-yyyy" Variant="Variant.Outlined" />
+                                <MudDateOnlyPicker Class="pl-4 mr-5" Style="" Label="Maturity Date" Editable="true" @bind-Date="vm.EditingRecord.LastAppraisalDate" Variant="Variant.Outlined" />
 
                                 <MudNumericField Class="pl-4 mr-5" Style="" HideSpinButtons="true" Adornment="Adornment.Start" AdornmentText="$" Culture="CultureInfo.InvariantCulture"
                                                  Format="N2" @bind-Value="vm.EditingRecord.MinimumReleasePrice" Label="Minumum Release Price" Variant="Variant.Outlined" Step=".2M" />

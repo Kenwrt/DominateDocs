@@ -71,6 +71,8 @@ public partial class BrokerViewModel : ObservableObject
     [RelayCommand]
     private async Task UpsertRecord()
     {
+        EditingRecord.EnforceTypeIntegrity();
+
         if (EditingRecord.EntityType == Entity.Types.Individual && !String.IsNullOrEmpty(EditingRecord.ContactName))
         {
             EditingRecord.EntityName = EditingRecord.ContactName;
@@ -134,7 +136,7 @@ public partial class BrokerViewModel : ObservableObject
         EditingRecord = new DominateDocsData.Models.Broker()
         {
             UserId = userId,
-            BrokerCode = $"B-{DisplayHelper.GenerateIdCode()}"
+            ReferenceCode = $"B-{DisplayHelper.GenerateIdCode()}"
         };
     }
 }

@@ -35,10 +35,10 @@ public static class LoanAgreementMapper
             IsExitFeeIncluded = loan.IsExitFeeIncluded,
             IsACHDelivery = loan.IsACHDelivery,
             IsRemoveACHDFormFromDocSet = loan.IsRemoveACHDFormFromDocSet,
-            ExitFeeAmount = loan.ExitFeeAmount,
-            IsConditionalRightToExtend = loan.IsConditionalRightToExtend,
-            NumberOfExtensions = loan.NumberOfExtensions,
-            NumberOfMonthsForEachExtension = loan.NumberOfMonthsForEachExtension,
+            //ExitFeeAmount = loan.ExitFeeAmount,
+            //IsConditionalRightToExtend = loan.IsConditionalRightToExtend,
+            //NumberOfExtensions = loan.NumberOfExtensions,
+            //NumberOfMonthsForEachExtension = loan.NumberOfMonthsForEachExtension,
             LoanPreparerName = loan.LoanPreparerName,
             LoanPreparerStreetAddress = loan.LoanPreparerStreetAddress,
             LoanPreparerCity = loan.LoanPreparerCity,
@@ -72,7 +72,7 @@ public static class LoanAgreementMapper
             Properties = new PropertyRecordDTO { PropertyList = loan.Properties ?? new() },
 
             PerDiemOption = loan.PerDiemOption,
-            FeesToBePaid = loan.FeesToBePaid,
+          //  FeesToBePaid = loan.FeesToBePaid,
             Status = loan.Status
         };
 
@@ -100,7 +100,7 @@ public static class LoanAgreementMapper
                 sl.Append(sb.ToString());
                 sl.Append($"\nBy: ____________________________");
                 sl.Append($"\nName: {borrower.ContactName}");
-                sl.Append($"\nTitle: {borrower.ContactsRole.ToString()}");
+                sl.Append($"\nTitle: {borrower.ContactTitle.GetDescription()}");
                 sl.Append($"\nDate: __________________________");
             }
             else
@@ -137,7 +137,7 @@ public static class LoanAgreementMapper
                 sl.Append(sb.ToString());
                 sl.Append($"\nBy: ____________________________");
                 sl.Append($"\nName: {lender.ContactName}");
-                sl.Append($"\nTitle: {lender.ContactsRole.ToString()}");
+                sl.Append($"\nTitle: {lender.ContactTitle.GetDescription()}");
                 sl.Append($"\nDate: __________________________");
             }
             else
@@ -174,7 +174,7 @@ public static class LoanAgreementMapper
                 sl.Append(sb.ToString());
                 sl.Append($"\nBy: ____________________________");
                 sl.Append($"\nName: {guarantor.ContactName}");
-                sl.Append($"\nTitle: {guarantor.ContactsRole.ToString()}");
+                sl.Append($"\nTitle: {guarantor.ContactTitle.GetDescription()}");
                 sl.Append($"\nDate: __________________________");
             }
             else
@@ -211,7 +211,7 @@ public static class LoanAgreementMapper
                 sl.Append(sb.ToString());
                 sl.Append($"\nBy: ____________________________");
                 sl.Append($"\nName: {broker.ContactName}");
-                sl.Append($"\nTitle: {broker.ContactsRole.ToString()}");
+                sl.Append($"\nTitle: {broker.ContactTitle.GetDescription()}");
                 sl.Append($"\nDate: __________________________");
             }
             else

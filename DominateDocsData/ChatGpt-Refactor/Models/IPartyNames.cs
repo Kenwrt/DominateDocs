@@ -6,6 +6,6 @@ public interface IPartyNames
 {
     string EntityName { get; }
     public Entity.Types EntityType { get; }
-    string StateOfIncorporationDescription { get; }
+    string StateOfOrganizationDescription { get; }
     string EntityStructureDescription { get; }
 }

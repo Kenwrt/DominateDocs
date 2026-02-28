@@ -39,7 +39,7 @@
 
                     </HeaderContent>
                     <RowTemplate>
-                        <MudTd DataLabel="Name">@context.Name</MudTd>
+                        <MudTd DataLabel="Name">@context.EntityName</MudTd>
                         <MudTd DataLabel="Alias">@context.PercentOfOwnership</MudTd>
 
                         <MudTd>
@@ -85,19 +85,19 @@ else
                     <MudGrid>
                         <MudItem md="6">
                             <div class="d-flex flex-column gap-2">
-                                <MudTextField Class="pl-4" Variant="Variant.Outlined" Style="" @bind-Value="vm.EditingRecord.Name" Label="Name" Required="true" />
+                                <MudTextField Class="pl-4" Variant="Variant.Outlined" Style="" @bind-Value="vm.EditingRecord.EntityName" Label="Name" Required="true" />
 
-                                <MudTextField Class="pl-4" Variant="Variant.Outlined" Style="" @bind-Value="vm.EditingRecord.Email" Label="Email" Required="true" />
+                                <MudTextField Class="pl-4" Variant="Variant.Outlined" Style="" @bind-Value="vm.EditingRecord.ContactEmail" Label="Email" Required="true" />
                                 <MudTextField Label="Phone"
                                       Class="pl-4"
                                       Variant="Variant.Outlined"
-                                      @bind-Value="vm.EditingRecord.PhoneNumber"
+                                      @bind-Value="vm.EditingRecord.ContactPhoneNumber"
                                       Mask="@phoneMask"
                                       Placeholder="(___) ___-____"
                                       Required="true" />
                                
                                 <MudTextField Class="pl-4" Variant="Variant.Outlined" Style="" @bind-Value="vm.EditingRecord.FullAddress" Label="Address" Required="true" />
-                                <MudSelect Class="ml-4" T="DominateDocsData.Enums.Entity.ContactRoles" Style="" Variant="Variant.Outlined" Label="Select Entity Role" @bind-Value="vm.EditingRecord.EntityRole" Dense="true">
+                                <MudSelect Class="ml-4" T="DominateDocsData.Enums.Entity.ContactRoles" Style="" Variant="Variant.Outlined" Label="Select Owners Role" @bind-Value="vm.EditingRecord.OwnersRole" Dense="true">
 
                                     @foreach (var gt in Enum.GetValues<DominateDocsData.Enums.Entity.ContactRoles>())
                                     {
@@ -106,7 +106,7 @@ else
 
                                 </MudSelect>
 
-                                <MudNumericField T="int" Class="pl-4" Style="" Variant="Variant.Outlined" @bind-Value="vm.EditingRecord.PercentOfOwnership" Min="0" Max="100"
+                                <MudNumericField T="decimal?" Class="pl-4" Style="" Variant="Variant.Outlined" @bind-Value="vm.EditingRecord.PercentOfOwnership" Min="0" Max="100"
                                      Immediate="true" HideSpinButtons="true" Adornment="Adornment.End" AdornmentText="%" Required="true" Label="% of Ownership" Rules="@PercentRules" />
 
                                 <MudStack Row="true" Spacing="10" Class="mt-4 mb-10">
@@ -177,7 +177,7 @@ else
             if (!editRecord)
             {
 
-                if (vm.MyRecordList.Any(x => x.Name == vm.EditingRecord.Name))
+                if (vm.MyRecordList.Any(x => x.EntityName == vm.EditingRecord.EntityName))
                 {
                     Snackbar.Add("A Duplicate Name can exists.", Severity.Error);
 

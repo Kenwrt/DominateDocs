@@ -8,13 +8,13 @@ namespace DominateDocsSite.ViewModels;
 public partial class StateLendingLicenseViewModel : ObservableObject
 {
     [ObservableProperty]
-    private ObservableCollection<DominateDocsData.Models.StateLendingLicense> myRecordList = new();
+    private ObservableCollection<DominateDocsData.Models.License> myRecordList = new();
 
     [ObservableProperty]
-    private DominateDocsData.Models.StateLendingLicense editingRecord = null;
+    private DominateDocsData.Models.License editingRecord = null;
 
     [ObservableProperty]
-    private DominateDocsData.Models.StateLendingLicense selectedRecord = null;
+    private DominateDocsData.Models.License selectedRecord = null;
 
     private readonly ILogger<StateLendingLicenseViewModel> logger;
 
@@ -24,14 +24,14 @@ public partial class StateLendingLicenseViewModel : ObservableObject
     }
 
     [RelayCommand]
-    private async Task InitializeLoadPage(List<DominateDocsData.Models.StateLendingLicense> stateLicList = null)
+    private async Task InitializeLoadPage(List<DominateDocsData.Models.License> stateLicList = null)
     {
         if (EditingRecord is null)
         {
             GetNewRecord();
         }
 
-        if (stateLicList is not null) MyRecordList = new ObservableCollection<DominateDocsData.Models.StateLendingLicense>(stateLicList);
+        if (stateLicList is not null) MyRecordList = new ObservableCollection<DominateDocsData.Models.License>(stateLicList);
     }
 
     [RelayCommand]
@@ -52,7 +52,7 @@ public partial class StateLendingLicenseViewModel : ObservableObject
     }
 
     [RelayCommand]
-    private async Task DeleteRecord(DominateDocsData.Models.StateLendingLicense r)
+    private async Task DeleteRecord(DominateDocsData.Models.License r)
     {
         int recordListIndex = MyRecordList.FindIndex(x => x.Id == r.Id);
 
@@ -63,7 +63,7 @@ public partial class StateLendingLicenseViewModel : ObservableObject
     }
 
     [RelayCommand]
-    private void SelectRecord(DominateDocsData.Models.StateLendingLicense r)
+    private void SelectRecord(DominateDocsData.Models.License r)
     {
         if (r != null)
         {
@@ -85,6 +85,6 @@ public partial class StateLendingLicenseViewModel : ObservableObject
     [RelayCommand]
     private void GetNewRecord()
     {
-        EditingRecord = new DominateDocsData.Models.StateLendingLicense();
+        EditingRecord = new DominateDocsData.Models.License();
     }
 }

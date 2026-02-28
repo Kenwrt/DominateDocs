@@ -35,8 +35,8 @@
 
                     </HeaderContent>
                     <RowTemplate>
-                        <MudTd DataLabel="Name">@context.Name</MudTd>
-                        <MudTd DataLabel="Title">@context.Title</MudTd>
+                        <MudTd DataLabel="Name">@context.ContactName</MudTd>
+                        <MudTd DataLabel="Title">@context.ContactTitle.GetDescription()</MudTd>
                         <MudTd>
                         <MudButton Variant="Variant.Text"
                                    Size="Size.Small"
@@ -73,10 +73,10 @@ else
                     <MudGrid Class="mt-2">
                         <MudItem md="6">
                             <div class="d-flex flex-column gap-2">
-                                <MudTextField Class="pl-4" Variant="Variant.Outlined"  @bind-Value="vm.EditingRecord.Name" Label="Name" Required="true" />
+                                <MudTextField Class="pl-4" Variant="Variant.Outlined"  @bind-Value="vm.EditingRecord.ContactName" Label="Name" Required="true" />
                                 <MudTextField Class="pl-4" Variant="Variant.Outlined"  @bind-Value="vm.EditingRecord.Title" Label="Title" Required="true" />
                                 <MudTextField Class="pl-4" Label="Phone Number"  Variant="Variant.Outlined"
-                                              @bind-Value="vm.EditingRecord.PhoneNumber"
+                                              @bind-Value="vm.EditingRecord.ContactPhoneNumber"
                                               Mask="phoneMask"
                                               Placeholder="(___) ___-____"
                                               Required="true" />
@@ -135,7 +135,7 @@ else
             if (!editRecord)
             {
 
-                if (vm.MyRecordList.Any(x => x.Name == vm.EditingRecord.Name))
+                if (vm.MyRecordList.Any(x => x.EntityName == vm.EditingRecord.EntityName))
                 {
                     Snackbar.Add("A Duplicate Name can exists.", Severity.Error);
 

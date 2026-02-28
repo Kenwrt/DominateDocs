@@ -25,9 +25,9 @@ public class Lender : IPartyNames
     [JsonConverter(typeof(StringEnumConverter))]
     [BsonRepresentation(BsonType.String)]
     [DataType(DataType.Text)]
-    public UsStates.UsState StateOfIncorporation { get; set; }
+    public UsStates.UsState StateOfOrganization { get; set; }
 
-    public string StateOfIncorporationDescription => StateOfIncorporation.GetDescription();
+    public string StateOfOrganizationDescription => StateOfOrganization.GetDescription();
 
     public Guid DefaultDocSetId { get; set; }
 

@@ -11,8 +11,8 @@ public class GuarantorValidator : AbstractValidator<Guarantor>
         RuleFor(x => x.GuarantorType).IsInEnum();
         RuleFor(x => x.EntityType).IsInEnum();
         RuleFor(x => x.EntityStructure).IsInEnum();
-        RuleFor(x => x.ContactsRole).IsInEnum();
-        RuleFor(x => x.StateOfIncorporation).IsInEnum();
+        RuleFor(x => x.ContactTitle).IsInEnum();
+        RuleFor(x => x.StateOfOrganization).IsInEnum();
 
         RuleFor(x => x.ContactName)
             .NotEmpty();

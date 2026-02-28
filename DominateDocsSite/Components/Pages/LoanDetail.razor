@@ -78,8 +78,8 @@
                
            @*  <MudNumericField Immediate="false" Class="ml-4" Variant="Variant.Outlined" HideSpinButtons="true" T="decimal" @bind-Value="vm.EditingAgreement.DownPaymentPercentage" Format="N2" Label="Down Payment (%)" />*@
             @*  <MudText Class="ml-4" Typo="Typo.body1">Estimate Down Payment: @DisplayHelper.FormatDollarsCompact(vm.EstimatedDownPayment)</MudText> *@
-            <MudDatePicker Class="ml-4" Variant="Variant.Outlined" @bind-Date="vm.EditingAgreement.OriginationDate" Label="Origination Date" />
-            <MudDatePicker Class="ml-4" Variant="Variant.Outlined" @bind-Date="vm.EditingAgreement.SignedDate" Label="Signed Date" />
+            <MudDateOnlyPicker Class="ml-4" Variant="Variant.Outlined" @bind-Date="vm.EditingAgreement.OriginationDate" Label="Origination Date" />
+            <MudDateOnlyPicker Class="ml-4" Variant="Variant.Outlined" @bind-Date="vm.EditingAgreement.SignedDate" Label="Signed Date" />
             <MudText Class="ml-6" Typo="Typo.body1">Maturity Date: @vm.GetLoanMaturityDate(vm.TermInMonths)</MudText>
             
 
@@ -105,7 +105,7 @@
             {
                 <MudNumericField Immediate="false" Class="ml-4" Variant="Variant.Outlined" HideSpinButtons="true" T="decimal" @bind-Value="vm.EditingAgreement.InitialMargin" Format="N2" Label="Initial Margin (%)" />
 
-                <MudSelect Class="ml-4" Variant="Variant.Outlined" T="Payment.Schedules" @bind-Value="vm.EditingAgreement.VariableInterestProperties.AdjustmentInterval" Label="Adjustment Intervals">
+                <MudSelect Class="ml-4" Variant="Variant.Outlined" T="Payment.Schedules" @bind-Value="vm.EditingAgreement.AdjustmentInterval" Label="Adjustment Intervals">
                     @foreach (var v in Enum.GetValues<Payment.Schedules>())
                     {
                         <MudSelectItem Value="v">@v</MudSelectItem>
@@ -222,8 +222,8 @@
             @if (vm.EditingAgreement.IsConditionalRightToExtend)
             {
 
-                <MudNumericField Class="ml-2" Variant="Variant.Outlined" HideSpinButtons="true" T="int" @bind-Value="vm.EditingAgreement.NumberOfExtensions" Label="Number Of Extensions" />
-                <MudNumericField Class="ml-2" Variant="Variant.Outlined" HideSpinButtons="true" T="int" @bind-Value="vm.EditingAgreement.NumberOfMonthsForEachExtension" Label="Months For Each Extension" />
+                <MudNumericField Class="ml-2" Variant="Variant.Outlined" HideSpinButtons="true" T="int" @bind-Value="vm.EditingAgreement.ExtensionCount" Label="Number Of Extensions" />
+                <MudNumericField Class="ml-2" Variant="Variant.Outlined" HideSpinButtons="true" T="int" @bind-Value="vm.EditingAgreement.ExtensionTermMonths" Label="Months For Each Extension" />
 
             }
 
@@ -381,9 +381,6 @@
         AddButtonDisabled = false;
     }
 
-
-
-
     private async Task HandleSubmit()
     {
         await formEditRecord.Validate();
@@ -418,8 +415,6 @@
         }
     }
 
-
-
     private void DeleteRecord()
     {
         vm.DeleteAgreementCommand.Execute(null);
@@ -439,8 +434,6 @@
         AddEdit = true;
         AddButtonDisabled = true;
     }
-
-
 
     private void OnSelectedAgreement(DominateDocsData.Models.LoanAgreement r)
     {
@@ -479,7 +472,6 @@
 
         //vm.EditAgreementCommand.Execute(null);
     }
-
 
     private void OnLenderComplete(DominateDocsData.Models.Lender record)
     {

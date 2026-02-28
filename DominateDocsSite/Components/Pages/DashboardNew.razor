@@ -1,20 +1,24 @@
 @page "/dashboard"
 
-@using DominateDocsSite.Models
-@using DominateDocsSite.Models.Enums
+@using DominateDocsData.Models
+@using DominateDocsData.Models.Enums
 @using DominateDocsSite.ViewModels
+@using DominateDocsSite.Components.Shared
+@using DominateDocsSite.Components.Pages
 
 
-@inject DashboardViewModelNew VM
+@inject DashboardViewModelNew vm
 @inject NavigationManager Nav
 @inject AuthenticationStateProvider AuthProvider
 
+@if (!AddEdit)
+{
 <PageTitle>Dominate Docs — Dashboard</PageTitle>
 
 @* ── Header ── *@
 <div class="d-flex justify-space-between align-start mb-6">
     <div>
-        <MudText Typo="Typo.caption" Style="color:#94a3b8;font-weight:500;">@VM.Greeting</MudText>
+        <MudText Typo="Typo.caption" Style="color:#94a3b8;font-weight:500;">@vm.Greeting</MudText>
         <MudText Typo="Typo.h4" Style="font-family:'Outfit';color:#0f2b4a;letter-spacing:-0.5px;">
             Portfolio Dashboard
         </MudText>
@@ -23,7 +27,7 @@
         <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Download"
                    Style="text-transform:none;font-weight:600;">Export</MudButton>
         <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
-                   Href="/newloannew" Style="text-transform:none;font-weight:600;">New Loan</MudButton>
+                   Href="/LoanWizardAddEdit" Style="text-transform:none;font-weight:600;">New Loan</MudButton>
     </div>
 </div>
 
@@ -40,7 +44,7 @@
                 </MudChip>
             </div>
             <MudText Style="font-size:28px;font-weight:700;color:#0f2b4a;letter-spacing:-0.5px;line-height:1.1;">
-                @VM.TotalPortfolioDisplay
+                @vm.TotalPort
             </MudText>
             <MudText Typo="Typo.caption" Style="color:#94a3b8;font-weight:500;">Total Portfolio</MudText>
         </MudPaper>
@@ -53,7 +57,7 @@
                 </MudAvatar>
             </div>
             <MudText Style="font-size:28px;font-weight:700;color:#0f2b4a;letter-spacing:-0.5px;line-height:1.1;">
-                @VM.AverageRate
+                @vm.AverageInterestRate
             </MudText>
             <MudText Typo="Typo.caption" Style="color:#94a3b8;font-weight:500;">Avg. Interest Rate</MudText>
         </MudPaper>
@@ -66,7 +70,7 @@
                 </MudAvatar>
             </div>
             <MudText Style="font-size:28px;font-weight:700;color:#0f2b4a;letter-spacing:-0.5px;line-height:1.1;">
-                @VM.AllLoans.Count
+                @vm.AgreementList.Count
             </MudText>
             <MudText Typo="Typo.caption" Style="color:#94a3b8;font-weight:500;">Active Loans</MudText>
         </MudPaper>
@@ -79,7 +83,7 @@
                 </MudAvatar>
             </div>
             <MudText Style="font-size:28px;font-weight:700;color:#0f2b4a;letter-spacing:-0.5px;line-height:1.1;">
-                @VM.PendingCount
+                @vm.PendingLoanCount
             </MudText>
             <MudText Typo="Typo.caption" Style="color:#94a3b8;font-weight:500;">Pending Review</MudText>
         </MudPaper>
@@ -115,9 +119,9 @@
         <div class="d-flex align-center gap-2">
             <MudText Style="font-size:15px;font-weight:700;color:#0f2b4a;">Recent Loans</MudText>
             <MudChip T="string" Size="Size.Small" Color="Color.Primary" Variant="Variant.Outlined"
-                     Style="font-size:12px;font-weight:600;">@VM.AllLoans.Count</MudChip>
+                     Style="font-size:12px;font-weight:600;">@vm.AgreementList.Count</MudChip>
         </div>
-        <MudChipSet T="string" SelectedValueChanged="@(v => VM.SetFilter(v ?? "All"))"
+        <MudChipSet T="string" SelectedValueChanged="@(v => vm.SetFilter(v ?? "All"))"
                     SelectionMode="SelectionMode.SingleSelection" Class="gap-1">
             <MudChip T="string" Value="@("All")" Default="true" Size="Size.Small" Variant="Variant.Text">All</MudChip>
             <MudChip T="string" Value="@("Active")" Size="Size.Small" Variant="Variant.Text">Active</MudChip>
@@ -126,7 +130,7 @@
         </MudChipSet>
     </div>
 
-    <MudTable Items="@VM.FilteredLoans" Hover="true" Dense="true" RowClass="cursor-pointer" T="DominateDocsSite.Models.Loan"
+    <MudTable Items="@vm.AgreementList" Hover="true" Dense="true" RowClass="cursor-pointer" T="DominateDocsData.Models.LoanAgreement"
               Style="font-size:13.5px;" OnRowClick="@RowClickEvent">
         <HeaderContent>
             <MudTh Style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;color:#94a3b8;">
@@ -148,43 +152,73 @@
         <RowTemplate>
             <MudTd>
                 <div>
-                    <MudText Style="font-weight:600;color:#0f172a;font-size:13.5px;">@context.DisplayName</MudText>
-                    <MudText Typo="Typo.caption" Style="color:#94a3b8;">@context.DisplayAddress</MudText>
+                    <MudText Style="font-weight:600;color:#0f172a;font-size:13.5px;">@context.ReferenceName</MudText>
+                    <MudText Typo="Typo.caption" Style="color:#94a3b8;">@context.Properties.FirstOrDefault()?.FullAddress</MudText>
                 </div>
             </MudTd>
             <MudTd Style="font-weight:600;color:#0f2b4a;font-variant-numeric:tabular-nums;">
-                $@context.Terms.Principal
+                $@context.PrincipalAmount.ToString("N0")
             </MudTd>
             <MudTd Style="font-weight:600;color:#475569;font-variant-numeric:tabular-nums;">
-                @context.Terms.InterestRate%
+                @context.InterestRate%
             </MudTd>
             <MudTd Style="color:#475569;font-variant-numeric:tabular-nums;">
-                @context.Terms.Term mo
+                @context.TermInMonths months
             </MudTd>
             <MudTd>
-                <StatusBadge Status="@context.Status" />
+                <StatusBadge Status="@context.Status.ToString()" />
             </MudTd>
         </RowTemplate>
     </MudTable>
 
     <div class="d-flex align-center justify-space-between pa-3" style="border-top:1px solid #f1f5f9;">
         <MudText Typo="Typo.caption" Style="color:#94a3b8;">
-            Showing @VM.FilteredLoans.Count of @VM.AllLoans.Count loans
+            Showing @vm.FilteredLoans.Count of @vm.AgreementList.Count loans
         </MudText>
         <MudLink Href="/reportsnew" Typo="Typo.caption" Style="font-weight:600;">
             View all loans →
         </MudLink>
     </div>
 </MudPaper>
-
+}
+else
+{
+    <LoanAddEdit OnLoanAgreementComplete="OnLoanAgreementComplete" OnLoanAgreementCancel="OnLoanAgreementCanceled" SelectedAgreement="VM.SelectedAgreement" />
+}
 @code
 {
-   
+    private bool AddEdit = false;
 
-
-    private void RowClickEvent(TableRowClickEventArgs<DominateDocsSite.Models.Loan> args)
+    protected override async Task OnInitializedAsync()
     {
 
-        Nav.NavigateTo("/newloannew");
+        await vm.InitDashboardCommand.ExecuteAsync(null);
+
+    }
+
+
+    private void RowClickEvent(TableRowClickEventArgs<DominateDocsData.Models.LoanAgreement> args)
+    {
+
+        AddEdit = true;
+
+        vm.SelectedAgreement = args.Item;
+    
+        StateHasChanged();
+    }
+
+    private void OnLoanAgreementComplete()
+    {
+        AddEdit = false;
+
+        StateHasChanged();
+    }
+
+    private void OnLoanAgreementCanceled()
+    {
+
+        AddEdit = false;
+
+        StateHasChanged();
     }
 }

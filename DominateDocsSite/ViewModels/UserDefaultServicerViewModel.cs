@@ -80,9 +80,9 @@ public partial class UserDefaultServicerViewModel : ObservableObject
             MyServicerList.Add(EditingRecord);
         }
 
-        if (EditingRecord.ServicerCode is null)
+        if (EditingRecord.ReferenceCode is null)
         {
-            EditingRecord.ServicerCode = $"S-{DisplayHelper.GenerateIdCode().ToString()}";
+            EditingRecord.ReferenceCode = $"S-{DisplayHelper.GenerateIdCode().ToString()}";
         }
 
         await dbApp.UpSertRecordAsync<DominateDocsData.Models.Servicer>(EditingRecord);

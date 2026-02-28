@@ -135,7 +135,7 @@ else
                                    T="DominateDocsData.Enums.UsStates.UsState"
                                    Variant="Variant.Outlined"
                                    Label="Select State of Incorporation"
-                                   @bind-Value="vm.EditingRecord.StateOfIncorporation"
+                                   @bind-Value="vm.EditingRecord.StateOfOrganization"
                                    Dense="true">
 
                             @foreach (var tr in Enum.GetValues<DominateDocsData.Enums.UsStates.UsState>())
@@ -157,7 +157,7 @@ else
                                    T="DominateDocsData.Enums.Entity.ContactRoles"
                                    Variant="Variant.Outlined"
                                    Label="Contact's Role"
-                                   @bind-Value="vm.EditingRecord.ContactsRole"
+                                   @bind-Value="vm.EditingRecord.ContactTitle"
                                    Dense="true">
 
                             @foreach (var gt in Enum.GetValues<DominateDocsData.Enums.Entity.ContactRoles>())
@@ -300,12 +300,6 @@ else
                                      OwnerList="@vm.EditingRecord.EntityOwners" />
                     }
 
-                    <MudTextField Class="pl-4 mr-5"
-                                  Variant="Variant.Outlined"
-                                  @bind-Value="vm.EditingRecord.NmlsLicenseNumber"
-                                  Color="Color.Primary"
-                                  For="@(() => vm.EditingRecord.NmlsLicenseNumber)"
-                                  Label="NMLS License Number" />
 
                     <MudSwitch Class="pl-4 pr-4" T="bool" @bind-Value="vm.EditingRecord.IsStateLicense" Color="Color.Primary">State Lending Licenses(@(vm.EditingRecord.StateLicenses?.Count))</MudSwitch>
 
@@ -333,7 +327,7 @@ else
                     {
                         <AkaAlias OnAliasComplete="OnAliasComplete"
                                   OnAliasCanceled="OnAliasCanceled"
-                                  AliasList="@vm.EditingRecord.AliasNames" />
+                                  AliasList="@vm.EditingRecord.AliasNamesOld" />
                     }
 
                     <MudSwitch Class="pl-4 pr-4"
@@ -599,7 +593,7 @@ else
 
     private async Task OnAliasComplete(List<DominateDocsData.Models.AkaName> alias)
     {
-        vm.EditingRecord.AliasNames = alias;
+        vm.EditingRecord.AliasNamesOld = alias;
     }
 
     private async Task OnAliasCanceled()
@@ -607,7 +601,7 @@ else
         StateHasChanged();
     }
 
-    private async Task OnStateLicenseComplete(List<DominateDocsData.Models.StateLendingLicense> r)
+    private async Task OnStateLicenseComplete(List<DominateDocsData.Models.License> r)
     {
         vm.EditingRecord.StateLicenses = r;
     }

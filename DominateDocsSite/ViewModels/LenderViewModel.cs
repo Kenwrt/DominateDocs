@@ -74,6 +74,9 @@ public partial class LenderViewModel : ObservableObject
     [RelayCommand]
     private async Task UpsertRecord()
     {
+
+        EditingRecord.EnforceTypeIntegrity();
+
         if (EditingRecord.EntityType == Entity.Types.Individual && !string.IsNullOrEmpty(EditingRecord.ContactName))
         {
             EditingRecord.EntityName = EditingRecord.ContactName;
@@ -101,9 +104,9 @@ public partial class LenderViewModel : ObservableObject
             MyLenderList.Add(EditingRecord);
         }
 
-         if (EditingRecord.LenderCode is null)
+         if (EditingRecord.ReferenceCode is null)
         {
-            EditingRecord.LenderCode = $"L-{DisplayHelper.GenerateIdCode().ToString()}";
+            EditingRecord.ReferenceCode = $"L-{DisplayHelper.GenerateIdCode().ToString()}";
         }
 
 
@@ -151,7 +154,7 @@ public partial class LenderViewModel : ObservableObject
         EditingRecord = new DominateDocsData.Models.Lender()
         {
             UserId = userId,
-            LenderCode = $"L-{DisplayHelper.GenerateIdCode()}"
+            ReferenceCode = $"L-{DisplayHelper.GenerateIdCode()}"
 
         };
     }

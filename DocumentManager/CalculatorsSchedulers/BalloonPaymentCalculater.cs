@@ -20,7 +20,7 @@ public class BalloonPaymentCalculater : IBalloonPaymentCalculater
     /// </summary>
     ///
 
-    public BalloonPayments Generate(decimal principal, decimal annualRatePercent, int amortizationTermMonths, int balloonTermMonths, DateTime firstPaymentDate, int paymentsPerYear = 12)
+    public BalloonPayments Generate(decimal principal, decimal annualRatePercent, int amortizationTermMonths, int balloonTermMonths, DateOnly firstPaymentDate, int paymentsPerYear = 12)
     {
         BalloonPayments result;
         decimal scheduledPayment = 0m;
@@ -65,7 +65,7 @@ public class BalloonPaymentCalculater : IBalloonPaymentCalculater
                 rows.Add(new PaymentRow
                 {
                     MonthNumber = k,
-                    DueDate = AddMonthsSafe(firstPaymentDate, k - 1),
+                    DueDate = AddMonthsSafe(date: firstPaymentDate, months: k - 1).ToDateTime(TimeOnly.MinValue),
                     Payment = scheduledPayment,
                     Interest = interest,
                     Principal = principalPaid,
@@ -84,7 +84,7 @@ public class BalloonPaymentCalculater : IBalloonPaymentCalculater
                 rows.Add(new PaymentRow
                 {
                     MonthNumber = monthsToPay + 1,
-                    DueDate = AddMonthsSafe(firstPaymentDate, monthsToPay),
+                    DueDate = AddMonthsSafe(date: firstPaymentDate, months: monthsToPay).ToDateTime(TimeOnly.MinValue),
                     Payment = balloonAmount,
                     Interest = 0m,
                     Principal = balloonAmount,
@@ -117,9 +117,9 @@ public class BalloonPaymentCalculater : IBalloonPaymentCalculater
     private decimal Round(decimal v) => Math.Round(v, 2, MidpointRounding.AwayFromZero);
 
     // Keeps day-of-month stable; clamps to month-end if needed (e.g., from Jan 31 to Feb 28/29).
-    private DateTime AddMonthsSafe(DateTime date, int months)
+    private DateOnly AddMonthsSafe(DateOnly date, int months)
     {
-        DateTime target = date;
+        DateOnly target = date;
 
         try
         {
@@ -128,7 +128,7 @@ public class BalloonPaymentCalculater : IBalloonPaymentCalculater
             if (date.Day != target.Day)
             {
                 var dim = DateTime.DaysInMonth(target.Year, target.Month);
-                return new DateTime(target.Year, target.Month, Math.Min(date.Day, dim));
+                return new DateOnly(target.Year, target.Month, Math.Min(date.Day, dim));
             }
         }
         catch (Exception ex)

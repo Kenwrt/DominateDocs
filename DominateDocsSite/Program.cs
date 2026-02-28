@@ -280,19 +280,17 @@ builder.Services.TryAddScoped<UserDefaultLenderViewModel>();
 builder.Services.TryAddScoped<UserDefaultBrokerViewModel>();
 builder.Services.TryAddScoped<UserDefaultServicerViewModel>();
 builder.Services.TryAddScoped<TrusteeViewModel>();
+builder.Services.TryAddScoped<LoanWizardEntityOwnerViewModel>();
 
 
 // ViewModels (scoped per circuit)
 builder.Services.AddScoped<DashboardViewModelNew>();
-builder.Services.AddScoped<LoanWizardViewModelNew>();
-builder.Services.AddScoped<SettingsViewModelNew>();
-builder.Services.AddScoped<ReportsViewModelNew>();
-
-// Services
-builder.Services.AddSingleton<ISeedDataService, SeedDataService>();
-builder.Services.AddScoped<ILoanService, InMemoryLoanService>();
-builder.Services.AddScoped<IPartyService, InMemoryPartyService>();
-
+builder.Services.AddScoped<LoanWizardAddEditViewModel>();
+builder.Services.AddScoped<LoanWizardBorrowerViewModel>();
+builder.Services.AddScoped<LoanWizardBrokerViewModel>();
+builder.Services.AddScoped<LoanWizardGuarantorViewModel>();
+builder.Services.AddScoped<LoanWizardPropertyViewModel>();
+builder.Services.AddScoped<ReportsViewModel>();
 
 //Mongo Stuff
 BsonSerializer.RegisterSerializer(new GuidSerializer(GuidRepresentation.Standard));

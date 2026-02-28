@@ -9,7 +9,7 @@ namespace DominateDocsData.Models;
 
 [BsonIgnoreExtraElements]
 [Table("Liens")]
-public class StateLendingLicense
+public class License
 {
     [Key]
     [BsonId]

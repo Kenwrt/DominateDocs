@@ -26,7 +26,6 @@
                         <MudTh>Est. Value</MudTh>
                         <MudTh>Last Appraisal</MudTh>
                         <MudTh>Last Appraisal Value</MudTh>
-                        <MudTh></MudTh>
                         <MudTh>
                            <MudButton Class="rounded-4"
                                    Disabled="@AddButtonDisabled"
@@ -44,13 +43,8 @@
                     <MudTd DataLabel="Est. Value">@context.EstimatedValue</MudTd>
                     <MudTd DataLabel="Last Appraisal"> @context.LastAppraisalDate </MudTd>
                     <MudTd DataLabel="Last Appraisal Value">@context.LastAppraisedValue </MudTd>
-                        <MudTd DataLabel="Active">
-                        <MudChip T="bool" Color="@((context.IsActive) ? Color.Success : Color.Error)">
-                            @(context.IsActive ? "Yes" : "No")
-                            </MudChip>
-                        </MudTd>
-                        <MudTd>
-                        <MudButton Variant="Variant.Text"
+                    <MudTd>
+                    <MudButton Variant="Variant.Text"
                                    Size="Size.Small"
                                    Color="Color.Info"
                                    StartIcon="@Icons.Material.Filled.Edit"

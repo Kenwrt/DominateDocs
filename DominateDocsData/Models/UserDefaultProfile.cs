@@ -31,9 +31,21 @@ public class UserDefaultProfile
 
     public string LoanTypeName { get; set; } = string.Empty;
 
+    public LoanFeatures DefaultFeatures { get; set; } = new();
+
     public List<Guid> AvailableDocumentLibraryGuids { get; set; } = new();
 
     public Guid DefaultDocumentLibraryGuid { get; set; } = Guid.Parse("533fb231-20f3-4819-8d83-64ede387bd02");
 
-    public LoanTerms LoanTerms { get; set; } = new();
+    public string Principal { get; set; } = "2,000,000.00";
+    public Payment.RateTypes RateType { get; set; } = Payment.RateTypes.Fixed;
+    public string InterestRate { get; set; } = "12.00";
+    public string DefaultRate { get; set; } = "18.00";
+    public string LateChargePercent { get; set; } = "5.00";
+    public string LateChargeDays { get; set; } = "10";
+    public Payment.AmortizationTypes AmortType { get; set; } = Payment.AmortizationTypes.InterestOnly;
+    public Payment.Schedules RepaymentSchedule { get; set; } = Payment.Schedules.Monthly;
+    public string Term { get; set; } = "12";
+    public DateTime? OriginationDate { get; set; }
+    public DateTime? FirstPaymentDate { get; set; }
 }

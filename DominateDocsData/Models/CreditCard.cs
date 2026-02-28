@@ -16,9 +16,9 @@ public class CreditCard
     public string? CardNumber { get; set; }
     public string? CCV { get; set; }
 
-    [JsonConverter(typeof(StringEnumConverter))]
-    [BsonRepresentation(BsonType.String)]
-    public Enums.CreditCard.Types CardType { get; set; } = Enums.CreditCard.Types.MasterCard;
+    //[JsonConverter(typeof(StringEnumConverter))]
+    //[BsonRepresentation(BsonType.String)]
+    //public Enums.CreditCard.Types CardType { get; set; } = Enums.CreditCard.Types.MasterCard;
 
     public string? BillingAddress { get; set; }
     public string? BillingCity { get; set; }

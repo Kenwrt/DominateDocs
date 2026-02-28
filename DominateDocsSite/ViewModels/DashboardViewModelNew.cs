@@ -1,15 +1,40 @@
 using CommunityToolkit.Mvvm.ComponentModel;
-using DominateDocsSite.Models;
-using DominateDocsSite.Models.Enums;
+using CommunityToolkit.Mvvm.Input;
+using DominateDocsData.Database;
+using DominateDocsData.Enums;
+using DominateDocsData.Helpers;
+using DominateDocsData.Models;
 using DominateDocsSite.Services;
+using DominateDocsSite.State;
+using System.Collections.ObjectModel;
 
 namespace DominateDocsSite.ViewModels;
 
 public partial class DashboardViewModelNew : ObservableObject
 {
-    private readonly ILoanService _loanService;
+    [ObservableProperty]
+    private ObservableCollection<DominateDocsData.Models.LoanAgreement>? agreementList = new();
 
-    public DashboardViewModelNew(ILoanService loanService) => _loanService = loanService;
+    //[ObservableProperty]
+    //private ObservableCollection<DominateDocsData.Models.DocumentSet>? documentSets = new();
+
+    [ObservableProperty]
+    private DominateDocsData.Models.LoanAgreement editingAgreement = null;
+
+    [ObservableProperty]
+    private DominateDocsData.Models.LoanAgreement selectedAgreement = null;
+
+    [ObservableProperty]
+    private string totalPort = null; 
+
+    [ObservableProperty]
+    private string activeLoanCount = null;
+
+    [ObservableProperty]
+    private string pendingLoanCount = null;
+
+    [ObservableProperty]
+    private string averageInterestRate = null;
 
     [ObservableProperty] private string _statusFilter = "All";
 
@@ -23,18 +48,82 @@ public partial class DashboardViewModelNew : ObservableObject
         }
     }
 
-    public IReadOnlyList<Loan> AllLoans => _loanService.GetAll();
+    //private readonly ILoanService _loanService;
+    private Guid userId;
 
-    public IReadOnlyList<Loan> FilteredLoans => StatusFilter switch
+    private UserSession userSession;
+    private IApplicationStateManager appState;
+    private readonly IMongoDatabaseRepo dbApp;
+    private readonly ILogger<DashboardViewModelNew> logger;
+
+    private int nextLoanNumber = 0;
+
+    public DashboardViewModelNew(IMongoDatabaseRepo dbApp, ILogger<DashboardViewModelNew> logger, UserSession userSession, IApplicationStateManager appState)
     {
-        "Active" => AllLoans.Where(l => l.Status == LoanStatus.Active).ToList(),
-        "Pending" => AllLoans.Where(l => l.Status == LoanStatus.Pending).ToList(),
-        "Draft" => AllLoans.Where(l => l.Status == LoanStatus.Draft).ToList(),
-        _ => AllLoans.ToList()
+        this.dbApp = dbApp;
+        this.logger = logger;
+        this.userSession = userSession;
+        this.appState = appState;
+
+        //_loanService = loanService;
+        userId = userSession.UserId;
+    }
+
+
+    [RelayCommand]
+    private async Task InitDashboard()
+    {
+        if (userSession.UserRole == UserEnums.Roles.Admin.ToString() || userSession.UserRole == UserEnums.Roles.DevAdmin.ToString())
+        {
+            AgreementList = dbApp.GetRecords<DominateDocsData.Models.LoanAgreement>().ToObservableCollection();
+        }
+        else
+        {
+            AgreementList = dbApp.GetRecords<DominateDocsData.Models.LoanAgreement>().Where(x => x.UserId == userId).ToObservableCollection();
+        }
+
+        //  DocumentSets = new ObservableCollection<DominateDocsData.Models.DocumentSet>(dbApp.GetRecords<DominateDocsData.Models.DocumentSet>().Where(x => x.UserId == Guid.Parse(userSession.UserId)));
+
+        if (userSession.UserRole == UserEnums.Roles.Admin.ToString() || userSession.UserRole == UserEnums.Roles.DevAdmin.ToString())
+        {
+            if (AgreementList.Count > 0)
+            {
+                TotalPort = DisplayHelper.FormatDollarsCompact(AgreementList.Sum(c => c.PrincipalAmount));
+
+                ActiveLoanCount = AgreementList.Where(x => x.Status != DominateDocsData.Enums.Loan.Status.Approved).Count().ToString("#,0");
+
+                PendingLoanCount = AgreementList.Where(x => x.Status == DominateDocsData.Enums.Loan.Status.Pending).Count().ToString("#,0");
+
+                AverageInterestRate = ((AgreementList.Where(x => x.Status != DominateDocsData.Enums.Loan.Status.Cancelled).Sum(s => s.InterestRate) / AgreementList.Where(x => x.Status != DominateDocsData.Enums.Loan.Status.Cancelled).Count())).ToString("N2");
+            }
+        }
+        else
+        {
+            if (AgreementList.Count > 0)
+            {
+                TotalPort = DisplayHelper.FormatDollarsCompact(AgreementList.Where(x => x.UserId == userSession.UserId).Sum(c => c.PrincipalAmount));
+
+                ActiveLoanCount = AgreementList.Where(x => x.Status != DominateDocsData.Enums.Loan.Status.Approved && x.UserId == userSession.UserId).Count().ToString("#,0");
+
+                PendingLoanCount = AgreementList.Where(x => x.Status != DominateDocsData.Enums.Loan.Status.Pending && x.UserId == userSession.UserId).Count().ToString("#,0");
+
+                AverageInterestRate = ((AgreementList.Where(x => x.Status != DominateDocsData.Enums.Loan.Status.Cancelled && x.UserId == userSession.UserId).Sum(s => s.InterestRate) / AgreementList.Where(x => x.Status != DominateDocsData.Enums.Loan.Status.Cancelled).Count())).ToString("N2");
+            }
+        }
+    }
+
+
+
+    // public IReadOnlyList<DominateDocsData.Models.LoanAgreement> AllLoans => _loanService.GetAll();
+
+    public IReadOnlyList<DominateDocsData.Models.LoanAgreement> FilteredLoans => StatusFilter switch
+    {
+        "Active" => AgreementList.Where(l => l.Status == Loan.Status.Active).ToList(),
+        "Pending" => AgreementList.Where(l => l.Status == Loan.Status.Pending).ToList(),
+        _ => AgreementList.ToList()
     };
 
-    public decimal TotalPortfolio => AllLoans
-        .Sum(l => decimal.TryParse(l.Terms.Principal.Replace(",", ""), out var v) ? v : 0);
+    public decimal TotalPortfolio => AgreementList?.Sum(l => l.PrincipalAmount) ?? 0;
 
     public string TotalPortfolioDisplay
     {
@@ -49,13 +138,20 @@ public partial class DashboardViewModelNew : ObservableObject
     {
         get
         {
-            var rates = AllLoans.Select(l => decimal.TryParse(l.Terms.InterestRate, out var r) ? r : 0).Where(r => r > 0).ToList();
-            return rates.Count != 0 ? $"{rates.Average():F1}%" : "—";
+            if (AgreementList == null || !AgreementList.Any()) return "-";
+
+            // Select the decimal values directly, filter for those > 0
+            var rates = AgreementList
+                .Select(l => l.InterestRate)
+                .Where(r => r > 0)
+                .ToList();
+
+            return rates.Count != 0 ? $"{rates.Average():F1}%" : "-";
         }
     }
 
-    public int ActiveCount => AllLoans.Count(l => l.Status == LoanStatus.Active);
-    public int PendingCount => AllLoans.Count(l => l.Status == LoanStatus.Pending || l.Status == LoanStatus.InReview);
+    public int ActiveCount => AgreementList.Count(l => l.Status == Loan.Status.Active);
+    public int PendingCount => AgreementList.Count(l => l.Status == Loan.Status.Pending);
 
     public void SetFilter(string filter)
     {

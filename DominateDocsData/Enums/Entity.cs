@@ -4,8 +4,14 @@ public class Entity
 {
     public enum ContactRoles
     {
+        [System.ComponentModel.Description("None")]
+        None,
+
         [System.ComponentModel.Description("Member")]
         Member,
+
+        [System.ComponentModel.Description("Owner")]
+        Owner,
 
         [System.ComponentModel.Description("President")]
         Presidcent,
@@ -37,8 +43,12 @@ public class Entity
 
     public enum Types
     {
+       
         [System.ComponentModel.Description("Individual")]
         Individual,
+
+        [System.ComponentModel.Description("Trust")]
+        Trust,
 
         [System.ComponentModel.Description("Entity")]
         Entity
@@ -46,6 +56,9 @@ public class Entity
 
     public enum Structures
     {
+        [System.ComponentModel.Description("None")]
+        None,
+
         [System.ComponentModel.Description("Limited Liability Company")]
         LLC,
 
@@ -61,4 +74,6 @@ public class Entity
         [System.ComponentModel.Description("Trust")]
         Trust
     }
+
+  
 }

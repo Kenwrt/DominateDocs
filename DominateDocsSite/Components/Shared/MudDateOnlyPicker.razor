@@ -1,0 +1,32 @@
+﻿@using MudBlazor
+
+<MudDatePicker Label="@Label"
+               Variant="@Variant"
+               Class="@Class"
+               Date="@DateTimeValue"
+               DateChanged="OnDateChangedEvent"
+               Placeholder="@Placeholder"
+               Editable="@Editable"
+               Clearable="@Clearable" />
+
+@code {
+    [Parameter] public string Label { get; set; }
+    [Parameter] public Variant Variant { get; set; } = Variant.Text;
+    [Parameter] public string Class { get; set; }
+    [Parameter] public string Placeholder { get; set; }
+    [Parameter] public bool Editable { get; set; } = false;
+    [Parameter] public bool Clearable { get; set; } = false;
+
+    [Parameter] public DateOnly? Date { get; set; }
+    [Parameter] public EventCallback<DateOnly?> DateChanged { get; set; }
+
+    // Convert DateOnly? to DateTime? for the internal MudDatePicker
+    private DateTime? DateTimeValue => Date?.ToDateTime(TimeOnly.MinValue);
+
+    // Convert DateTime? back to DateOnly? when the user picks a date
+    private async Task OnDateChangedEvent(DateTime? newDate)
+    {
+        Date = newDate.HasValue ? DateOnly.FromDateTime(newDate.Value) : null;
+        await DateChanged.InvokeAsync(Date);
+    }
+}

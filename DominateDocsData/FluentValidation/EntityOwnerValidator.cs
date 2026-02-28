@@ -7,16 +7,16 @@ public class EntityOwnerValidator : AbstractValidator<EntityOwner>
 {
     public EntityOwnerValidator()
     {
-        RuleFor(x => x.Name)
+        RuleFor(x => x.EntityName)
             .NotEmpty().WithMessage("Contact name is required")
             .MaximumLength(60);
 
-        RuleFor(x => x.Email)
+        RuleFor(x => x.ContactEmail)
             .NotEmpty().WithMessage("Contact email is required")
             .EmailAddress().WithMessage("Invalid email address")
             .MaximumLength(60);
 
-        RuleFor(x => x.PhoneNumber)
+        RuleFor(x => x.ContactPhoneNumber)
             .NotEmpty().WithMessage("Contact phone is required")
             .MaximumLength(12);
 

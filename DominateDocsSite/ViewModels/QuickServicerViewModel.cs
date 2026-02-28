@@ -63,6 +63,8 @@ public partial class QuickServicerViewModel : ObservableObject
     [RelayCommand]
     private async Task UpsertRecord()
     {
+        EditingRecord.EnforceTypeIntegrity();
+
         if (EditingRecord.EntityType == Entity.Types.Individual && !String.IsNullOrEmpty(EditingRecord.ContactName))
         {
             EditingRecord.EntityName = EditingRecord.ContactName;
@@ -135,7 +137,7 @@ public partial class QuickServicerViewModel : ObservableObject
         EditingRecord = new DominateDocsData.Models.Servicer()
         {
             UserId = userId,
-            ServicerCode = $"S-{DisplayHelper.GenerateIdCode()}"
+            ReferenceCode = $"S-{DisplayHelper.GenerateIdCode()}"
         };
     }
 }

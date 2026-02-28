@@ -1,11 +1,12 @@
 ﻿using DominateDocsData.Enums;
+using System.Xml;
 
 namespace DominateDocsData.Models;
 
-public interface IPartyNames
+public interface IPartyNames 
 {
-    string EntityName { get; }
-    public Entity.Types EntityType { get; }
-    string StateOfIncorporationDescription { get; }
+    new string EntityName { get; }
+    new DominateDocsData.Enums.Entity.Types EntityType { get; }
+    string StateOfOrganizationDescription { get; }
     string EntityStructureDescription { get; }
 }

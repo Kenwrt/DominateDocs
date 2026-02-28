@@ -9,7 +9,6 @@ using System.ComponentModel.DataAnnotations.Schema;
 namespace DominateDocsData.Models;
 
 [BsonIgnoreExtraElements]
-[Table("FeeToBePaid")]
 public class FeeToBePaid
 {
     [Key]
@@ -23,10 +22,14 @@ public class FeeToBePaid
 
     public string Description { get; set; }
 
-    public decimal FeeAmmount { get; set; }
+    public decimal Ammount { get; set; }
+
+    public string OwedTo { get; set; } = string.Empty;
+
+    public string Notes { get; set; } = string.Empty;
 
     [JsonConverter(typeof(StringEnumConverter))]
     [BsonRepresentation(BsonType.String)]
     [DataType(DataType.Text)]
-    public Payment.FeesPaidToOptions FeesPaidToOption { get; set; } = Payment.FeesPaidToOptions.PaymentDefferedUntilAfterClosing;
+    public Payment.FeeTypes FeeType { get; set; } = Payment.FeeTypes.Origination;
 }

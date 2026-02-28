@@ -92,7 +92,7 @@ public partial class UserDefaultProfileViewModel : ObservableObject
             {
                 CurrentUserId = userSession.UserId;
             }
-            
+
             // 1) Load loan types (used regardless of profile existence)
             var types = dbApp.GetRecords<DominateDocsData.Models.LoanType>().Select(x => new LoanTypeListDTO(x.Id, x.Name, x.Description, x.IconKey)).ToList();
 
@@ -109,13 +109,13 @@ public partial class UserDefaultProfileViewModel : ObservableObject
                 profile = new UserProfile
                 {
                     UserId = CurrentUserId,
-                   
+
                 };
 
                 // Persist immediately so the UI/components can rely on it existing.
                 await dbApp.UpSertRecordAsync(profile);
             }
-            
+
             EditingUserProfile = profile;
             SelectedProfile = profile;
 
@@ -153,7 +153,7 @@ public partial class UserDefaultProfileViewModel : ObservableObject
 
         // Defensive
         EditingUserProfile.LoanDefaults ??= new LoanDefaults();
-       
+
     }
 
     [RelayCommand]
@@ -200,7 +200,7 @@ public partial class UserDefaultProfileViewModel : ObservableObject
     private void SelectLoanType(LoanTypeListDTO r)
     {
         EditingUserProfile.LoanDefaults ??= new LoanDefaults();
-      
+
         EditingUserProfile.LoanDefaults.LoanTypeId = r.Id;
         EditingUserProfile.LoanDefaults.LoanTypeName = r.Name;
     }
@@ -217,9 +217,9 @@ public partial class UserDefaultProfileViewModel : ObservableObject
         EditingUserProfile = new UserProfile
         {
             UserId = CurrentUserId,
-           
+
         };
 
-       
+
     }
 }

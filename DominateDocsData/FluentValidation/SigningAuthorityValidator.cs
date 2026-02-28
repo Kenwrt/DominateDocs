@@ -7,20 +7,17 @@ public class SigningAuthorityValidator : AbstractValidator<SigningAuthority>
 {
     public SigningAuthorityValidator()
     {
-        RuleFor(x => x.Title)
-            .NotEmpty().WithMessage("Title is required")
-            .MaximumLength(60);
-
-        RuleFor(x => x.Email)
+       
+        RuleFor(x => x.ContactEmail)
             .NotEmpty().WithMessage("Email is required")
             .EmailAddress().WithMessage("Invalid email address")
             .MaximumLength(60);
 
-        RuleFor(x => x.PhoneNumber)
+        RuleFor(x => x.ContactPhoneNumber)
             .NotEmpty().WithMessage("Phone Number is required")
             .MaximumLength(12);
 
-        RuleFor(x => x.Name)
+        RuleFor(x => x.EntityName)
             .NotEmpty().WithMessage("Name is required")
             .MaximumLength(120);
 

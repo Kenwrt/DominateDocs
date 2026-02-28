@@ -8,42 +8,29 @@ using System.ComponentModel.DataAnnotations;
 namespace DominateDocsData.Models;
 
 [BsonIgnoreExtraElements]
-public class Trustee : IOwnershipNames
+public class Trustee : EntityBase, IPartyNames
 {
-    [Key]
-    [BsonId]
-    [Required]
-    public Guid Id { get; set; } = Guid.NewGuid();
 
-    public Guid UserId { get; set; }
+    //Entity Base Class Plus
 
-    public string Name { get; set; }
+    public void EnforceTypeIntegrity()
+    {
+        switch (EntityType)
+        {
+            case Entity.Types.Individual:
+                EntityStructure = Entity.Structures.None;
+                Trustees?.Clear();
+                break;
 
-    public string Email { get; set; }
+            case Entity.Types.Trust:
+                EntityStructure = Entity.Structures.None;
+                EntityOwners?.Clear();
+                break;
 
-    public string PhoneNumber { get; set; }
+            case Entity.Types.Entity:
+                Trustees?.Clear();
+                break;
+        }
+    }
 
-    public string FullAddress { get; set; }
-
-    public string StreetAddress { get; set; }
-
-    public string City { get; set; }
-
-    public string State { get; set; }
-
-    public string ZipCode { get; set; }
-
-    public string County { get; set; }
-
-    public string Country { get; set; }
-
-    public double? Lat { get; set; }
-    public double? Lng { get; set; }
-
-    [JsonConverter(typeof(StringEnumConverter))]
-    [BsonRepresentation(BsonType.String)]
-    [DataType(DataType.Text)]
-    public Entity.ContactRoles TrusteeRole { get; set; } = Entity.ContactRoles.Manager;
-       
-    public List<AkaName> Aliases { get; set; } = new();
 }

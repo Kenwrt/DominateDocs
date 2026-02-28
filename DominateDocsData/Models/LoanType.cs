@@ -14,6 +14,10 @@ public class LoanType
 
     public string Description { get; set; } = "";
 
+    public bool IsBridge { get; set; } = false;
+
+    public bool IsDSCR { get; set; } = false;
+
     public string  IconKey { get; set; } = "";
     
     public List<Guid> DefaultDocumentIds { get; set; } = new();

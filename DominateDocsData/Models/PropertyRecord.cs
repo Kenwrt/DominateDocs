@@ -1,6 +1,7 @@
 ﻿namespace DominateDocsData.Models;
 
 using DominateDocsData.Enums;
+using LiquidDocsData.Models;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
 using Newtonsoft.Json;
@@ -57,11 +58,15 @@ public class PropertyRecord : IPropertyAddresses
 
     public List<Lien> Liens { get; set; }
 
-    public DateTime? LastAppraisalDate { get; set; }
+    public bool HasLiens => Liens?.Any() == true;
+    public bool HasPropertyOwners => PropertyOwners?.Any() == true;
+  
+
+    public DateOnly? LastAppraisalDate { get; set; }
 
     public bool IsOwnerOccupied { get; set; } = false;
 
-    public DateTime PurchaseDate { get; set; }
+    public DateOnly? PurchaseDate { get; set; }
 
     public decimal PurchasePrice { get; set; }
 
@@ -69,11 +74,16 @@ public class PropertyRecord : IPropertyAddresses
 
     public decimal PropertyTax { get; set; }
 
-    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public DateOnly? CreatedAt { get; set; }
 
     public string? Notes { get; set; }
 
-    public bool IsActive { get; set; } = true;
+
+    public bool IsPropertyOwnerSameAsBorrower { get; set; } = true;
+
+    public bool IsPropertyOwnerSameAsGuarantor { get; set; } = true;
+
+    public bool IsPropertyOwnerThridPartyOwner { get; set; } = true;
 
     public string TitleDocumentNumber { get; set; }
 
@@ -83,14 +93,16 @@ public class PropertyRecord : IPropertyAddresses
 
     public string AdditionalTitleEndorsmentRequested { get; set; }
 
-    public DateTime? TitleReportEffectiveDate { get; set; }
+    public DateOnly? TitleReportEffectiveDate { get; set; }
 
     public bool IsReduceTitleCoverAmount { get; set; } = false;
 
     public bool IsPropertyOwnerDisplay { get; set; } = false;
 
+    public bool HasEntityOweners => EntityOwners?.Any() == true;
     public List<EntityOwner> EntityOwners { get; set; } = new();
     public string EntityOwnersFormatted { get; set; }
 
     public string SignatureLinesFormatted { get; set; }
+
 }

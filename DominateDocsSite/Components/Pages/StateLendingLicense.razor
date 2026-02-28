@@ -106,9 +106,9 @@ else
 @code
 {
 
-    [Parameter] public EventCallback<List<DominateDocsData.Models.StateLendingLicense>> OnStateLicenseComplete { get; set; }
+    [Parameter] public EventCallback<List<DominateDocsData.Models.License>> OnStateLicenseComplete { get; set; }
     [Parameter] public EventCallback OnStateLicenseCanceled { get; set; }
-    [Parameter] public List<DominateDocsData.Models.StateLendingLicense> StateLicenseList { get; set; }
+    [Parameter] public List<DominateDocsData.Models.License> StateLicenseList { get; set; }
 
     private MudForm form;
 
@@ -155,7 +155,7 @@ else
         
     }
 
-    private async Task DeleteRecordAsync(DominateDocsData.Models.StateLendingLicense r)
+    private async Task DeleteRecordAsync(DominateDocsData.Models.License r)
     {
 
         vm.DeleteRecordCommand.Execute(r);  
@@ -187,7 +187,7 @@ else
     }
 
    
-    private void OnSelectedRecord(DominateDocsData.Models.StateLendingLicense r)
+    private void OnSelectedRecord(DominateDocsData.Models.License r)
     {
 
         if (r is not null) vm.SelectRecordCommand.Execute(r);

@@ -202,7 +202,7 @@ public sealed class LoanWorker : WorkerPoolBackgroundService<LoanJob>
             {
                 b.FormattedName = BuildPartyFormattedName(b);
                 b.SigningAuthoritiesFormatted = BuildSigningAuthorities(b.SigningAuthorities);
-                b.AliasNamesFormatted = BuildAliasNames(b.AliasNames);
+                b.AliasNamesFormatted = BuildAliasNames(b.AliasNamesOld);
                 b.EntityOwnersFormatted = BuildEntityOwners(b.EntityOwners);
                 // SignatureLinesFormatted intentionally not generated (you said you do this in-doc)
             }
@@ -221,7 +221,7 @@ public sealed class LoanWorker : WorkerPoolBackgroundService<LoanJob>
             {
                 b.FormattedName = BuildPartyFormattedName(b);
                 b.SigningAuthoritiesFormatted = BuildSigningAuthorities(b.SigningAuthorities);
-                b.AliasNamesFormatted = BuildAliasNames(b.AliasNames);
+                b.AliasNamesFormatted = BuildAliasNames(b.AliasNamesOld);
                 b.EntityOwnersFormatted = BuildEntityOwners(b.EntityOwners);
             }
 
@@ -239,7 +239,7 @@ public sealed class LoanWorker : WorkerPoolBackgroundService<LoanJob>
             {
                 g.FormattedName = BuildPartyFormattedName(g);
                 g.SigningAuthoritiesFormatted = BuildSigningAuthorities(g.SigningAuthorities);
-                g.AliasNamesFormatted = BuildAliasNames(g.AliasNames);
+                g.AliasNamesFormatted = BuildAliasNames(g.AliasNamesOld);
                 g.EntityOwnersFormatted = BuildEntityOwners(g.EntityOwners);
             }
 
@@ -262,7 +262,7 @@ public sealed class LoanWorker : WorkerPoolBackgroundService<LoanJob>
                     {
                         owner.FormattedName = BuildPartyFormattedName(owner);
                         owner.SigningAuthoritiesFormatted = BuildSigningAuthorities(owner.SigningAuthorities);
-                        owner.AliasNamesFormatted = BuildAliasNames(owner.AliasNames);
+                        owner.AliasNamesFormatted = BuildAliasNames(owner.AliasNamesOld);
                         owner.EntityOwnersFormatted = BuildEntityOwners(owner.EntityOwners);
                     }
 
@@ -284,27 +284,25 @@ public sealed class LoanWorker : WorkerPoolBackgroundService<LoanJob>
         }
     }
 
-    private static string BuildPartyFormattedName(IPartyNames p)
+    private static string BuildPartyFormattedName(DominateDocsData.Models.IPartyNames p)
     {
-        var isIndividual = p.EntityType == Entity.Types.Individual;
+        var isIndividual = p.EntityType == DominateDocsData.Enums.Entity.Types.Individual;
 
         if (isIndividual)
             return $"{p.EntityName} a {p.EntityType}".Trim();
 
-        return $"{p.EntityName} a {p.StateOfIncorporationDescription} {p.EntityStructureDescription}".Trim();
+        return $"{p.EntityName} a {p.StateOfOrganizationDescription} {p.EntityStructureDescription}".Trim();
     }
 
     private static string BuildLenderFormattedName(Lender p)
     {
         var baseLine = BuildPartyFormattedName(p);
 
-        if (!string.IsNullOrWhiteSpace(p.NmlsLicenseNumber))
-            return $"{baseLine} (CFL License No.{p.NmlsLicenseNumber})";
-
+        
         return baseLine;
     }
 
-    private static string BuildPartyNames<T>(IEnumerable<T> parties) where T : IPartyNames
+    private static string BuildPartyNames<T>(IEnumerable<T> parties) where T : DominateDocsData.Models.IPartyNames
     {
         if (parties is null) return string.Empty;
 
@@ -395,10 +393,10 @@ public sealed class LoanWorker : WorkerPoolBackgroundService<LoanJob>
 
         foreach (var p in parties)
         {
-            if (string.IsNullOrWhiteSpace(p?.Name) && string.IsNullOrWhiteSpace(p?.Title))
+            if (string.IsNullOrWhiteSpace(p?.ContactName) && string.IsNullOrWhiteSpace(p?.ContactTitle.GetDescription()))
                 continue;
 
-            var line = $"{p.Name} as {p.Title}".Trim();
+            var line = $"{p.ContactName} as {p.ContactTitle.GetDescription()}".Trim();
 
             if (first)
             {
@@ -451,10 +449,10 @@ public sealed class LoanWorker : WorkerPoolBackgroundService<LoanJob>
 
         foreach (var p in parties)
         {
-            if (string.IsNullOrWhiteSpace(p?.Name))
+            if (string.IsNullOrWhiteSpace(p?.EntityName))
                 continue;
 
-            var line = $"{p.Name} a {p.PercentOfOwnership}% owner".Trim();
+            var line = $"{p.EntityName} a {p.PercentOfOwnership}% owner".Trim();
 
             if (first)
             {

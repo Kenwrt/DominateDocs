@@ -79,9 +79,9 @@ public partial class UserDefaultLenderViewModel : ObservableObject
             MyLenderList.Add(EditingRecord);
         }
 
-        if (EditingRecord.LenderCode is null)
+        if (EditingRecord.ReferenceCode is null)
         {
-            EditingRecord.LenderCode = $"L-{DisplayHelper.GenerateIdCode().ToString()}";
+            EditingRecord.ReferenceCode = $"L-{DisplayHelper.GenerateIdCode().ToString()}";
         }
 
     await dbApp.UpSertRecordAsync<DominateDocsData.Models.Lender>(EditingRecord);

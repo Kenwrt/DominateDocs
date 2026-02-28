@@ -181,14 +181,14 @@
                             @if (vm.EditingAgreement.RateType == Payment.RateTypes.Variable)
                             {
 
-                                <MudSelect Class="" Variant="Variant.Outlined" T="Payment.Schedules" @bind-Value="vm.EditingAgreement.VariableInterestProperties.AdjustmentInterval" Label="Adjustment Intervals">
+                                <MudSelect Class="" Variant="Variant.Outlined" T="Payment.Schedules" @bind-Value="vm.EditingAgreement.AdjustmentInterval" Label="Adjustment Intervals">
                                     @foreach (var v in Enum.GetValues<Payment.Schedules>())
                                     {
                                         <MudSelectItem Value="v">@v</MudSelectItem>
                                     }
                                 </MudSelect>
 
-                                <MudSelect Class="" Variant="Variant.Outlined" T="Payment.IndexPaths" @bind-Value="vm.EditingAgreement.VariableInterestProperties.AssumedIndexPath" Label="Assumed Index Path">
+                                <MudSelect Class="" Variant="Variant.Outlined" T="Payment.IndexPaths" @bind-Value="vm.EditingAgreement.AssumedIndexPath" Label="Assumed Index Path">
                                     @foreach (var v in Enum.GetValues<Payment.IndexPaths>())
                                     {
                                         <MudSelectItem Value="v">@v</MudSelectItem>
@@ -196,7 +196,7 @@
                                 </MudSelect>
                             }
 
-                            <MudDatePicker Variant="Variant.Outlined" @bind-Date="vm.EditingAgreement.OriginationDate" Label="Origination Date" />
+                            <MudDateOnlyPicker Variant="Variant.Outlined" @bind-Date="vm.EditingAgreement.OriginationDate" Label="Origination Date" />
 
                         </div>
 

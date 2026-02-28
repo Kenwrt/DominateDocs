@@ -59,9 +59,9 @@ public class LoanAgreementDTO
 
     public decimal ReserveSpecificAmount { get; set; }
 
-    public DateTime? OriginationDate { get; set; }
+    public DateOnly? OriginationDate { get; set; }
 
-    public DateTime? MaturityDate { get; set; }
+    public DateOnly? MaturityDate { get; set; }
 
     public bool IsTaxInsuranceOtherImpounds { get; set; } = false;
 
@@ -131,7 +131,7 @@ public class LoanAgreementDTO
 
     public string ClosingContactEmail { get; set; }
 
-    public DateTime? SignedDate { get; set; }
+    public DateOnly? SignedDate { get; set; }
 
     public BorrowerDTO Borrowers { get; set; } = new();
 

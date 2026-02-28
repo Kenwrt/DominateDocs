@@ -8,44 +8,35 @@ using System.ComponentModel.DataAnnotations;
 namespace DominateDocsData.Models;
 
 [BsonIgnoreExtraElements]
-public class EntityOwner : IOwnershipNames
+public class EntityOwner : EntityBase, IPartyNames
 {
-    [Key]
-    [BsonId]
-    [Required]
-    public Guid Id { get; set; } = Guid.NewGuid();
-
-    public Guid UserId { get; set; }
-
-    public string Name { get; set; }
-
-    public string Email { get; set; }
-
-    public string PhoneNumber { get; set; }
-
-    public string FullAddress { get; set; }
-
-    public string StreetAddress { get; set; }
-
-    public string City { get; set; }
-
-    public string State { get; set; }
-
-    public string ZipCode { get; set; }
-
-    public string County { get; set; }
-
-    public string Country { get; set; }
-
-    public double? Lat { get; set; }
-    public double? Lng { get; set; }
+    //Entity Base Class Plus   
 
     [JsonConverter(typeof(StringEnumConverter))]
     [BsonRepresentation(BsonType.String)]
     [DataType(DataType.Text)]
-    public Entity.ContactRoles EntityRole { get; set; } = Entity.ContactRoles.Manager;
+    public Entity.ContactRoles OwnersRole { get; set; } = Entity.ContactRoles.Owner;
 
-    public int PercentOfOwnership { get; set; }
+    public decimal? PercentOfOwnership { get; set; }
 
-    public List<AkaName> Aliases { get; set; } = new();
+
+    public void EnforceTypeIntegrity()
+    {
+        switch (EntityType)
+        {
+            case Entity.Types.Individual:
+                EntityStructure = Entity.Structures.None;
+                Trustees?.Clear();
+                break;
+
+            case Entity.Types.Trust:
+                EntityStructure = Entity.Structures.None;
+                EntityOwners?.Clear();
+                break;
+
+            case Entity.Types.Entity:
+                Trustees?.Clear();
+                break;
+        }
+    }
 }

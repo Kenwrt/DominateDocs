@@ -39,7 +39,7 @@ namespace LiquidDocsData.Models
         [JsonConverter(typeof(StringEnumConverter))]
         [BsonRepresentation(BsonType.String)]
         [DataType(DataType.Text)]
-        public UsStates.UsState StateOfIncorporation { get; set; }
+        public UsStates.UsState StateOfOrganization { get; set; }
 
         // Primary contact
         public string ContactName { get; set; }

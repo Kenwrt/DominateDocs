@@ -1,11 +1,11 @@
 @page "/reportsnew"
 
-@using DominateDocsSite.Models
-@using DominateDocsSite.Models.Enums
+@using DominateDocsData.Models
+@using DominateDocsData.Models.Enums
 @using DominateDocsSite.ViewModels
 
 
-@inject ReportsViewModelNew VM
+@inject ReportsViewModel vm
 
 <PageTitle>Dominate Docs — Reports</PageTitle>
 
@@ -24,10 +24,10 @@
     <MudTextField T="string" Placeholder="Search by loan name, borrower, property address..."
                   Variant="Variant.Outlined" Adornment="Adornment.Start"
                   AdornmentIcon="@Icons.Material.Filled.Search"
-                  Value="@VM.SearchQuery" ValueChanged="@(v => VM.Search(v))"
+                  Value="@vm.SearchQuery" ValueChanged="@(v => vm.Search(v))"
                   Immediate="true" DebounceInterval="300"
                   Style="flex:1;" />
-    <MudChipSet T="string" SelectedValueChanged="@(v => VM.SetFilter(v ?? "All"))"
+    <MudChipSet T="string" SelectedValueChanged="@(v => vm.SetFilter(v ?? "All"))"
                 SelectionMode="SelectionMode.SingleSelection">
         <MudChip T="string" Value="@("All")" Default="true" Size="Size.Small" Variant="Variant.Text"
                  Style="font-size:12px;">All</MudChip>
@@ -35,14 +35,13 @@
                  Style="font-size:12px;">Active</MudChip>
         <MudChip T="string" Value="@("Closed")" Size="Size.Small" Variant="Variant.Text"
                  Style="font-size:12px;">Closed</MudChip>
-        <MudChip T="string" Value="@("Archived")" Size="Size.Small" Variant="Variant.Text"
-                 Style="font-size:12px;">Archived</MudChip>
+       
     </MudChipSet>
 </div>
 
 @* ── Loans Table ── *@
 <MudPaper Elevation="0" Style="border:1px solid #e2e8f0;border-radius:12px;overflow:hidden;">
-    <MudTable Items="@VM.FilteredLoans" Hover="true" Dense="true" RowClass="cursor-pointer"
+    <MudTable Items="@vm.FilteredLoans" Hover="true" Dense="true" RowClass="cursor-pointer"
               Style="font-size:13.5px;" Loading="false" FixedHeader="true">
         <HeaderContent>
             <MudTh Style="@_thStyle">Loan Name</MudTh>
@@ -56,28 +55,28 @@
         <RowTemplate>
             <MudTd>
                 <div>
-                    <MudText Style="font-weight:600;color:#0f172a;font-size:13.5px;">@context.DisplayName</MudText>
-                    <MudText Typo="Typo.caption" Style="color:#94a3b8;">@TruncateAddress(context.DisplayAddress)</MudText>
+                    <MudText Style="font-weight:600;color:#0f172a;font-size:13.5px;">@context.ReferenceName</MudText>
+                    <MudText Typo="Typo.caption" Style="color:#94a3b8;">@TruncateAddress(context.Properties.Select(x => x.FullAddress).FirstOrDefault()?? "Address Unknown")</MudText>
                 </div>
             </MudTd>
             <MudTd Style="font-size:13px;color:#475569;">
-                @(context.Borrowers.FirstOrDefault()?.Name ?? "—")
+                @(context.Borrowers.FirstOrDefault()?.EntityName ?? "—")
             </MudTd>
             <MudTd Style="font-weight:600;color:#0f2b4a;font-variant-numeric:tabular-nums;">
-                $@context.Terms.Principal
+                $@context.PrincipalAmount
             </MudTd>
             <MudTd Style="font-size:13px;color:#94a3b8;">
-                @context.CreatedDate.ToString("MMM d, yyyy")
+                @context.OriginationDate
             </MudTd>
             <MudTd>
-                <StatusBadge Status="@context.Status" />
+                <StatusBadge Status="@context.Status.GetDescription()" />
             </MudTd>
             <MudTd>
                 <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined"
                          Style="background:#f6f8fb;font-size:12px;font-weight:600;color:#475569;">
-                    <MudIcon Icon="@Icons.Material.Filled.Description" Size="Size.Small" Class="mr-1"
+                   @*  <MudIcon Icon="@Icons.Material.Filled.Description" Size="Size.Small" Class="mr-1"
                              Style="font-size:14px;" />
-                    @GetDocCount(context) docs
+                    @GetDocCount(context) docs *@
                 </MudChip>
             </MudTd>
             <MudTd>
@@ -102,7 +101,7 @@
 
     <div class="d-flex align-center justify-space-between pa-3" style="border-top:1px solid #f1f5f9;">
         <MudText Typo="Typo.caption" Style="color:#94a3b8;">
-            Showing @VM.FilteredLoans.Count of @VM.AllLoans.Count loans
+            Showing @vm.FilteredLoans.Count of @vm.AgreementList.Count loans
         </MudText>
         <MudLink Typo="Typo.caption" Style="font-weight:600;cursor:pointer;">
             Load more →
@@ -116,11 +115,11 @@
     private static string TruncateAddress(string address) =>
         address.Length > 35 ? address[..35] + "..." : address;
 
-    private static int GetDocCount(DominateDocsSite.Models.Loan loan) => loan.Status switch
-    {
-        LoanStatus.Active => 12,
-        LoanStatus.InReview => 6,
-        LoanStatus.Pending => 8 + Random.Shared.Next(0, 3),
-        _ => 4
-    };
+    // private static int GetDocCount(List<DominateDocsData.Models.LoanAgreement> loans) => loan.Status switch
+    // {
+    //     Loan.Status.Active => loan.Where(x => x.Status == Loan.Status.Active).Count(),
+    //     LoanStatus.InReview => 6,
+    //     LoanStatus.Pending => 8 + Random.Shared.Next(0, 3),
+    //     _ => 4
+    // };
 }

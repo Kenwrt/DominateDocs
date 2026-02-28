@@ -1,0 +1,176 @@
+﻿@using System.Text
+@using DominateDocsData.Models
+@using System.Globalization
+@using System.Collections.ObjectModel
+@using DominateDocsData.Models.MergeDTOs
+@using DominateDocsData.Helpers
+
+@rendermode InteractiveServer
+@inject LoanWizardEntityOwnerViewModel vm
+@inject ISnackbar Snackbar
+@inject EntityOwnerValidator EntityOwnerValidator
+
+<MudForm Context="contextA" Model="@vm.EditingRecord" @ref="@form" Validation="@EntityOwnerValidator" ValidationDelay="0">
+    <MudPaper Outlined="true" Class="pa-3 mt-2" Style="border-radius:8px; background:#f8fafc;">
+
+        @* ── Main row: Name | Email | Title | [% if not Trustee] | X ── *@
+        <MudStack Row="true" AlignItems="AlignItems.Start" Spacing="2">
+            <MudTextField @bind-Value="vm.EditingRecord.EntityName"
+                          Label="Name *"
+                          Variant="Variant.Outlined"
+                          Margin="Margin.Dense"
+                          Required="true"
+                          Style="flex:2;"
+                          Immediate="true" />
+
+            <MudTextField @bind-Value="vm.EditingRecord.ContactEmail"
+                          Label="Email *"
+                          Variant="Variant.Outlined"
+                          Margin="Margin.Dense"
+                          Required="true"
+                          Style="flex:2;"
+                          Immediate="true" />
+
+            <MudSelect T="DominateDocsData.Enums.Entity.ContactRoles"
+                       @bind-Value="vm.EditingRecord.ContactTitle"
+                       Label="Title"
+                       Variant="Variant.Outlined"
+                       Margin="Margin.Dense"
+                       Dense="true"
+                       Style="flex:1.2;">
+                @foreach (var role in Enum.GetValues<DominateDocsData.Enums.Entity.ContactRoles>())
+                {
+                    <MudSelectItem T="DominateDocsData.Enums.Entity.ContactRoles" Value="@role">
+                        @role.GetDescription()
+                    </MudSelectItem>
+                }
+            </MudSelect>
+
+            @if (!IsTrusteeMode)
+            {
+                <MudNumericField T="decimal?"
+                                 @bind-Value="vm.EditingRecord.PercentOfOwnership"
+                                 Label="% Ownership"
+                                 Variant="Variant.Outlined"
+                                 Margin="Margin.Dense"
+                                 Min="0.01m"
+                                 Max="100m"
+                                 HideSpinButtons="true"
+                                 Adornment="Adornment.End"
+                                 AdornmentText="%"
+                                 Immediate="true"
+                                 Style="flex:0.9; min-width:120px;" />
+            }
+
+            <MudIconButton Icon="@Icons.Material.Filled.Close"
+                           Size="Size.Small"
+                           Color="Color.Default"
+                           OnClick="HandleCancel"
+                           Style="margin-top:4px;" />
+        </MudStack>
+
+        @* ── AKA / Alias Section ── *@
+        <MudStack Row="true" AlignItems="AlignItems.Center" Class="mt-2 ml-1" Spacing="1">
+            <MudIcon Icon="@Icons.Material.Outlined.LocalOffer" Size="Size.Small" Style="color:#94a3b8; font-size:14px;" />
+            <MudLink Typo="Typo.caption" Style="color:#64748b; cursor:pointer; font-size:12px;" OnClick="ToggleAka">
+                Add AKA / Alias
+            </MudLink>
+        </MudStack>
+
+        @if (_showAka)
+        {
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mt-2">
+                <MudTextField @bind-Value="_akaInput"
+                              Placeholder="Alias name"
+                              Variant="Variant.Outlined"
+                              Margin="Margin.Dense"
+                              Style="flex:1;"
+                              Immediate="true"
+                              OnKeyDown="@(e => { if (e.Key == "Enter") AddAka(); })" />
+                <MudButton Size="Size.Small"
+                           Variant="Variant.Filled"
+                           Color="Color.Dark"
+                           OnClick="AddAka"
+                           Style="text-transform:none; height:37px;">Add</MudButton>
+            </MudStack>
+
+            @if (vm.EditingRecord.AliasNames?.Any() == true)
+            {
+                <MudStack Row="true" Spacing="1" Class="mt-1 flex-wrap">
+                    @foreach (var aka in vm.EditingRecord.AliasNames)
+                    {
+                        <MudChip T="string"
+                                 Size="Size.Small"
+                                 OnClose="@(() => RemoveAka(aka))"
+                                 Style="font-size:11px; background:#e2e8f0;">@aka</MudChip>
+                    }
+                </MudStack>
+            }
+        }
+
+        @* ── Action Buttons ── *@
+        <MudStack Row="true" Spacing="2" Class="mt-3">
+            <MudButton OnClick="HandleSubmit" Color="Color.Success" Variant="Variant.Filled" Style="text-transform:none; min-width:80px;">
+                @(SelectedOwner == null ? "Add" : "Save")
+            </MudButton>
+            <MudButton OnClick="HandleCancel" Color="Color.Dark" Variant="Variant.Filled" Style="text-transform:none; min-width:80px;">Cancel</MudButton>
+        </MudStack>
+    </MudPaper>
+</MudForm>
+
+@code {
+    [Parameter] public EventCallback<DominateDocsData.Models.EntityOwner> OnEntityOwnerComplete { get; set; }
+    [Parameter] public EventCallback OnEntityOwnerCanceled { get; set; }
+    [Parameter] public DominateDocsData.Models.EntityOwner SelectedOwner { get; set; }
+    [Parameter] public bool IsTrusteeMode { get; set; } = false;
+
+    private MudForm form;
+    private bool _showAka = false;
+    private string _akaInput = "";
+
+    protected override void OnParametersSet()
+    {
+        if (SelectedOwner != null)
+        {
+            // Use fully qualified name to avoid ambiguity
+            vm.EditingRecord = new DominateDocsData.Models.EntityOwner
+            {
+                Id = SelectedOwner.Id,
+                EntityName = SelectedOwner.EntityName,
+                ContactEmail = SelectedOwner.ContactEmail,
+                ContactTitle = SelectedOwner.ContactTitle,
+                PercentOfOwnership = SelectedOwner.PercentOfOwnership,
+                AliasNames = SelectedOwner.AliasNames != null ? new List<string>(SelectedOwner.AliasNames) : new List<string>()
+            };
+            if (vm.EditingRecord.AliasNames.Any()) _showAka = true;
+        }
+        else
+        {
+            vm.GetNewRecordCommand.Execute(null);
+            _showAka = false;
+        }
+    }
+
+    private void ToggleAka() => _showAka = !_showAka;
+
+    private void AddAka()
+    {
+        if (!string.IsNullOrWhiteSpace(_akaInput))
+        {
+            vm.EditingRecord.AliasNames ??= new List<string>();
+            vm.EditingRecord.AliasNames.Add(_akaInput.Trim());
+            _akaInput = "";
+        }
+    }
+
+    private void RemoveAka(string aka) => vm.EditingRecord.AliasNames?.Remove(aka);
+
+    private async Task HandleSubmit()
+    {
+        await form.Validate();
+        if (!form.IsValid) return;
+        await OnEntityOwnerComplete.InvokeAsync(vm.EditingRecord);
+    }
+
+    private async Task HandleCancel() => await OnEntityOwnerCanceled.InvokeAsync();
+}

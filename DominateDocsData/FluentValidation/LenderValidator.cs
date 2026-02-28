@@ -9,8 +9,8 @@ public class LenderValidator : AbstractValidator<Lender>
     public LenderValidator()
     {
         RuleFor(x => x.EntityType).IsInEnum();
-        RuleFor(x => x.StateOfIncorporation).IsInEnum();
-        RuleFor(x => x.ContactsRole).IsInEnum();
+        RuleFor(x => x.StateOfOrganization).IsInEnum();
+        RuleFor(x => x.ContactTitle).IsInEnum();
         RuleFor(x => x.EntityStructure).IsInEnum();
 
         RuleFor(x => x.EntityName)

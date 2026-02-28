@@ -102,19 +102,39 @@ public class Payment
         CalculateMonthlyAmount
     }
 
-    public enum FeesPaidToOptions
+    public enum FeeTypes
     {
-        [System.ComponentModel.Description("Deliver To Lender's Address")]
-        DeliverToLendersAddress,
+        [System.ComponentModel.Description("Origination")]
+        Origination,
 
-        [System.ComponentModel.Description("Deliver To Broker's Address")]
-        DeliverToBrokersAddress,
+        [System.ComponentModel.Description("Underwriting")]
+        Underwriting,
 
-        [System.ComponentModel.Description("Payment Deffered Until After Closing")]
-        PaymentDefferedUntilAfterClosing,
+        [System.ComponentModel.Description("Processing")]
+        Processing,
 
-        [System.ComponentModel.Description("Delivery Instruction To Be Provided")]
-        DeliveryInstructionToBeProvided
+        [System.ComponentModel.Description("Document Preparation")]
+        DocumentPreparation,
+
+        [System.ComponentModel.Description("Commitment")]
+        Commitment,
+
+
+        [System.ComponentModel.Description("Administration")]
+        Administration,
+
+
+        [System.ComponentModel.Description("Wire")]
+        Wire,
+
+
+        [System.ComponentModel.Description("Inspection")]
+        Inspection,
+
+
+        [System.ComponentModel.Description("Appraisal")]
+        Appraisal
+
     }
 
     public enum ExtensionFeeTypes
@@ -128,4 +148,46 @@ public class Payment
         [System.ComponentModel.Description("No Fee")]
         NoFee
     }
+
+    public enum PrepayPenaltyTypes
+    {
+        [System.ComponentModel.Description("Stepdown")]
+        Stepdown,
+
+        [System.ComponentModel.Description("Guaranteed Interest")]
+        GuaranteedInterest
+    }
+
+    public enum StepdownStructures
+    {
+        [System.ComponentModel.Description("6-5-4-3-2-1")]
+        SixYear,
+
+        [System.ComponentModel.Description("5-4-3-2-1")]
+        FiveYear,
+
+        [System.ComponentModel.Description("4-3-2-1")]
+        FourYear,
+
+        [System.ComponentModel.Description("3-2-1")]
+        ThreeYear
+
+      
+    }
+
+    public enum TerminationFeeTypes
+    {
+        [System.ComponentModel.Description("Dollar Amount")]
+        DollarAmount,
+
+        [System.ComponentModel.Description("Percentage Of Loan")]
+        PercentageOfLoan,
+
+        [System.ComponentModel.Description("Greater Of")]
+        GreaterOf
+
+    }
+
+    
+
 }

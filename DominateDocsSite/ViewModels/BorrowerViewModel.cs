@@ -68,6 +68,8 @@ public partial class BorrowerViewModel : ObservableObject
     [RelayCommand]
     private async Task UpsertRecord()
     {
+        EditingRecord.EnforceTypeIntegrity();
+
         if (EditingRecord.EntityType == Entity.Types.Individual && !String.IsNullOrEmpty(EditingRecord.ContactName))
         {
             EditingRecord.EntityName = EditingRecord.ContactName;

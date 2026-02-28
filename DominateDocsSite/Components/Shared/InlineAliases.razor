@@ -1,4 +1,4 @@
-@using DominateDocsSite.Models
+@using DominateDocsData.Models
 @* Inline AKA / alias management for any party or signatory *@
 
 <div>
@@ -36,12 +36,12 @@
 </div>
 
 @code {
-    [Parameter] public List<Alias> Aliases { get; set; } = [];
+    [Parameter] public List<AkaName> Aliases { get; set; } = [];
     [Parameter] public EventCallback OnChanged { get; set; }
 
     private async Task AddAlias()
     {
-        Aliases.Add(new Alias());
+        Aliases.Add(new AkaName());
         await OnChanged.InvokeAsync();
     }
 

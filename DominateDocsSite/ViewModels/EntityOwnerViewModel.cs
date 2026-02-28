@@ -41,6 +41,8 @@ public partial class EntityOwnerViewModel : ObservableObject
     [RelayCommand]
     private async Task UpsertRecord()
     {
+        EditingRecord.EnforceTypeIntegrity();
+
         //Update All Collections
 
         int recordListIndex = MyRecordList.FindIndex(x => x.Id == EditingRecord.Id);

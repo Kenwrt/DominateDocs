@@ -1,6 +1,6 @@
 @* Repeating signatory rows: Name, Title, Email, Phone + Aliases *@
 
-@using DominateDocsSite.Models
+@using DominateDocsData.Models
 
 <div>
     <div class="d-flex align-center justify-space-between mb-2">
@@ -28,30 +28,38 @@
             <MudGrid Spacing="2">
                 <MudItem xs="12" sm="@(ShowContactFields ? 3 : 6)">
                     <MudTextField T="string" Label="Name" Variant="Variant.Outlined" Margin="Margin.Dense"
-                                  Value="@sig.Name" ValueChanged="@(v => { sig.Name = v; NotifyChanged(); })"
+                                  Value="@sig.EntityName" ValueChanged="@(v => { sig.Name = v; NotifyChanged(); })"
                                   Immediate="true" />
                 </MudItem>
                 <MudItem xs="12" sm="@(ShowContactFields ? 3 : 6)">
-                    <MudTextField T="string" Label="Title" Variant="Variant.Outlined" Margin="Margin.Dense"
+                   @*  <MudTextField T="string" Label="Title" Variant="Variant.Outlined" Margin="Margin.Dense"
                                   Value="@sig.Title" ValueChanged="@(v => { sig.Title = v; NotifyChanged(); })"
-                                  Immediate="true" />
+                                  Immediate="true" /> *@
+                    <MudSelect Class="ml-4" T="DominateDocsData.Enums.Entity.ContactRoles" Style="" Variant="Variant.Outlined" Label="Select Contact Role" @bind-Value="@sig.ContactTitle" Dense="true">
+
+                        @foreach (var gt in Enum.GetValues<DominateDocsData.Enums.Entity.ContactRoles>())
+                        {
+                            <MudSelectItem Style="" T="DominateDocsData.Enums.Entity.ContactRoles" Value="gt">@gt.GetDescription()</MudSelectItem>
+                        }
+
+                    </MudSelect>
                 </MudItem>
                 @if (ShowContactFields)
                 {
                     <MudItem xs="12" sm="3">
                         <MudTextField T="string" Label="Email" Variant="Variant.Outlined" Margin="Margin.Dense"
-                                      Value="@sig.Email" ValueChanged="@(v => { sig.Email = v; NotifyChanged(); })"
+                                      Value="@sig.ContactEmail" ValueChanged="@(v => { sig.ContactEmail = v; NotifyChanged(); })"
                                       Immediate="true" InputType="InputType.Email" />
                     </MudItem>
                     <MudItem xs="12" sm="3">
                         <MudTextField T="string" Label="Phone" Variant="Variant.Outlined" Margin="Margin.Dense"
-                                      Value="@sig.Phone" ValueChanged="@(v => { sig.Phone = v; NotifyChanged(); })"
+                                      Value="@sig.ContactPhoneNumber" ValueChanged="@(v => { sig.ContactPhoneNumber = v; NotifyChanged(); })"
                                       Immediate="true" InputType="InputType.Telephone" />
                     </MudItem>
                 }
             </MudGrid>
 
-            <InlineAliases Aliases="@sig.Aliases" OnChanged="@(() => NotifyChanged())" />
+            <InlineAliases Aliases="@sig.AliasNamesOld" OnChanged="@(() => NotifyChanged())" />
 
             <div class="d-flex justify-end mt-1">
                 <MudButton Size="Size.Small" Color="Color.Error" Variant="Variant.Text"
@@ -65,13 +73,13 @@
 
 @code {
     [Parameter] public string Label { get; set; } = "Authorized Signatories";
-    [Parameter] public List<Signatory> Signatories { get; set; } = [];
+    [Parameter] public List<SigningAuthority> Signatories { get; set; } = [];
     [Parameter] public bool ShowContactFields { get; set; } = true;
     [Parameter] public EventCallback OnChanged { get; set; }
 
     private async Task Add()
     {
-        Signatories.Add(new Signatory());
+        Signatories.Add(new SigningAuthority());
         await OnChanged.InvokeAsync();
     }
 

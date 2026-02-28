@@ -4,7 +4,7 @@ using System.ComponentModel.DataAnnotations;
 namespace DominateDocsData.Models;
 
 [BsonIgnoreExtraElements]
-public class AkaName : IAliasNames
+public class AkaName 
 {
     [Key]
     [BsonId]

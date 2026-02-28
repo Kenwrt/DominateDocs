@@ -74,10 +74,13 @@ public partial class LoanAgreementViewModel : ObservableObject
     [ObservableProperty] private DominateDocsData.Enums.Payment.Schedules adjustmentInterval;
     [ObservableProperty] private DominateDocsData.Enums.Payment.IndexPaths assumedIndexPath;
     [ObservableProperty] private DominateDocsData.Enums.Payment.RateIndexes rateIndex;
-    [ObservableProperty] private DateTime? maturityDate;
+    [ObservableProperty] private DateOnly? maturityDate;
     [ObservableProperty] private DominateDocsData.Models.PaymentSchedule paySchedule;
     [ObservableProperty] private DominateDocsData.Models.BalloonPayments payBalloonSchedule;
     [ObservableProperty] private DominateDocsData.Models.PaymentSchedule fixedPaymentSchedule;
+
+
+
 
     private Guid userId;
 
@@ -670,10 +673,10 @@ public partial class LoanAgreementViewModel : ObservableObject
             }
             else
             {
-                date = EditingAgreement.SignedDate.Value;
+                date = EditingAgreement.SignedDate.Value.ToDateTime(TimeOnly.MinValue);
             }
 
-            MaturityDate = date.AddMonths(termsInMonths);
+            MaturityDate = DateOnly.FromDateTime(date.AddMonths(termsInMonths));
 
             date = date.AddMonths(termsInMonths);
         }
@@ -693,7 +696,7 @@ public partial class LoanAgreementViewModel : ObservableObject
             }
             else
             {
-                date = EditingAgreement.SignedDate.Value;
+                date = EditingAgreement.SignedDate.Value.ToDateTime(TimeOnly.MinValue);
             }
 
             EditingAgreement.BalloonPayments.DueDate = DateOnly.FromDateTime(date.AddMonths(termsInMonths));
@@ -720,13 +723,13 @@ public partial class LoanAgreementViewModel : ObservableObject
         BalloonAmount = EditingAgreement.BalloonPayments.BalloonAmount;
         PayBalloonSchedule = EditingAgreement.BalloonPayments;
         InitialMargin = EditingAgreement.InitialMargin;
-        AdjustmentInterval = EditingAgreement.VariableInterestProperties.AdjustmentInterval;
-        AssumedIndexPath = EditingAgreement.VariableInterestProperties.AssumedIndexPath;
-        RateIndex = EditingAgreement.VariableInterestProperties.RateIndex;
+        AdjustmentInterval = EditingAgreement.AdjustmentInterval;
+        AssumedIndexPath = EditingAgreement.AssumedIndexPath;
+        RateIndex = EditingAgreement.RateIndex;
         DownPaymentPercentage = EditingAgreement.DownPaymentPercentage;
         EstimatedDwnPaymentAmount = EditingAgreement.PrincipalAmount * (EditingAgreement.DownPaymentPercentage / 100m);
         RateType = EditingAgreement.RateType;
-        PaySchedule = EditingAgreement.VariableInterestProperties.PaymentSchedule;
+        PaySchedule = EditingAgreement.PaymentSchedule;
         FixedPaymentSchedule = EditingAgreement.FixedPaymentSchedule;
     }
 
@@ -752,7 +755,7 @@ public partial class LoanAgreementViewModel : ObservableObject
     //    {
     //        if (EditingAgreement.VariableInterestProperties.InterestRate != 0 && EditingAgreement.PrincipalAmount != 0)
     //        {
-    //            result = loanScheduler.GenerateVariable(EditingAgreement.DownPaymentAmmount, EditingAgreement.VariableInterestProperties.InterestRate, startDate, endDate, EditingAgreement.VariableInterestProperties.AmorizationType, EditingAgreement.VariableInterestProperties.RateChangeList);
+    //            result = loanScheduler.GenerateVariable(EditingAgreement.DownPaymentAmmount, EditingAgreement.VariableInterestProperties.InterestRate, startDate, endDate, EditingAgreement.VariableInterestProperties.AmorizationType, EditingAgreement.RateChangeList);
     //        }
 
     //    }
@@ -769,7 +772,7 @@ public partial class LoanAgreementViewModel : ObservableObject
 
         if (EditingAgreement.RateType == Payment.RateTypes.Variable)
         {
-            RecomputeSchedule(EditingAgreement.TermInMonths, EditingAgreement.InterestRate, EditingAgreement.RepaymentSchedule, EditingAgreement.AmorizationType, EditingAgreement.VariableInterestProperties.RateChangeList);
+            RecomputeSchedule(EditingAgreement.TermInMonths, EditingAgreement.InterestRate, EditingAgreement.RepaymentSchedule, EditingAgreement.AmorizationType, EditingAgreement.RateChangeList);
         }
         else
         {
@@ -782,14 +785,14 @@ public partial class LoanAgreementViewModel : ObservableObject
         if (EditingAgreement is null) return;
         EditingAgreement.BalloonPayments = value;
 
-        // RecomputeSchedule(EditingAgreement.VariableInterestProperties.TermInMonths, EditingAgreement.VariableInterestProperties.InterestRate, EditingAgreement.VariableInterestProperties.RepaymentSchedule, EditingAgreement.VariableInterestProperties.AmorizationType);
+        // RecomputeSchedule(EditingAgreement.VariableInterestProperties.TermInMonths, EditingAgreement.VariableInterestProperties.InterestRate, EditingAgreement.VariableInterestProperties.RepaymentSchedule, EditingAgreement.AmorizationType);
     }
 
     partial void OnPayScheduleChanged(DominateDocsData.Models.PaymentSchedule value)
     {
         if (EditingAgreement is null) return;
 
-        EditingAgreement.VariableInterestProperties.PaymentSchedule = value;
+        EditingAgreement.PaymentSchedule = value;
     }
 
     partial void OnFixedPaymentScheduleChanged(DominateDocsData.Models.PaymentSchedule value)
@@ -815,7 +818,7 @@ public partial class LoanAgreementViewModel : ObservableObject
 
         if (EditingAgreement.RateType == Payment.RateTypes.Variable)
         {
-            RecomputeSchedule(EditingAgreement.TermInMonths, EditingAgreement.InterestRate, EditingAgreement.RepaymentSchedule, EditingAgreement.AmorizationType, EditingAgreement.VariableInterestProperties.RateChangeList);
+            RecomputeSchedule(EditingAgreement.TermInMonths, EditingAgreement.InterestRate, EditingAgreement.RepaymentSchedule, EditingAgreement.AmorizationType, EditingAgreement.RateChangeList);
         }
         else
         {
@@ -838,7 +841,7 @@ public partial class LoanAgreementViewModel : ObservableObject
 
         if (EditingAgreement.RateType == Payment.RateTypes.Variable)
         {
-            RecomputeSchedule(EditingAgreement.TermInMonths, EditingAgreement.InterestRate, EditingAgreement.RepaymentSchedule, EditingAgreement.AmorizationType, EditingAgreement.VariableInterestProperties.RateChangeList);
+            RecomputeSchedule(EditingAgreement.TermInMonths, EditingAgreement.InterestRate, EditingAgreement.RepaymentSchedule, EditingAgreement.AmorizationType, EditingAgreement.RateChangeList);
         }
         else
         {
@@ -874,7 +877,7 @@ public partial class LoanAgreementViewModel : ObservableObject
 
             var schedule = indexRates.GenerateProjectedSchedule(terms: new FetchCurrentIndexRatesAndSchedulesService.LoanTerms());
 
-            RecomputeSchedule(EditingAgreement.TermInMonths, EditingAgreement.InterestRate, EditingAgreement.RepaymentSchedule, EditingAgreement.AmorizationType, EditingAgreement.VariableInterestProperties.RateChangeList);
+            RecomputeSchedule(EditingAgreement.TermInMonths, EditingAgreement.InterestRate, EditingAgreement.RepaymentSchedule, EditingAgreement.AmorizationType, EditingAgreement.RateChangeList);
         }
         else
         {
@@ -890,7 +893,7 @@ public partial class LoanAgreementViewModel : ObservableObject
 
         if (EditingAgreement.RateType == Payment.RateTypes.Variable)
         {
-            RecomputeSchedule(EditingAgreement.TermInMonths, EditingAgreement.InterestRate, EditingAgreement.RepaymentSchedule, EditingAgreement.AmorizationType, EditingAgreement.VariableInterestProperties.RateChangeList);
+            RecomputeSchedule(EditingAgreement.TermInMonths, EditingAgreement.InterestRate, EditingAgreement.RepaymentSchedule, EditingAgreement.AmorizationType, EditingAgreement.RateChangeList);
         }
         else
         {
@@ -906,7 +909,7 @@ public partial class LoanAgreementViewModel : ObservableObject
 
         if (EditingAgreement.RateType == Payment.RateTypes.Variable)
         {
-            RecomputeSchedule(EditingAgreement.TermInMonths, EditingAgreement.InterestRate, EditingAgreement.RepaymentSchedule, EditingAgreement.AmorizationType, EditingAgreement.VariableInterestProperties.RateChangeList);
+            RecomputeSchedule(EditingAgreement.TermInMonths, EditingAgreement.InterestRate, EditingAgreement.RepaymentSchedule, EditingAgreement.AmorizationType, EditingAgreement.RateChangeList);
         }
         else
         {
@@ -925,15 +928,15 @@ public partial class LoanAgreementViewModel : ObservableObject
     {
         if (EditingAgreement is null) return;
 
-        EditingAgreement.VariableInterestProperties.RateIndex = value;
+        EditingAgreement.RateIndex = value;
 
         if (EditingAgreement.RateType == Payment.RateTypes.Variable)
         {
-            RecomputeSchedule(EditingAgreement.TermInMonths, EditingAgreement.InterestRate, EditingAgreement.RepaymentSchedule, EditingAgreement.AmorizationType, EditingAgreement.VariableInterestProperties.RateChangeList);
+            RecomputeSchedule(EditingAgreement.TermInMonths, EditingAgreement.InterestRate, EditingAgreement.RepaymentSchedule, EditingAgreement.AmorizationType, EditingAgreement.RateChangeList);
         }
     }
 
-    partial void OnMaturityDateChanged(DateTime? value)
+    partial void OnMaturityDateChanged(DateOnly? value)
     {
         if (EditingAgreement is null) return;
         EditingAgreement.MaturityDate = value;
@@ -943,11 +946,11 @@ public partial class LoanAgreementViewModel : ObservableObject
     {
         if (EditingAgreement is null) return;
 
-        EditingAgreement.VariableInterestProperties.AdjustmentInterval = value;
+        EditingAgreement.AdjustmentInterval = value;
 
         if (EditingAgreement.RateType == Payment.RateTypes.Variable)
         {
-            RecomputeSchedule(EditingAgreement.TermInMonths, EditingAgreement.InterestRate, EditingAgreement.RepaymentSchedule, EditingAgreement.AmorizationType, EditingAgreement.VariableInterestProperties.RateChangeList);
+            RecomputeSchedule(EditingAgreement.TermInMonths, EditingAgreement.InterestRate, EditingAgreement.RepaymentSchedule, EditingAgreement.AmorizationType, EditingAgreement.RateChangeList);
         }
     }
 
@@ -955,16 +958,16 @@ public partial class LoanAgreementViewModel : ObservableObject
     {
         if (EditingAgreement is null) return;
 
-        EditingAgreement.VariableInterestProperties.AssumedIndexPath = value;
+        EditingAgreement.AssumedIndexPath = value;
 
         if (EditingAgreement.RateType == Payment.RateTypes.Variable)
         {
-            RecomputeSchedule(EditingAgreement.TermInMonths, EditingAgreement.InterestRate, EditingAgreement.RepaymentSchedule, EditingAgreement.AmorizationType, EditingAgreement.VariableInterestProperties.RateChangeList);
+            RecomputeSchedule(EditingAgreement.TermInMonths, EditingAgreement.InterestRate, EditingAgreement.RepaymentSchedule, EditingAgreement.AmorizationType, EditingAgreement.RateChangeList);
         }
     }
 
     // Single place that decides schedule creation with full null-safety
-    private void RecomputeSchedule(int termsInMoths, decimal interestRate, Payment.Schedules paymentSchedule, Payment.AmortizationTypes amortizationType, List<DominateDocsData.Models.RateChange>? rateChangeList = null)
+    private void RecomputeSchedule(int termsInMonths, decimal interestRate, Payment.Schedules paymentSchedule, Payment.AmortizationTypes amortizationType, List<DominateDocsData.Models.RateChange>? rateChangeList = null)
     {
         try
         {
@@ -974,13 +977,15 @@ public partial class LoanAgreementViewModel : ObservableObject
                 return;
             }
 
-            var start = EditingAgreement.SignedDate ?? DateTime.Today;
+            // Convert SignedDate to DateTime? first, then fallback to Today
+            var start = EditingAgreement.SignedDate?.ToDateTime(TimeOnly.MinValue) ?? DateTime.Today;
 
-            var end = EditingAgreement.MaturityDate
-                        ?? (EditingAgreement.OriginationDate ?? DateTime.Today).AddMonths(
-                            termsInMoths > 0 ? termsInMoths : 12);
+            // Do the same for the end date logic
+            var end = EditingAgreement.MaturityDate?.ToDateTime(TimeOnly.MinValue)
+                      ?? EditingAgreement.OriginationDate?.ToDateTime(TimeOnly.MinValue).AddMonths(termsInMonths > 0 ? termsInMonths : 0)
+                      ?? DateTime.Today;
 
-            if (EditingAgreement.PrincipalAmount > 0 && EditingAgreement.DownPaymentPercentage > -1 && termsInMoths > 0 && start < end)
+            if (EditingAgreement.PrincipalAmount > 0 && EditingAgreement.DownPaymentPercentage > -1 && termsInMonths > 0 && start < end)
             {
                 if (EditingAgreement.PrincipalAmount <= 0 || interestRate <= 0 || end <= start)
                 {
@@ -988,7 +993,7 @@ public partial class LoanAgreementViewModel : ObservableObject
 
                     if (EditingAgreement.RateType == Payment.RateTypes.Variable)
                     {
-                        EditingAgreement.VariableInterestProperties.PaymentSchedule = CurrentSchedule;
+                        EditingAgreement.PaymentSchedule = CurrentSchedule;
                     }
                     else
                     {
@@ -1009,7 +1014,7 @@ public partial class LoanAgreementViewModel : ObservableObject
                         startDate: start,
                         endDate: end,
                         amortizationType: amortizationType,
-                        amortizationTermMonths: termsInMoths);
+                        amortizationTermMonths: termsInMonths);
 
                     EditingAgreement.FixedPaymentSchedule = schedule ?? new();
                 }
@@ -1022,9 +1027,9 @@ public partial class LoanAgreementViewModel : ObservableObject
                         endDate: end,
                         amortizationType: amortizationType,
                         rateSchedule: rateChangeList,
-                        amortizationTermMonths: termsInMoths);
+                        amortizationTermMonths: termsInMonths);
 
-                    EditingAgreement.VariableInterestProperties.PaymentSchedule = schedule ?? new();
+                    EditingAgreement.PaymentSchedule = schedule ?? new();
                 }
 
                 //CurrentSchedule = schedule ?? new();
@@ -1046,13 +1051,30 @@ public partial class LoanAgreementViewModel : ObservableObject
                 return;
             }
 
-            var start = EditingAgreement.SignedDate ?? DateTime.Today;
+            DateTime? start = null;
 
-            var end = EditingAgreement.MaturityDate
-                        ?? (EditingAgreement.OriginationDate ?? DateTime.Today).AddMonths(
-                            termsInMoths > 0 ? termsInMoths : 12);
+            DateTime? end = null;
 
-            if (EditingAgreement.PrincipalAmount > 0 && EditingAgreement.DownPaymentPercentage > -1 && termsInMoths > 0 && start < end)
+            if (EditingAgreement.SignedDate is null)
+            {
+                start = EditingAgreement.SignedDate.Value.ToDateTime(TimeOnly.MinValue);
+            }
+
+            if (EditingAgreement.OriginationDate is not null)
+            {
+                end = EditingAgreement.OriginationDate.Value.ToDateTime(TimeOnly.MinValue);
+             
+            }
+
+
+            DateOnly? startDate = start.HasValue ? DateOnly.FromDateTime(start.Value) : null;
+            DateOnly? endDate = end.HasValue ? DateOnly.FromDateTime(end.Value) : null;
+
+            // 4. Check for nulls before using them in your final 'if' logic
+            if (startDate.HasValue && endDate.HasValue &&
+                EditingAgreement.PrincipalAmount > 0 &&
+                EditingAgreement.TermInMonths > 0 &&
+                startDate < endDate)
             {
                 if (EditingAgreement.PrincipalAmount <= 0 || interestRate <= 0 || end <= start)
                 {
@@ -1061,7 +1083,7 @@ public partial class LoanAgreementViewModel : ObservableObject
 
                 DominateDocsData.Models.BalloonPayments schedule = null;
 
-                DateTime firstPayment = EditingAgreement.SignedDate ?? DateTime.Today;
+                DateOnly firstPayment = EditingAgreement.SignedDate ?? DateOnly.FromDateTime(DateTime.Today);
 
                 schedule = balloonPaymentCalculater.Generate(
                     principal: EditingAgreement.PrincipalAmount - EditingAgreement.DownPaymentAmmount,
@@ -1081,6 +1103,15 @@ public partial class LoanAgreementViewModel : ObservableObject
             logger.LogError(ex.Message);
         }
     }
+
+    public void NotifyLoanChanged()
+    {
+        // OnPropertyChanged(nameof(Loan));
+        // OnPropertyChanged(nameof(CompletionPercent));
+        // TriggerAutoSave();
+    }
+
+
 
     // ============================================================
     // ✅ BILLING: Central enforcement + auditing (Mongo UserProfile)

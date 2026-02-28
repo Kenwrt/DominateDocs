@@ -1,21 +1,21 @@
-@using DominateDocsSite.Models.Enums
+@using DominateDocsData.Enums
 
 <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined"
          Style="@GetStyle()" Class="dd-status-badge">
-    @Status.ToDisplayString()
+    @Status
 </MudChip>
 
 @code {
-    [Parameter] public LoanStatus Status { get; set; }
+    [Parameter] public string Status { get; set; }
 
     private string GetStyle() => Status switch
     {
-        LoanStatus.Active => "background:#d1fae5;color:#047857;font-weight:600;font-size:11px;",
-        LoanStatus.Pending => "background:#fef3c7;color:#b45309;font-weight:600;font-size:11px;",
-        LoanStatus.InReview => "background:#ede9fe;color:#6d28d9;font-weight:600;font-size:11px;",
-        LoanStatus.Draft => "background:#f1f5f9;color:#94a3b8;font-weight:600;font-size:11px;",
-        LoanStatus.Closed => "background:#e2e8f0;color:#475569;font-weight:600;font-size:11px;",
-        LoanStatus.Archived => "background:#f1f5f9;color:#94a3b8;font-weight:600;font-size:11px;",
+        "Active" => "background:#d1fae5;color:#047857;font-weight:600;font-size:11px;",
+        "Pending" => "background:#fef3c7;color:#b45309;font-weight:600;font-size:11px;",
+        "Approved" => "background:#ede9fe;color:#6d28d9;font-weight:600;font-size:11px;",
+        "Draft" => "background:#f1f5f9;color:#94a3b8;font-weight:600;font-size:11px;",
+        "Closed" => "background:#e2e8f0;color:#475569;font-weight:600;font-size:11px;",
+        "Cancelled" => "background:#f1f5f9;color:#94a3b8;font-weight:600;font-size:11px;",
         _ => "background:#f1f5f9;color:#94a3b8;font-weight:600;font-size:11px;"
     };
 }

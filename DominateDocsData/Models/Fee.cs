@@ -1,4 +1,4 @@
-namespace DominateDocsSite.Models;
+namespace DominateDocsData.Models;
 
 /// <summary>A fee line item — lender, broker, or other.</summary>
 public class Fee

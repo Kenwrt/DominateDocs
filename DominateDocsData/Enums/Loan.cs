@@ -22,8 +22,21 @@ public class Loan
         [System.ComponentModel.Description("Pending")]
         Pending,
 
+        [System.ComponentModel.Description("Active")]
+        Active,
+
+        [System.ComponentModel.Description("Draft")]
+        Draft,
+
         [System.ComponentModel.Description("Approved")]
         Approved,
+
+        [System.ComponentModel.Description("Closed")]
+        Closed,
+
+        [System.ComponentModel.Description("Archived")]
+        Archived,
+
 
         [System.ComponentModel.Description("Cancelled")]
         Cancelled
