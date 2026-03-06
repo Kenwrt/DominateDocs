@@ -3,137 +3,150 @@ using CommunityToolkit.Mvvm.Input;
 using DominateDocsData.Enums;
 using DominateDocsData.Database;
 using DominateDocsData.Helpers;
+using DominateDocsData.Models;
 using DominateDocsSite.State;
+using MudBlazor;
 using System.Collections.ObjectModel;
 
 namespace DominateDocsSite.ViewModels;
 
 public partial class LoanWizardBrokerViewModel : ObservableObject
 {
-    [ObservableProperty]
-    private ObservableCollection<DominateDocsData.Models.Broker> recordList = new();
+    public enum ValidationFailureField
+    {
+        None = 0,
+        ContactName = 1,
+        SSN = 2,
+        EntityName = 3,
+        EIN = 4,
+        TrustName = 5,
+        ContactEmail = 6
+    }
 
     [ObservableProperty]
-    private ObservableCollection<DominateDocsData.Models.Broker> myList = new();
+    private bool lastUpsertSucceeded = false;
 
     [ObservableProperty]
-    private DominateDocsData.Models.Broker editingRecord = null;
+    private ValidationFailureField lastValidationFailureField = ValidationFailureField.None;
 
     [ObservableProperty]
-    private DominateDocsData.Models.Broker selectedRecord = null;
+    private ObservableCollection<Broker> recordList = new();
+
+    [ObservableProperty]
+    private Broker editingRecord = null;
+
+    [ObservableProperty]
+    private Broker selectedRecord = null;
 
     private Guid userId;
     private readonly UserSession userSession;
     private readonly IMongoDatabaseRepo dbApp;
     private readonly ILogger<LoanWizardBrokerViewModel> logger;
-    private IApplicationStateManager appState;
+    private ISnackbar snackbar;
 
-    public LoanWizardBrokerViewModel(IMongoDatabaseRepo dbApp, ILogger<LoanWizardBrokerViewModel> logger, UserSession userSession, IApplicationStateManager appState)
+    public LoanWizardBrokerViewModel(IMongoDatabaseRepo dbApp, ILogger<LoanWizardBrokerViewModel> logger, UserSession userSession)
     {
         this.dbApp = dbApp;
         this.logger = logger;
         this.userSession = userSession;
-        this.appState = appState;
-
         userId = userSession.UserId;
     }
 
+    public void SetSnackbar(ISnackbar snackbar) => this.snackbar = snackbar;
+
     [RelayCommand]
-    private async Task InitializePage()
+    public async Task InitializePage(Broker l)
     {
-        if (EditingRecord is null) GetNewRecord();
+        if (l is not null)
+        {
+            SelectedRecord = l;
+            EditingRecord = l;
+        }
+        else
+        {
+            ClearSelection();
+        }
+
+        if (EditingRecord is null)
+            GetNewRecord();
 
         RecordList.Clear();
-
-        dbApp.GetRecords<DominateDocsData.Models.Broker>().ToList().ForEach(lf => RecordList.Add(lf));
-    }
-
-    [RelayCommand]
-    private void SelectRecordById(Guid id)
-    {
-
-        EditingRecord = dbApp.GetRecords<DominateDocsData.Models.Broker>().FirstOrDefault(x => x.Id == id);
-
-    }
-
-    [RelayCommand]
-    private async Task UpsertRecord()
-    {
-        EditingRecord.EnforceTypeIntegrity();
-
-        if (EditingRecord.EntityType == Entity.Types.Individual && !String.IsNullOrEmpty(EditingRecord.ContactName))
+        var records = dbApp.GetRecords<Broker>().ToList();
+        foreach (var r in records)
         {
+            RecordList.Add(r);
+        }
+    }
+
+    [RelayCommand]
+    public async Task UpsertRecord()
+    {
+        LastUpsertSucceeded = false;
+        LastValidationFailureField = ValidationFailureField.None;
+
+        if (EditingRecord == null) return;
+
+        if (EditingRecord.EntityType == Entity.Types.Individual)
+        {
+            if (string.IsNullOrWhiteSpace(EditingRecord.ContactName))
+            {
+                LastValidationFailureField = ValidationFailureField.ContactName;
+                snackbar?.Add("Full Legal Name is required.", Severity.Error);
+                return;
+            }
             EditingRecord.EntityName = EditingRecord.ContactName;
         }
-
-        //Update All Collections
-
-        int index = RecordList.FindIndex(x => x.Id == EditingRecord.Id);
-
-        if (index > -1)
+        else if (EditingRecord.EntityType == Entity.Types.Entity)
         {
-            RecordList[index] = EditingRecord;
+            if (string.IsNullOrWhiteSpace(EditingRecord.EntityName))
+            {
+                LastValidationFailureField = ValidationFailureField.EntityName;
+                snackbar?.Add("Entity Name is required.", Severity.Error);
+                return;
+            }
         }
-        else
+        else if (EditingRecord.EntityType == Entity.Types.Trust)
         {
-            RecordList.Add(EditingRecord);
-        }
-
-        index = MyList.FindIndex(x => x.Id == EditingRecord.Id);
-
-        if (index > -1)
-        {
-            MyList[index] = EditingRecord;
-        }
-        else
-        {
-            MyList.Add(EditingRecord);
+            if (string.IsNullOrWhiteSpace(EditingRecord.EntityName))
+            {
+                LastValidationFailureField = ValidationFailureField.TrustName;
+                snackbar?.Add("Trust Name is required.", Severity.Error);
+                return;
+            }
         }
 
-        await dbApp.UpSertRecordAsync<DominateDocsData.Models.Broker>(EditingRecord);
+        if (string.IsNullOrWhiteSpace(EditingRecord.ContactEmail))
+        {
+            LastValidationFailureField = ValidationFailureField.ContactEmail;
+            snackbar?.Add("Email is required.", Severity.Error);
+            return;
+        }
+
+        await dbApp.UpSertRecordAsync<Broker>(EditingRecord);
+
+        int idx = RecordList.FindIndex(x => x.Id == EditingRecord.Id);
+        if (idx > -1) RecordList[idx] = EditingRecord; else RecordList.Add(EditingRecord);
+
+        LastUpsertSucceeded = true;
+        snackbar?.Add("Broker saved successfully.", Severity.Success);
     }
 
     [RelayCommand]
-    private async Task DeleteRecord(DominateDocsData.Models.Broker r)
+    public void GetNewRecord()
     {
-        int index = MyList.FindIndex(x => x.Id == r.Id);
-
-        if (index > -1)
-        {
-            MyList.RemoveAt(index);
-        }
-                
-    }
-
-    
-
-    [RelayCommand]
-    private void SelectRecord(DominateDocsData.Models.Broker r)
-    {
-        if (r != null)
-        {
-            SelectedRecord = r;
-            EditingRecord = r;
-        }
-    }
-
-    [RelayCommand]
-    private void ClearSelection()
-    {
-        if (SelectedRecord != null)
-        {
-            SelectedRecord = null;
-            GetNewRecord();
-        }
-    }
-
-    [RelayCommand]
-    private void GetNewRecord()
-    {
-        EditingRecord = new DominateDocsData.Models.Broker()
+        SelectedRecord = null;
+        EditingRecord = new Broker()
         {
             UserId = userId,
-            ReferenceCode = $"B-{DisplayHelper.GenerateIdCode()}"
+            ReferenceCode = $"B-{DisplayHelper.GenerateIdCode()}",
+            EntityType = Entity.Types.Entity
         };
+    }
+
+    [RelayCommand]
+    public void ClearSelection()
+    {
+        SelectedRecord = null;
+        GetNewRecord();
     }
 }

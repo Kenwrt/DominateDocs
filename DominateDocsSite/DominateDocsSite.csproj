@@ -137,6 +137,9 @@
     <Content Update="wwwroot\Images\DominateDocs-cropped-tight.png">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
+    <Content Update="wwwroot\js\masks.js">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
     <Content Update="wwwroot\MasterTemplate\MasterTemplate.docm">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>

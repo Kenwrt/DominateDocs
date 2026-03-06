@@ -10,7 +10,7 @@ using System.Collections.ObjectModel;
 
 namespace DominateDocsSite.ViewModels;
 
-public partial class LoanWizardLenderViewModel : ObservableObject
+public partial class LoanWizardGuarantorViewModel : ObservableObject
 {
     public enum ValidationFailureField
     {
@@ -30,21 +30,21 @@ public partial class LoanWizardLenderViewModel : ObservableObject
     private ValidationFailureField lastValidationFailureField = ValidationFailureField.None;
 
     [ObservableProperty]
-    private ObservableCollection<Lender> recordList = new();
+    private ObservableCollection<Guarantor> recordList = new();
 
     [ObservableProperty]
-    private Lender editingRecord = null;
+    private Guarantor editingRecord = null;
 
     [ObservableProperty]
-    private Lender selectedRecord = null;
+    private Guarantor selectedRecord = null;
 
     private Guid userId;
     private readonly UserSession userSession;
     private readonly IMongoDatabaseRepo dbApp;
-    private readonly ILogger<LoanWizardLenderViewModel> logger;
+    private readonly ILogger<LoanWizardGuarantorViewModel> logger;
     private ISnackbar snackbar;
 
-    public LoanWizardLenderViewModel(IMongoDatabaseRepo dbApp, ILogger<LoanWizardLenderViewModel> logger, UserSession userSession)
+    public LoanWizardGuarantorViewModel(IMongoDatabaseRepo dbApp, ILogger<LoanWizardGuarantorViewModel> logger, UserSession userSession)
     {
         this.dbApp = dbApp;
         this.logger = logger;
@@ -55,7 +55,7 @@ public partial class LoanWizardLenderViewModel : ObservableObject
     public void SetSnackbar(ISnackbar snackbar) => this.snackbar = snackbar;
 
     [RelayCommand]
-    public async Task InitializePage(Lender l)
+    public async Task InitializePage(Guarantor l)
     {
         if (l is not null)
         {
@@ -71,7 +71,7 @@ public partial class LoanWizardLenderViewModel : ObservableObject
             GetNewRecord();
 
         RecordList.Clear();
-        var records = dbApp.GetRecords<Lender>().ToList();
+        var records = dbApp.GetRecords<Guarantor>().ToList();
         foreach (var r in records)
         {
             RecordList.Add(r);
@@ -122,23 +122,23 @@ public partial class LoanWizardLenderViewModel : ObservableObject
             return;
         }
 
-        await dbApp.UpSertRecordAsync<Lender>(EditingRecord);
+        await dbApp.UpSertRecordAsync<Guarantor>(EditingRecord);
 
         int idx = RecordList.FindIndex(x => x.Id == EditingRecord.Id);
         if (idx > -1) RecordList[idx] = EditingRecord; else RecordList.Add(EditingRecord);
 
         LastUpsertSucceeded = true;
-        snackbar?.Add("Lender saved successfully.", Severity.Success);
+        snackbar?.Add("Guarantor saved successfully.", Severity.Success);
     }
 
     [RelayCommand]
     public void GetNewRecord()
     {
         SelectedRecord = null;
-        EditingRecord = new Lender()
+        EditingRecord = new Guarantor()
         {
             UserId = userId,
-            ReferenceCode = $"L-{DisplayHelper.GenerateIdCode()}",
+            ReferenceCode = $"G-{DisplayHelper.GenerateIdCode()}",
             EntityType = Entity.Types.Entity
         };
     }

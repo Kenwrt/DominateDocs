@@ -9,90 +9,82 @@
         <MudStack Row Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mb-2">
             <MudStack Row AlignItems="AlignItems.Center" Spacing="1">
                 <MudIcon Icon="@Icons.Material.Outlined.Shield" Size="Size.Medium" Color="Color.Default" />
-                <MudText Typo="Typo.h6" Style="font-weight: 600;">Borrower(s) <span style="color:red">*</span></MudText>
+                <MudText Typo="Typo.h6" Style="font-weight: 600;">Borrower(s)</MudText>
             </MudStack>
-            <MudButton StartIcon="@Icons.Material.Filled.Add" Size="Size.Small" Color="Color.Primary" OnClick="HandleAddBorrower">Add Borrower</MudButton>
+            <MudButton StartIcon="@Icons.Material.Filled.Add" Size="Size.Small" Color="Color.Primary" OnClick="HandleAdd">Add Borrower</MudButton>
         </MudStack>
 
         <MudAutocomplete T="DominateDocsData.Models.Borrower"
-                         Label="Search saved borrowers..."
-                         Value="@vm.SelectedRecord"
-                         ValueChanged="@(async (DominateDocsData.Models.Borrower b) => await vm.InitializePageCommand.ExecuteAsync(b))"
-                         SearchFunc="@SearchBorrowers"
-                         ToStringFunc="@(b => b?.EntityName)"
-                         Variant="Variant.Outlined"
-                         AdornmentIcon="@Icons.Material.Filled.Search"
-                         AdornmentColor="Color.Default"
-                         Class="mb-4"
-                         Dense="true"
-                         Margin="Margin.Dense" />
+                    Label="Search saved borrowers..."
+                    Value="@vm.SelectedRecord"
+                    ValueChanged="@(async (DominateDocsData.Models.Borrower b) => await vm.InitializePageCommand.ExecuteAsync(b))"
+                    SearchFunc="@SearchFunc"
+                    ToStringFunc="@(b => b?.EntityName ?? b?.ContactName)"
+                    Variant="Variant.Outlined"
+                    AdornmentIcon="@Icons.Material.Filled.Search"
+                    AdornmentColor="Color.Default"
+                    Class="mb-4"
+                    Dense="true"
+                    Margin="Margin.Dense" />
 
         <MudStack Row Spacing="2" Class="mb-6">
             <MudButton Variant="@(vm.EditingRecord.EntityType == Entity.Types.Individual ? Variant.Filled : Variant.Outlined)"
-                       Color="@(vm.EditingRecord.EntityType == Entity.Types.Individual ? Color.Dark : Color.Default)"
-                       OnClick="@(() => SetEntityType(Entity.Types.Individual))"
-                       Style="border-radius: 20px; text-transform: none; min-width: 100px;">Individual</MudButton>
+                    Color="@(vm.EditingRecord.EntityType == Entity.Types.Individual ? Color.Dark : Color.Default)"
+                    OnClick="@(() => SetEntityType(Entity.Types.Individual))"
+                    Style="border-radius: 20px; text-transform: none; min-width: 100px;">Individual</MudButton>
             <MudButton Variant="@(vm.EditingRecord.EntityType == Entity.Types.Entity ? Variant.Filled : Variant.Outlined)"
-                       Color="@(vm.EditingRecord.EntityType == Entity.Types.Entity ? Color.Dark : Color.Default)"
-                       OnClick="@(() => SetEntityType(Entity.Types.Entity))"
-                       Style="border-radius: 20px; text-transform: none; min-width: 100px;">Entity</MudButton>
+                    Color="@(vm.EditingRecord.EntityType == Entity.Types.Entity ? Color.Dark : Color.Default)"
+                    OnClick="@(() => SetEntityType(Entity.Types.Entity))"
+                    Style="border-radius: 20px; text-transform: none; min-width: 100px;">Entity</MudButton>
             <MudButton Variant="@(vm.EditingRecord.EntityType == Entity.Types.Trust ? Variant.Filled : Variant.Outlined)"
-                       Color="@(vm.EditingRecord.EntityType == Entity.Types.Trust ? Color.Dark : Color.Default)"
-                       OnClick="@(() => SetEntityType(Entity.Types.Trust))"
-                       Style="border-radius: 20px; text-transform: none; min-width: 100px;">Trust</MudButton>
+                    Color="@(vm.EditingRecord.EntityType == Entity.Types.Trust ? Color.Dark : Color.Default)"
+                    OnClick="@(() => SetEntityType(Entity.Types.Trust))"
+                    Style="border-radius: 20px; text-transform: none; min-width: 100px;">Trust</MudButton>
         </MudStack>
 
         <MudGrid Spacing="2">
             @if (vm.EditingRecord.EntityType == Entity.Types.Individual)
             {
                 <MudItem xs="12" md="6">
-                    <MudTextField @ref="_contactNameField" @bind-Value="vm.EditingRecord.ContactName" Label="FULL LEGAL NAME *" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                    <MudTextField @bind-Value="vm.EditingRecord.ContactName" Label="FULL LEGAL NAME *" Variant="Variant.Outlined" Margin="Margin.Dense" />
                 </MudItem>
                 <MudItem xs="12" md="6">
-                    <MudTextField @ref="_ssnField" @bind-Value="vm.EditingRecord.SSN" Label="SSN *" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                    <MudTextField @bind-Value="vm.EditingRecord.SSN" Label="SSN *" Variant="Variant.Outlined" Margin="Margin.Dense" Immediate="true"
+                        InputAttributes="@GetMaskAttributes("borrower-ssn", "ssn", "11")" />
+                       
                 </MudItem>
             }
             else if (vm.EditingRecord.EntityType == Entity.Types.Entity)
             {
                 <MudItem xs="12" md="6">
-                    <MudTextField @ref="_entityNameField" @bind-Value="vm.EditingRecord.EntityName" Label="ENTITY NAME *" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                    <MudTextField @bind-Value="vm.EditingRecord.EntityName" Label="ENTITY NAME *" Variant="Variant.Outlined" Margin="Margin.Dense" />
                 </MudItem>
                 <MudItem xs="12" md="6">
-                    <MudTextField @ref="_einField" @bind-Value="vm.EditingRecord.EIN" Label="EIN *" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                    <MudTextField @bind-Value="vm.EditingRecord.EIN" Label="EIN *" Variant="Variant.Outlined" Margin="Margin.Dense" Immediate="true"
+                        InputAttributes="@GetMaskAttributes("borrower-ein", "ein", "10")" />
                 </MudItem>
             }
             else if (vm.EditingRecord.EntityType == Entity.Types.Trust)
             {
                 <MudItem xs="12">
-                    <MudAlert Severity="Severity.Warning" Dense="true" Class="mb-2">Trust Information</MudAlert>
-                    <MudTextField @ref="_trustNameField" @bind-Value="vm.EditingRecord.EntityName" Label="TRUST NAME *" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                    <MudTextField @bind-Value="vm.EditingRecord.EntityName" Label="TRUST NAME *" Variant="Variant.Outlined" Margin="Margin.Dense" />
                 </MudItem>
             }
 
             <MudItem xs="12" md="6">
-                <MudTextField @ref="_emailField" @bind-Value="vm.EditingRecord.ContactEmail" Label="EMAIL *" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                <MudTextField @bind-Value="vm.EditingRecord.ContactEmail" Label="EMAIL *" Variant="Variant.Outlined" Margin="Margin.Dense" />
             </MudItem>
             <MudItem xs="12" md="6">
-                <MudTextField @bind-Value="vm.EditingRecord.ContactPhoneNumber" Label="PHONE" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                <MudTextField @bind-Value="vm.EditingRecord.ContactPhoneNumber" Label="PHONE" Variant="Variant.Outlined" Margin="Margin.Dense" Immediate="true"
+                    InputAttributes="@GetMaskAttributes("borrower-phone", "phone", "14")" />
             </MudItem>
 
             <MudItem xs="12">
                 <div style="margin-left: -16px; margin-right: -12px;">
-                    <AddressCompleteMap AddressList="@borrowerAddressList"
-                                        OnAddressChange="HandleAddressChange"
-                                        Row="false"
-                                        MultipleAddress="false" />
+                    <AddressCompleteMap AddressList="@addressList" OnAddressChange="HandleAddressChange" Row="false" MultipleAddress="false" />
                 </div>
             </MudItem>
         </MudGrid>
-
-        <MudPaper Outlined="true" Class="pa-4 mt-4" Style="border-radius: 8px;">
-            <MudStack Row Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
-                <MudText Typo="Typo.subtitle2"><b>Alias Names</b></MudText>
-                <MudButton StartIcon="@Icons.Material.Filled.Add" Size="Size.Small" Color="Color.Primary">Add Alias</MudButton>
-            </MudStack>
-            <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mt-2 d-block">No alias names added yet.</MudText>
-        </MudPaper>
 
         <MudStack Row Justify="Justify.Center" Spacing="2" Class="mt-6">
             <MudButton Variant="Variant.Filled" Color="Color.Success" OnClick="HandleUpsert" Style="min-width: 120px; border-radius: 8px;">Add</MudButton>
@@ -106,28 +98,30 @@
     [Parameter] public EventCallback<DominateDocsData.Models.Borrower> OnBorrowerComplete { get; set; }
     [Parameter] public EventCallback OnBorrowerCanceled { get; set; }
 
-    private List<AddressDTO> borrowerAddressList = new();
+    private List<AddressDTO> addressList = new();
+
+     private readonly PatternMask socialMask = new("000-00-0000");
 
     protected override async Task OnInitializedAsync()
     {
         vm.SetSnackbar(Snackbar);
         await vm.InitializePageCommand.ExecuteAsync(SelectedBorrower);
-        InitializeAddressList();
+        SyncAddressList();
     }
 
-    private void HandleAddBorrower()
+    private void HandleAdd()
     {
         vm.ClearSelectionCommand.Execute(null);
-        InitializeAddressList();
+        SyncAddressList();
         StateHasChanged();
     }
 
-    private void InitializeAddressList()
+    private void SyncAddressList()
     {
-        borrowerAddressList.Clear();
+        addressList.Clear();
         if (!string.IsNullOrEmpty(vm.EditingRecord.FullAddress))
         {
-            borrowerAddressList.Add(new AddressDTO
+            addressList.Add(new AddressDTO
             {
                 FullAddress = vm.EditingRecord.FullAddress,
                 StreetAddress = vm.EditingRecord.StreetAddress,
@@ -157,18 +151,6 @@
             vm.EditingRecord.Lat = addr.Lat;
             vm.EditingRecord.Lng = addr.Lng;
         }
-        else
-        {
-            vm.EditingRecord.FullAddress = null;
-            vm.EditingRecord.StreetAddress = null;
-            vm.EditingRecord.City = null;
-            vm.EditingRecord.State = null;
-            vm.EditingRecord.ZipCode = null;
-            vm.EditingRecord.County = null;
-            vm.EditingRecord.Country = null;
-            vm.EditingRecord.Lat = null;
-            vm.EditingRecord.Lng = null;
-        }
     }
 
     private void SetEntityType(Entity.Types type)
@@ -180,15 +162,7 @@
     private async Task HandleUpsert()
     {
         await vm.UpsertRecordCommand.ExecuteAsync(null);
-
-        // Keep editor open on validation failure. Do NOT signal completion.
-        if (!vm.LastUpsertSucceeded)
-        {
-            await FocusFailedFieldAsync();
-            return;
-        }
-
-        if (OnBorrowerComplete.HasDelegate)
+        if (vm.LastUpsertSucceeded && OnBorrowerComplete.HasDelegate)
         {
             await OnBorrowerComplete.InvokeAsync(vm.EditingRecord);
         }
@@ -197,64 +171,26 @@
     private async Task HandleCancel()
     {
         vm.ClearSelectionCommand.Execute(null);
-        InitializeAddressList();
+        SyncAddressList();
         if (OnBorrowerCanceled.HasDelegate)
         {
             await OnBorrowerCanceled.InvokeAsync();
         }
     }
 
-    private async Task<IEnumerable<DominateDocsData.Models.Borrower>> SearchBorrowers(string value, CancellationToken token)
+    private async Task<IEnumerable<DominateDocsData.Models.Borrower>> SearchFunc(string value, System.Threading.CancellationToken token)
     {
-        if (string.IsNullOrEmpty(value)) return vm.RecordList.AsEnumerable();
-        return vm.RecordList.Where(x => x.EntityName != null && x.EntityName.Contains(value, StringComparison.InvariantCultureIgnoreCase)).AsEnumerable();
+        if (string.IsNullOrEmpty(value)) return vm.RecordList;
+        return vm.RecordList.Where(x => (x.EntityName ?? x.ContactName ?? "").Contains(value, StringComparison.InvariantCultureIgnoreCase));
     }
 
-    private MudTextField<string> _contactNameField;
-    private MudTextField<string> _ssnField;
-    private MudTextField<string> _entityNameField;
-    private MudTextField<string> _einField;
-    private MudTextField<string> _trustNameField;
-    private MudTextField<string> _emailField;
-
-    private async Task FocusFailedFieldAsync()
+    private Dictionary<string, object> GetMaskAttributes(string id, string mask, string maxlength)
     {
-        var field = vm.LastValidationFailureField;
-
-        if (field == DominateDocsSite.ViewModels.LoanWizardBorrowerViewModel.ValidationFailureField.EIN)
+        return new Dictionary<string, object>
         {
-            if (_einField is not null) await _einField.FocusAsync();
-            return;
-        }
-
-        if (field == DominateDocsSite.ViewModels.LoanWizardBorrowerViewModel.ValidationFailureField.EntityName)
-        {
-            if (_entityNameField is not null) await _entityNameField.FocusAsync();
-            return;
-        }
-
-        if (field == DominateDocsSite.ViewModels.LoanWizardBorrowerViewModel.ValidationFailureField.TrustName)
-        {
-            if (_trustNameField is not null) await _trustNameField.FocusAsync();
-            return;
-        }
-
-        if (field == DominateDocsSite.ViewModels.LoanWizardBorrowerViewModel.ValidationFailureField.ContactName)
-        {
-            if (_contactNameField is not null) await _contactNameField.FocusAsync();
-            return;
-        }
-
-        if (field == DominateDocsSite.ViewModels.LoanWizardBorrowerViewModel.ValidationFailureField.SSN)
-        {
-            if (_ssnField is not null) await _ssnField.FocusAsync();
-            return;
-        }
-
-        if (field == DominateDocsSite.ViewModels.LoanWizardBorrowerViewModel.ValidationFailureField.ContactEmail)
-        {
-            if (_emailField is not null) await _emailField.FocusAsync();
-            return;
-        }
+            { "id", id },
+            { "data-mask", mask },
+            { "maxlength", maxlength }
+        };
     }
 }

@@ -26,4 +26,17 @@ public class LoanType
 
     public List<Guid> ProductionDocumentIds { get; set; } = new();
 
+
+    public LoanType()
+    {
+        
+    }
+
+    public LoanType(Guid Id, string Name, string Description, string IconKey)
+    {
+        this.Id = Id;
+        this.Name = Name;
+        this.Description = Description;
+        this.IconKey = IconKey;
+    }
 }

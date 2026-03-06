@@ -1,4 +1,4 @@
-@page "/loanwizardaddedit"
+﻿@page "/loanwizardaddedit"
 
 @using DominateDocsSite.Components.Shared
 @using DominateDocsData.Models
@@ -482,98 +482,100 @@
                     <ChildContent>
                         @* ── Borrowers ── *@
                         <div class="d-flex align-center justify-space-between mb-3">
-                            <MudText Typo="Typo.subtitle2" Style="font-weight:700;color:#0f2b4a;">
-                                Borrowers (@vm.EditingAgreement.Borrowers.Count)
-                            </MudText>
-                            <MudButton StartIcon="@Icons.Material.Filled.Add" Size="Size.Small" Variant="Variant.Text"
-                                       Color="Color.Primary" OnClick="OnAddBorrower" Style="text-transform:none;">Add Borrower</MudButton>
+                            <MudText Typo="Typo.subtitle2" Style="font-weight:700;color:#0f2b4a;">Borrowers (@vm.EditingAgreement.Borrowers.Count)</MudText>
+                            <MudButton StartIcon="@Icons.Material.Filled.Add" Size="Size.Small" Variant="Variant.Text" Color="Color.Primary" OnClick="OnAddBorrower" Style="text-transform:none;">Add Borrower</MudButton>
                         </div>
-
-                        @* Saved Borrower Cards - styled like Lender list *@
                         @foreach (var borrower in vm.EditingAgreement.Borrowers)
                         {
-                            <MudPaper Class="pa-4 mb-3" Outlined="true" Style="border-radius:10px; background:#fafafa;">
-                                <div class="d-flex justify-space-between align-start">
-                                    <div style="flex-grow:1;">
-                                        @* Name *@
-                                        <MudText Typo="Typo.body1" Style="font-weight:700; color:#0f2b4a;">
-                                            @(!string.IsNullOrEmpty(borrower.EntityName) ? borrower.EntityName : borrower.ContactName)
-                                        </MudText>
-
-                                        @* Type · Structure · State *@
-                                        <MudText Typo="Typo.caption" Style="color:#64748b; display:block;" Class="mt-1">
-                                            @borrower.EntityType.GetDescription()
-                                            @if (borrower.EntityType == DominateDocsData.Enums.Entity.Types.Entity)
-                                            {
-                                                <span> · @borrower.EntityStructure.GetDescription()</span>
-                                                if (!string.IsNullOrEmpty(borrower.EIN))
-                                                {
-
-                                                    <span> · EIN: @borrower.EIN</span>
-                                                }
-                                            }
-                                            @if (borrower.EntityType == DominateDocsData.Enums.Entity.Types.Trust)
-                                            {
-                                                <span> · @borrower.StateOfOrganization.GetDescription()</span>
-                                            }
-                                            @if (!string.IsNullOrEmpty(borrower.ContactEmail))
-                                            {
-                                                <span> · @borrower.ContactEmail</span>
-                                            }
-                                        </MudText>
-
-                                        @* Address *@
-                                        @if (!string.IsNullOrEmpty(borrower.FullAddress))
-                                        {
-                                            <MudText Typo="Typo.caption" Style="color:#64748b; display:block;">@borrower.FullAddress</MudText>
-                                        }
-
-                                        @* Alias Names *@
-                                        @if (borrower.AliasNames?.Any() == true)
-                                        {
-                                            <MudStack Row="true" Spacing="1" Class="mt-1 flex-wrap" AlignItems="AlignItems.Center">
-                                                <MudIcon Icon="@Icons.Material.Outlined.LocalOffer" Size="Size.Small" Style="color:#94a3b8; font-size:12px;" />
-                                                @foreach (var aka in borrower.AliasNames)
-                                                {
-                                                    <MudText Typo="Typo.caption" Style="color:#94a3b8; font-size:11px; font-style:italic;">
-                                                        @aka@(aka != borrower.AliasNames.Last() ? "," : "")
-                                                    </MudText>
-                                                }
-                                            </MudStack>
-                                        }
-
-                                        @* Entity Owners / Trustees *@
-                                        @if (borrower.EntityOwners?.Any() == true)
-                                        {
-                                            <MudStack Row="true" Spacing="1" Class="mt-1 flex-wrap" AlignItems="AlignItems.Center">
-                                                <MudIcon Icon="@Icons.Material.Outlined.Group" Size="Size.Small" Style="color:#94a3b8; font-size:12px;" />
-                                                @foreach (var owner in borrower.EntityOwners)
-                                                {
-                                                    <MudText Typo="Typo.caption" Style="color:#64748b; font-size:11px;">
-                                                        @owner.EntityName@(owner != borrower.EntityOwners.Last() ? "," : "")
-                                                    </MudText>
-                                                }
-                                            </MudStack>
-                                        }
-                                    </div>
-
-                                    @* Edit / Remove Buttons *@
-                                    <MudStack Row Spacing="0" AlignItems="AlignItems.Start">
-                                        <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small"
-                                                       OnClick="@(() => OnSelectedBorrower(borrower))" />
-                                        <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small"
-                                                       Color="Color.Error"
-                                                       OnClick="@(() => OnRemoveBorrower(borrower))" />
-                                    </MudStack>
+                            <div class="pa-3 mb-3 d-flex justify-space-between align-center" style="background:#f1f5f9; border-radius:8px; border:1px solid #e2e8f0;">
+                                <div>
+                                    <MudText Typo="Typo.body2" Style="font-weight:700; color:#0f2b4a;">@(!string.IsNullOrEmpty(borrower.EntityName) ? borrower.EntityName : borrower.ContactName)</MudText>
+                                    <MudText Typo="Typo.caption" Style="color:#64748b;">@borrower.EntityType.GetDescription() @(string.IsNullOrEmpty(borrower.FullAddress) ? "" : $" · {borrower.FullAddress}")</MudText>
                                 </div>
-                            </MudPaper>
+                                <div class="d-flex">
+                                    <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" OnClick="@(() => OnSelectedBorrower(borrower))" />
+                                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error" OnClick="@(() => OnRemoveBorrower(borrower))" />
+                                </div>
+                            </div>
                         }
-
                         @if (AddEditBorrower)
                         {
-                            <LoanWizardBorrower OnBorrowerComplete="OnBorrowerComplete"
-                                                OnBorrowerCanceled="OnBorrowerCanceled"
-                                                SelectedBorrower="vm.SelectedBorrower" />
+                            <LoanWizardBorrower OnBorrowerComplete="@(new Microsoft.AspNetCore.Components.EventCallback<DominateDocsData.Models.Borrower>(null, (DominateDocsData.Models.Borrower b) => OnBorrowerComplete(b)))" OnBorrowerCanceled="OnBorrowerCanceled" SelectedBorrower="vm.SelectedBorrower" />
+                        }
+
+                        <MudDivider Class="my-4" />
+
+                        @* ── Lenders ── *@
+                        <div class="d-flex align-center justify-space-between mb-3">
+                            <MudText Typo="Typo.subtitle2" Style="font-weight:700;color:#0f2b4a;">Lenders (@vm.EditingAgreement.Lenders.Count)</MudText>
+                            <MudButton StartIcon="@Icons.Material.Filled.Add" Size="Size.Small" Variant="Variant.Text" Color="Color.Primary" OnClick="OnAddLender" Style="text-transform:none;">Add Lender</MudButton>
+                        </div>
+                        @foreach (var lender in vm.EditingAgreement.Lenders)
+                        {
+                            <div class="pa-3 mb-3 d-flex justify-space-between align-center" style="background:#f1f5f9; border-radius:8px; border:1px solid #e2e8f0;">
+                                <div>
+                                    <MudText Typo="Typo.body2" Style="font-weight:700; color:#0f2b4a;">@(!string.IsNullOrEmpty(lender.EntityName) ? lender.EntityName : lender.ContactName)</MudText>
+                                    <MudText Typo="Typo.caption" Style="color:#64748b;">@lender.EntityType.GetDescription() @(string.IsNullOrEmpty(lender.FullAddress) ? "" : $" · {lender.FullAddress}")</MudText>
+                                </div>
+                                <div class="d-flex">
+                                    <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" OnClick="@(() => OnSelectedLender(lender))" />
+                                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error" OnClick="@(() => OnRemoveLender(lender))" />
+                                </div>
+                            </div>
+                        }
+                        @if (AddEditLender)
+                        {
+                            <LoanWizardLender OnLenderComplete="@(new Microsoft.AspNetCore.Components.EventCallback<DominateDocsData.Models.Lender>(null, (DominateDocsData.Models.Lender r) => OnLenderComplete(r)))" OnLenderCanceled="OnLenderCanceled" SelectedLender="vm.SelectedLender" />
+                        }
+
+                        <MudDivider Class="my-4" />
+
+                        @* ── Guarantors ── *@
+                        <div class="d-flex align-center justify-space-between mb-3">
+                            <MudText Typo="Typo.subtitle2" Style="font-weight:700;color:#0f2b4a;">Guarantors (@vm.EditingAgreement.Guarantors.Count)</MudText>
+                            <MudButton StartIcon="@Icons.Material.Filled.Add" Size="Size.Small" Variant="Variant.Text" Color="Color.Primary" OnClick="OnAddGuarantor" Style="text-transform:none;">Add Guarantor</MudButton>
+                        </div>
+                        @foreach (var guarantor in vm.EditingAgreement.Guarantors)
+                        {
+                            <div class="pa-3 mb-3 d-flex justify-space-between align-center" style="background:#f1f5f9; border-radius:8px; border:1px solid #e2e8f0;">
+                                <div>
+                                    <MudText Typo="Typo.body2" Style="font-weight:700; color:#0f2b4a;">@(!string.IsNullOrEmpty(guarantor.EntityName) ? guarantor.EntityName : guarantor.ContactName)</MudText>
+                                    <MudText Typo="Typo.caption" Style="color:#64748b;">@guarantor.EntityType.GetDescription() @(string.IsNullOrEmpty(guarantor.FullAddress) ? "" : $" · {guarantor.FullAddress}")</MudText>
+                                </div>
+                                <div class="d-flex">
+                                    <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" OnClick="@(() => OnSelectedGuarantor(guarantor))" />
+                                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error" OnClick="@(() => OnRemoveGuarantor(guarantor))" />
+                                </div>
+                            </div>
+                        }
+                        @if (AddEditGuarantor)
+                        {
+                            <LoanWizardGuarantor OnGuarantorComplete="@(new Microsoft.AspNetCore.Components.EventCallback<DominateDocsData.Models.Guarantor>(null, (DominateDocsData.Models.Guarantor r) => OnGuarantorComplete(r)))" OnGuarantorCanceled="OnGuarantorCanceled" SelectedGuarantor="vm.SelectedGuarantor" />
+                        }
+
+                        <MudDivider Class="my-4" />
+
+                        @* ── Brokers ── *@
+                        <div class="d-flex align-center justify-space-between mb-3">
+                            <MudText Typo="Typo.subtitle2" Style="font-weight:700;color:#0f2b4a;">Brokers (@vm.EditingAgreement.Brokers.Count)</MudText>
+                            <MudButton StartIcon="@Icons.Material.Filled.Add" Size="Size.Small" Variant="Variant.Text" Color="Color.Primary" OnClick="OnAddBroker" Style="text-transform:none;">Add Broker</MudButton>
+                        </div>
+                        @foreach (var broker in vm.EditingAgreement.Brokers)
+                        {
+                            <div class="pa-3 mb-3 d-flex justify-space-between align-center" style="background:#f1f5f9; border-radius:8px; border:1px solid #e2e8f0;">
+                                <div>
+                                    <MudText Typo="Typo.body2" Style="font-weight:700; color:#0f2b4a;">@(!string.IsNullOrEmpty(broker.EntityName) ? broker.EntityName : broker.ContactName)</MudText>
+                                    <MudText Typo="Typo.caption" Style="color:#64748b;">@(string.IsNullOrEmpty(broker.FullAddress) ? "Broker" : broker.FullAddress)</MudText>
+                                </div>
+                                <div class="d-flex">
+                                    <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" OnClick="@(() => OnSelectedBroker(broker))" />
+                                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error" OnClick="@(() => OnRemoveBroker(broker))" />
+                                </div>
+                            </div>
+                        }
+                        @if (AddEditBroker)
+                        {
+                            <LoanWizardBroker OnBrokerComplete="@(new Microsoft.AspNetCore.Components.EventCallback<DominateDocsData.Models.Broker>(null, (DominateDocsData.Models.Broker r) => OnBrokerComplete(r)))" OnBrokerCanceled="OnBrokerCanceled" SelectedBroker="vm.SelectedBroker" />
                         }
                     </ChildContent>
                 </MudExpansionPanel>
@@ -655,5 +657,15 @@
     private void OnBrokerComplete(DominateDocsData.Models.Broker b) { vm.UpsertAgreementBrokerCommand.Execute(b); AddEditBroker = false; StateHasChanged(); }
     private void OnLenderComplete(DominateDocsData.Models.Lender l) { vm.UpsertAgreementLenderCommand.Execute(l); AddEditLender = false; StateHasChanged(); }
     private void OnGuarantorComplete(DominateDocsData.Models.Guarantor g) { vm.UpsertAgreementGuarantorCommand.Execute(g); AddEditGuarantor = false; StateHasChanged(); }
+    
+    private void OnSelectedLender(DominateDocsData.Models.Lender r) { vm.SelectedLender = r; AddEditLender = true; StateHasChanged(); }
+    private void OnLenderCanceled() { AddEditLender = false; StateHasChanged(); }
+
+    private void OnSelectedGuarantor(DominateDocsData.Models.Guarantor r) { vm.SelectedGuarantor = r; AddEditGuarantor = true; StateHasChanged(); }
+    private void OnGuarantorCanceled() { AddEditGuarantor = false; StateHasChanged(); }
+
+    private void OnSelectedBroker(DominateDocsData.Models.Broker r) { vm.SelectedBroker = r; AddEditBroker = true; StateHasChanged(); }
+    private void OnBrokerCanceled() { AddEditBroker = false; StateHasChanged(); }
+
     private void OnPropertyComplete(DominateDocsData.Models.PropertyRecord p) { vm.UpsertAgreementPropertyCommand.Execute(p); AddEditProperty = false; StateHasChanged(); }
 }
