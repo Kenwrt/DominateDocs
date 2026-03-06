@@ -16,6 +16,7 @@ using MudBlazor;
 using Nextended.Core.Extensions;
 using System.Collections.ObjectModel;
 using System.Globalization;
+using System.Text;
 
 namespace DominateDocsSite.ViewModels;
 
@@ -165,17 +166,194 @@ public partial class LoanWizardAddEditViewModel : ObservableObject
 
     public string GetIconForLoanType(LoanType lt)
     {
-        var key = (lt.IconKey ?? string.Empty).Trim().ToLowerInvariant();
-        return key switch
+        return GetIconForLoanType(lt?.IconKey);
+    }
+
+    public string GetIconForLoanType(string? iconKey)
+    {
+        var normalized = NormalizeMaterialIconKey(iconKey);
+        return string.IsNullOrWhiteSpace(normalized)
+            ? Icons.Material.Filled.Description
+            : normalized;
+    }
+
+    private static string NormalizeMaterialIconKey(string? iconKey)
+    {
+        if (string.IsNullOrWhiteSpace(iconKey))
+            return Icons.Material.Filled.Description;
+
+        var raw = iconKey.Trim();
+        if (raw.StartsWith("Icons.", StringComparison.Ordinal))
+            return raw;
+
+        var sb = new StringBuilder(raw.Length + 8);
+        for (int i = 0; i < raw.Length; i++)
         {
-            "construction" or "rehab" => Icons.Material.Filled.Construction,
-            "bridge" or "fixflip" or "fix&flip" => Icons.Material.Filled.HomeRepairService,
-            "dsc" or "dscr" or "rental" => Icons.Material.Filled.CreditCard,
-            "commercial" => Icons.Material.Filled.Business,
-            "multifamily" => Icons.Material.Filled.Apartment,
-            "land" or "lot" => Icons.Material.Filled.Landscape,
-            _ => Icons.Material.Filled.Description
-        };
+            char current = raw[i];
+            char previous = i > 0 ? raw[i - 1] : ' ';
+            char next = i < raw.Length - 1 ? raw[i + 1] : ' ';
+
+            if (current == ' ' || current == '-' || current == '.')
+            {
+                if (sb.Length > 0 && sb[^1] != '_')
+                    sb.Append('_');
+                continue;
+            }
+
+            if (char.IsUpper(current))
+            {
+                bool addUnderscore =
+                    i > 0 &&
+                    sb.Length > 0 &&
+                    sb[^1] != '_' &&
+                    (char.IsLower(previous) || char.IsDigit(previous) || (char.IsUpper(previous) && char.IsLower(next)));
+
+                if (addUnderscore)
+                    sb.Append('_');
+
+                sb.Append(char.ToLowerInvariant(current));
+                continue;
+            }
+
+            if (char.IsDigit(current))
+            {
+                if (i > 0 && char.IsLetter(previous) && sb.Length > 0 && sb[^1] != '_')
+                    sb.Append('_');
+
+                sb.Append(current);
+                continue;
+            }
+
+            sb.Append(char.ToLowerInvariant(current));
+        }
+
+        return sb.ToString();
+    }
+
+    public string GetLoanTypeSummary()
+    {
+        return string.IsNullOrWhiteSpace(EditingAgreement?.LoanTypeName)
+            ? "—"
+            : EditingAgreement.LoanTypeName;
+    }
+
+    public string GetLoanTypeIcon()
+    {
+        var loanType = dbApp.GetRecords<DominateDocsData.Models.LoanType>()
+            .FirstOrDefault(x => x.Id == EditingAgreement.LoanTypeId);
+
+        if (loanType is not null)
+            return GetIconForLoanType(loanType.IconKey);
+
+        var dto = LoanTypes?.FirstOrDefault(x => x.Id == EditingAgreement.LoanTypeId || x.Name == EditingAgreement.LoanTypeName);
+        return GetIconForLoanType(dto?.IconKey);
+    }
+
+    public string GetLoanTermsSummary()
+    {
+        var parts = new List<string>();
+
+        if (EditingAgreement.PrincipalAmount > 0)
+            parts.Add($"${EditingAgreement.PrincipalAmount:N0}");
+
+        if (EditingAgreement.InterestRate > 0)
+            parts.Add($"{EditingAgreement.InterestRate:N2}%");
+
+        if (EditingAgreement.TermInMonths > 0)
+            parts.Add($"{EditingAgreement.TermInMonths} mo");
+
+        return parts.Count == 0 ? "—" : string.Join(" · ", parts);
+    }
+
+    public string GetBorrowerSummary() => FormatNameList(EditingAgreement.Borrowers.Select(GetBorrowerDisplayName));
+
+    public string GetLenderSummary() => FormatNameList(EditingAgreement.Lenders.Select(GetLenderDisplayName));
+
+    public string GetGuarantorSummary() => FormatNameList(EditingAgreement.Guarantors.Select(GetGuarantorDisplayName));
+
+    public string GetBrokerSummary() => FormatNameList(EditingAgreement.Brokers.Select(GetBrokerDisplayName));
+
+    public string GetPropertySummary() => FormatNameList(EditingAgreement.Properties.Select(GetPropertyDisplayName));
+
+    public string GetOriginationFeeSummary()
+    {
+        var fee = EditingAgreement.LenderFees.FirstOrDefault(f => f.FeeType == DominateDocsData.Enums.Payment.FeeTypes.Origination);
+        return FormatFeeAmount(fee?.Ammount ?? 0m);
+    }
+
+    public string GetAppraisalFeeSummary()
+    {
+        var fee = EditingAgreement.OtherFees.FirstOrDefault(f => f.Description?.Contains("Appraisal", StringComparison.OrdinalIgnoreCase) == true);
+        return FormatFeeAmount(fee?.Ammount ?? 0m);
+    }
+
+    private static string GetBorrowerDisplayName(DominateDocsData.Models.Borrower value)
+    {
+        return !string.IsNullOrWhiteSpace(value.EntityName)
+            ? value.EntityName.Trim()
+            : !string.IsNullOrWhiteSpace(value.ContactName)
+                ? value.ContactName.Trim()
+                : "—";
+    }
+
+    private static string GetLenderDisplayName(DominateDocsData.Models.Lender value)
+    {
+        return !string.IsNullOrWhiteSpace(value.EntityName)
+            ? value.EntityName.Trim()
+            : !string.IsNullOrWhiteSpace(value.ContactName)
+                ? value.ContactName.Trim()
+                : "—";
+    }
+
+    private static string GetGuarantorDisplayName(DominateDocsData.Models.Guarantor value)
+    {
+        return !string.IsNullOrWhiteSpace(value.EntityName)
+            ? value.EntityName.Trim()
+            : !string.IsNullOrWhiteSpace(value.ContactName)
+                ? value.ContactName.Trim()
+                : "—";
+    }
+
+    private static string GetBrokerDisplayName(DominateDocsData.Models.Broker value)
+    {
+        return !string.IsNullOrWhiteSpace(value.EntityName)
+            ? value.EntityName.Trim()
+            : !string.IsNullOrWhiteSpace(value.ContactName)
+                ? value.ContactName.Trim()
+                : "—";
+    }
+
+    private static string GetPropertyDisplayName(DominateDocsData.Models.PropertyRecord value)
+    {
+        if (!string.IsNullOrWhiteSpace(value.FullAddress))
+            return value.FullAddress.Trim();
+
+        if (!string.IsNullOrWhiteSpace(value.LegalDescription))
+            return value.LegalDescription.Trim();
+
+        return "—";
+    }
+
+    private static string FormatNameList(IEnumerable<string> values)
+    {
+        var items = values
+            .Where(x => !string.IsNullOrWhiteSpace(x) && x != "—")
+            .Select(x => x.Trim())
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        if (items.Count == 0)
+            return "—";
+
+        if (items.Count == 1)
+            return items[0];
+
+        return $"{items[0]} +{items.Count - 1} more";
+    }
+
+    private static string FormatFeeAmount(decimal amount)
+    {
+        return amount > 0m ? $"${amount:N0}" : "—";
     }
 
     partial void OnSelectedLoanTypeChanged(LoanType value)

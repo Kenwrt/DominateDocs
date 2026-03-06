@@ -172,26 +172,33 @@
                         <MudIconButton Icon="@Icons.Material.Filled.ChevronLeft" Size="Size.Small" Style="color:#94a3b8;" />
                     </div>
 
-                    @* Deal Section *@
+                    @* Loan Type Section *@
                     <div class="mb-4">
                         <MudText Typo="Typo.caption" Style="font-weight:700;text-transform:uppercase;color:#94a3b8;letter-spacing:0.5px;" Class="mb-2">
-                            Deal
+                            Loan Type
+                        </MudText>
+                        <div class="d-flex align-center gap-2 mb-2">
+                            <MudIcon Icon="@vm.GetLoanTypeIcon()" Size="Size.Small" Style="color:#64748b;" />
+                            <div style="flex:1;">
+                                <MudText Typo="Typo.body2" Style="font-weight:600;color:#0f2b4a;">
+                                    @vm.GetLoanTypeSummary()
+                                </MudText>
+                            </div>
+                        </div>
+                    </div>
+
+                    @* Loan Terms Section *@
+                    <MudDivider Class="mb-3" />
+                    <div class="mb-4">
+                        <MudText Typo="Typo.caption" Style="font-weight:700;text-transform:uppercase;color:#94a3b8;letter-spacing:0.5px;" Class="mb-2">
+                            Loan Terms
                         </MudText>
                         <div class="d-flex align-center gap-2 mb-2">
                             <MudIcon Icon="@Icons.Material.Filled.AttachMoney" Size="Size.Small" Style="color:#64748b;" />
                             <div style="flex:1;">
-                                <MudText Typo="Typo.caption" Style="color:#64748b;font-size:11px;">Loan Amount</MudText>
+                                <MudText Typo="Typo.caption" Style="color:#64748b;font-size:11px;">Terms Summary</MudText>
                                 <MudText Typo="Typo.body2" Style="font-weight:600;color:#0f2b4a;">
-                                    @(vm.EditingAgreement.PrincipalAmount > 0 ? $"${vm.EditingAgreement.PrincipalAmount:N0}" : "—")
-                                </MudText>
-                            </div>
-                        </div>
-                        <div class="d-flex align-center gap-2 mb-2">
-                            <MudIcon Icon="@Icons.Material.Filled.Percent" Size="Size.Small" Style="color:#64748b;" />
-                            <div style="flex:1;">
-                                <MudText Typo="Typo.caption" Style="color:#64748b;font-size:11px;">Interest Rate</MudText>
-                                <MudText Typo="Typo.body2" Style="font-weight:600;color:#0f2b4a;">
-                                    @(vm.EditingAgreement.InterestRate > 0 ? $"{vm.EditingAgreement.InterestRate}%" : "—")
+                                    @vm.GetLoanTermsSummary()
                                 </MudText>
                             </div>
                         </div>
@@ -206,18 +213,36 @@
                         <div class="d-flex align-center gap-2 mb-2">
                             <MudIcon Icon="@Icons.Material.Filled.Person" Size="Size.Small" Style="color:#64748b;" />
                             <div style="flex:1;">
-                                <MudText Typo="Typo.caption" Style="color:#64748b;">Borrower</MudText>
+                                <MudText Typo="Typo.caption" Style="color:#64748b;font-size:11px;">Borrower(s)</MudText>
                                 <MudText Typo="Typo.body2" Style="font-weight:600;color:#0f2b4a;">
-                                    @(vm.EditingAgreement.Borrowers.Count > 0 && !string.IsNullOrEmpty(vm.EditingAgreement.Borrowers[0].EntityName) ? vm.EditingAgreement.Borrowers[0].EntityName : "—")
+                                    @vm.GetBorrowerSummary()
                                 </MudText>
                             </div>
                         </div>
                         <div class="d-flex align-center gap-2 mb-2">
                             <MudIcon Icon="@Icons.Material.Filled.AccountBalance" Size="Size.Small" Style="color:#64748b;" />
                             <div style="flex:1;">
-                                <MudText Typo="Typo.caption" Style="color:#64748b;font-size:11px;">Lender</MudText>
+                                <MudText Typo="Typo.caption" Style="color:#64748b;font-size:11px;">Lender(s)</MudText>
                                 <MudText Typo="Typo.body2" Style="font-weight:600;color:#0f2b4a;">
-                                    @(vm.EditingAgreement.Lenders.Count > 0 && !string.IsNullOrEmpty(vm.EditingAgreement.Lenders[0].EntityName) ? vm.EditingAgreement.Lenders[0].EntityName : "—")
+                                    @vm.GetLenderSummary()
+                                </MudText>
+                            </div>
+                        </div>
+                        <div class="d-flex align-center gap-2 mb-2">
+                            <MudIcon Icon="@Icons.Material.Filled.VerifiedUser" Size="Size.Small" Style="color:#64748b;" />
+                            <div style="flex:1;">
+                                <MudText Typo="Typo.caption" Style="color:#64748b;font-size:11px;">Guarantor(s)</MudText>
+                                <MudText Typo="Typo.body2" Style="font-weight:600;color:#0f2b4a;">
+                                    @vm.GetGuarantorSummary()
+                                </MudText>
+                            </div>
+                        </div>
+                        <div class="d-flex align-center gap-2 mb-2">
+                            <MudIcon Icon="@Icons.Material.Filled.BusinessCenter" Size="Size.Small" Style="color:#64748b;" />
+                            <div style="flex:1;">
+                                <MudText Typo="Typo.caption" Style="color:#64748b;font-size:11px;">Broker(s)</MudText>
+                                <MudText Typo="Typo.body2" Style="font-weight:600;color:#0f2b4a;">
+                                    @vm.GetBrokerSummary()
                                 </MudText>
                             </div>
                         </div>
@@ -227,14 +252,14 @@
                     <MudDivider Class="mb-3" />
                     <div class="mb-4">
                         <MudText Typo="Typo.caption" Style="font-weight:700;text-transform:uppercase;color:#94a3b8;letter-spacing:0.5px;" Class="mb-2">
-                            Collateral
+                            Collateral - Property
                         </MudText>
                         <div class="d-flex align-center gap-2 mb-2">
                             <MudIcon Icon="@Icons.Material.Filled.Home" Size="Size.Small" Style="color:#64748b;" />
                             <div style="flex:1;">
                                 <MudText Typo="Typo.caption" Style="color:#64748b;font-size:11px;">Property</MudText>
                                 <MudText Typo="Typo.body2" Style="font-weight:600;color:#0f2b4a;font-size:12px;">
-                                    @(vm.EditingAgreement.Properties.Count > 0 && !string.IsNullOrEmpty(vm.EditingAgreement.Properties[0].FullAddress) ? vm.EditingAgreement.Properties[0].FullAddress : "—")
+                                    @vm.GetPropertySummary()
                                 </MudText>
                             </div>
                         </div>
@@ -251,10 +276,7 @@
                             <div style="flex:1;">
                                 <MudText Typo="Typo.caption" Style="color:#64748b;font-size:11px;">Origination Fee</MudText>
                                 <MudText Typo="Typo.body2" Style="font-weight:600;color:#0f2b4a;">
-                                    @{
-                                        var originationFee = vm.EditingAgreement.LenderFees.FirstOrDefault(f => f.FeeType == DominateDocsData.Enums.Payment.FeeTypes.Origination);
-                                    }
-                                    @(originationFee != null && originationFee.Ammount > 0 ? $"${originationFee.Ammount:N0}" : "—")
+                                    @vm.GetOriginationFeeSummary()
                                 </MudText>
                             </div>
                         </div>
@@ -263,10 +285,7 @@
                             <div style="flex:1;">
                                 <MudText Typo="Typo.caption" Style="color:#64748b;font-size:11px;">Appraisal Fee</MudText>
                                 <MudText Typo="Typo.body2" Style="font-weight:600;color:#0f2b4a;">
-                                    @{
-                                        var appraisalFee = vm.EditingAgreement.OtherFees.FirstOrDefault(f => f.Description?.Contains("Appraisal") == true);
-                                    }
-                                    @(appraisalFee != null && appraisalFee.Ammount > 0 ? $"${appraisalFee.Ammount:N0}" : "—")
+                                    @vm.GetAppraisalFeeSummary()
                                 </MudText>
                             </div>
                         </div>
@@ -316,7 +335,7 @@
                                     <MudPaper Class="pa-5 text-center cursor-pointer"
                                               Style="@($"border:2px solid {(selected ? "#0ea5e9" : "#e2e8f0")};border-radius:12px;background:{(selected ? "#f0f9ff" : "white")};transition:all 0.2s;")"
                                               @onclick="@(() => vm.SelectLoanType(lt.Name))" Elevation="0">
-                                        <MudText Style="font-size:24px;margin-bottom:8px;">@(lt.IconKey)</MudText>
+                                        <MudIcon Icon="@vm.GetIconForLoanType(lt.IconKey)" Style="font-size:32px;margin-bottom:8px;color:#0f2b4a;" />
                                         <MudText Style="font-size:14px;font-weight:700;color:#0f172a;">@lt.Name</MudText>
                                     </MudPaper>
                                 </MudItem>
