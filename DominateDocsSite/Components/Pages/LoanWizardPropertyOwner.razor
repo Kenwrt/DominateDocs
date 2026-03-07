@@ -1,0 +1,124 @@
+﻿@using DominateDocsData.Enums
+@using DominateDocsData.Models
+@using DominateDocsSite.ViewModels
+@inject LoanWizardPropertyOwnerViewModel vm
+@inject ISnackbar Snackbar
+
+<div @key="vm.EditingRecord">
+    <MudPaper Outlined="true" Class="pa-4 mt-4" Style="border-radius: 12px; border: 1px solid #e0e0e0;">
+        <MudStack Row Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mb-2">
+            <MudStack Row AlignItems="AlignItems.Center" Spacing="1">
+                <MudIcon Icon="@Icons.Material.Outlined.Person" Size="Size.Medium" Color="Color.Default" />
+                <MudText Typo="Typo.h6" Style="font-weight: 600;">Property Owner</MudText>
+            </MudStack>
+            <MudButton StartIcon="@Icons.Material.Filled.Add" Size="Size.Small" Color="Color.Primary" OnClick="HandleAdd">Add Owner</MudButton>
+        </MudStack>
+
+        <MudStack Row Spacing="2" Class="mb-6">
+            <MudButton Variant="@(vm.EditingRecord.EntityType == Entity.Types.Individual ? Variant.Filled : Variant.Outlined)"
+                       Color="@(vm.EditingRecord.EntityType == Entity.Types.Individual ? Color.Dark : Color.Default)"
+                       OnClick="@(() => SetEntityType(Entity.Types.Individual))"
+                       Style="border-radius: 20px; text-transform: none; min-width: 100px;">Individual</MudButton>
+            <MudButton Variant="@(vm.EditingRecord.EntityType == Entity.Types.Entity ? Variant.Filled : Variant.Outlined)"
+                       Color="@(vm.EditingRecord.EntityType == Entity.Types.Entity ? Color.Dark : Color.Default)"
+                       OnClick="@(() => SetEntityType(Entity.Types.Entity))"
+                       Style="border-radius: 20px; text-transform: none; min-width: 100px;">Entity</MudButton>
+            <MudButton Variant="@(vm.EditingRecord.EntityType == Entity.Types.Trust ? Variant.Filled : Variant.Outlined)"
+                       Color="@(vm.EditingRecord.EntityType == Entity.Types.Trust ? Color.Dark : Color.Default)"
+                       OnClick="@(() => SetEntityType(Entity.Types.Trust))"
+                       Style="border-radius: 20px; text-transform: none; min-width: 100px;">Trust</MudButton>
+        </MudStack>
+
+        <MudGrid Spacing="2">
+            @if (vm.EditingRecord.EntityType == Entity.Types.Individual)
+            {
+                <MudItem xs="12" md="6">
+                    <MudTextField @bind-Value="vm.EditingRecord.ContactName" Label="FULL LEGAL NAME *" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                </MudItem>
+                <MudItem xs="12" md="6">
+                    <MudTextField @bind-Value="vm.EditingRecord.SSN" Label="SSN *" Variant="Variant.Outlined" Margin="Margin.Dense" Immediate="true" />
+                </MudItem>
+            }
+            else if (vm.EditingRecord.EntityType == Entity.Types.Entity)
+            {
+                <MudItem xs="12" md="6">
+                    <MudTextField @bind-Value="vm.EditingRecord.EntityName" Label="ENTITY NAME *" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                </MudItem>
+                <MudItem xs="12" md="6">
+                    <MudTextField @bind-Value="vm.EditingRecord.EIN" Label="EIN *" Variant="Variant.Outlined" Margin="Margin.Dense" Immediate="true" />
+                </MudItem>
+            }
+            else if (vm.EditingRecord.EntityType == Entity.Types.Trust)
+            {
+                <MudItem xs="12">
+                    <MudTextField @bind-Value="vm.EditingRecord.EntityName" Label="TRUST NAME *" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                </MudItem>
+            }
+
+            <MudItem xs="12" md="6">
+                <MudTextField @bind-Value="vm.EditingRecord.ContactEmail" Label="EMAIL" Variant="Variant.Outlined" Margin="Margin.Dense" />
+            </MudItem>
+            <MudItem xs="12" md="6">
+                <MudTextField @bind-Value="vm.EditingRecord.ContactPhoneNumber" Label="PHONE" Variant="Variant.Outlined" Margin="Margin.Dense" />
+            </MudItem>
+
+            <MudItem xs="12" md="6">
+                <MudNumericField T="int" @bind-Value="vm.EditingRecord.PercentageOfOwnership" Label="Ownership %" Variant="Variant.Outlined" Margin="Margin.Dense" Min="0" Max="100" />
+            </MudItem>
+            <MudItem xs="12" md="6" Class="d-flex align-center">
+                <MudSwitch T="bool" @bind-Value="vm.EditingRecord.IsJointOwnership" Color="Color.Primary" Label="Joint Ownership" />
+            </MudItem>
+        </MudGrid>
+
+        <MudStack Row Justify="Justify.Center" Spacing="2" Class="mt-6">
+            <MudButton Variant="Variant.Filled" Color="Color.Success" OnClick="HandleUpsert" Style="min-width: 120px; border-radius: 8px;">Add</MudButton>
+            <MudButton Variant="Variant.Filled" Color="Color.Dark" OnClick="HandleCancel" Style="min-width: 120px; border-radius: 8px;">Clear</MudButton>
+        </MudStack>
+    </MudPaper>
+</div>
+
+@code {
+    [Parameter] public DominateDocsData.Models.PropertyOwner SelectedOwner { get; set; }
+    [Parameter] public List<DominateDocsData.Models.PropertyOwner> ExistingOwners { get; set; } = new();
+    [Parameter] public EventCallback<DominateDocsData.Models.PropertyOwner> OnOwnerComplete { get; set; }
+    [Parameter] public EventCallback OnOwnerCanceled { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        vm.SetSnackbar(Snackbar);
+        await vm.InitializeEditorAsync(SelectedOwner, ExistingOwners);
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await vm.InitializeEditorAsync(SelectedOwner, ExistingOwners);
+    }
+
+    private void HandleAdd()
+    {
+        vm.ClearSelection();
+        StateHasChanged();
+    }
+
+    private void SetEntityType(Entity.Types type)
+    {
+        vm.EditingRecord.EntityType = type;
+        StateHasChanged();
+    }
+
+    private async Task HandleUpsert()
+    {
+        if (await vm.UpsertRecordAsync(ExistingOwners))
+        {
+            if (OnOwnerComplete.HasDelegate)
+                await OnOwnerComplete.InvokeAsync(vm.EditingRecord);
+        }
+    }
+
+    private async Task HandleCancel()
+    {
+        vm.ClearSelection();
+        if (OnOwnerCanceled.HasDelegate)
+            await OnOwnerCanceled.InvokeAsync();
+    }
+}

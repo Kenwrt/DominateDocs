@@ -1,14 +1,30 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using DominateDocsData.Database;
+using DominateDocsData.Enums;
 using DominateDocsData.Helpers;
 using DominateDocsSite.State;
+using MudBlazor;
 using System.Collections.ObjectModel;
+using System.Text.Json;
 
 namespace DominateDocsSite.ViewModels;
 
 public partial class LoanWizardPropertyViewModel : ObservableObject
 {
+    public enum ValidationFailureField
+    {
+        None = 0,
+        FullAddress = 1
+    }
+
+    [ObservableProperty]
+    private bool lastUpsertSucceeded = false;
+
+    [ObservableProperty]
+    private DominateDocsSite.ViewModels.LoanWizardPropertyViewModel.ValidationFailureField lastValidationFailureField =
+        DominateDocsSite.ViewModels.LoanWizardPropertyViewModel.ValidationFailureField.None;
+
     [ObservableProperty]
     private ObservableCollection<DominateDocsData.Models.PropertyRecord> recordList = new();
 
@@ -21,107 +37,134 @@ public partial class LoanWizardPropertyViewModel : ObservableObject
     [ObservableProperty]
     private DominateDocsData.Models.PropertyRecord selectedRecord = null;
 
-    private Guid userId;
+    private readonly Guid userId;
     private readonly UserSession userSession;
     private readonly IMongoDatabaseRepo dbApp;
-    private IApplicationStateManager appState;
     private readonly ILogger<LoanWizardPropertyViewModel> logger;
+    private ISnackbar snackbar;
 
-    public LoanWizardPropertyViewModel(IMongoDatabaseRepo dbApp, ILogger<LoanWizardPropertyViewModel> logger, UserSession userSession, IApplicationStateManager appState)
+    public LoanWizardPropertyViewModel(
+        IMongoDatabaseRepo dbApp,
+        ILogger<LoanWizardPropertyViewModel> logger,
+        UserSession userSession,
+        IApplicationStateManager appState)
     {
         this.dbApp = dbApp;
         this.logger = logger;
         this.userSession = userSession;
-        this.appState = appState;
-
         userId = userSession.UserId;
     }
 
-    [RelayCommand]
-    private async Task InitializePage(List<DominateDocsData.Models.PropertyRecord> list )
+    public void SetSnackbar(ISnackbar snackbar) => this.snackbar = snackbar;
+
+    public async Task InitializeEditorAsync(
+        DominateDocsData.Models.PropertyRecord selectedProperty,
+        IEnumerable<DominateDocsData.Models.PropertyRecord> currentLoanProperties)
     {
-        if (list is not null) MyList = list.ToObservableCollection();   
+        MyList = currentLoanProperties?.ToObservableCollection() ?? new ObservableCollection<DominateDocsData.Models.PropertyRecord>();
 
-        if (EditingRecord is null) GetNewRecord();
+        if (selectedProperty is not null)
+        {
+            SelectedRecord = selectedProperty;
+            EditingRecord = DeepCopy(selectedProperty);
+        }
+        else
+        {
+            ClearSelection();
+        }
 
-        SelectedRecord = null;
+        if (EditingRecord is null)
+            GetNewRecord();
 
         RecordList.Clear();
+        var records = dbApp.GetRecords<DominateDocsData.Models.PropertyRecord>()
+            .Where(x => x.UserId == userId)
+            .ToList();
 
-        dbApp.GetRecords<DominateDocsData.Models.PropertyRecord>().Where(x => x.UserId == userId).ToList().ForEach(lf => RecordList.Add(lf));
+        foreach (var record in records)
+        {
+            RecordList.Add(record);
+        }
+
+        await Task.CompletedTask;
     }
 
     [RelayCommand]
-    private async Task UpsertRecord()
+    public async Task UpsertRecord()
     {
-        //Update All Collections
+        LastUpsertSucceeded = false;
+        LastValidationFailureField = DominateDocsSite.ViewModels.LoanWizardPropertyViewModel.ValidationFailureField.None;
 
-        int index = RecordList.FindIndex(x => x.Id == EditingRecord.Id);
+        if (EditingRecord is null)
+            return;
 
-        if (index > -1)
+        if (string.IsNullOrWhiteSpace(EditingRecord.FullAddress))
         {
-            RecordList[index] = EditingRecord;
-        }
-        else
-        {
-            RecordList.Add(EditingRecord);
+            LastValidationFailureField = DominateDocsSite.ViewModels.LoanWizardPropertyViewModel.ValidationFailureField.FullAddress;
+            snackbar?.Add("Property address is required.", Severity.Error);
+            return;
         }
 
-        index = MyList.FindIndex(x => x.Id == EditingRecord.Id);
-
-        if (index > -1)
-        {
-            MyList[index] = EditingRecord;
-        }
-        else
-        {
-            MyList.Add(EditingRecord);
-        }
+        EditingRecord.PropertyOwners ??= new List<DominateDocsData.Models.PropertyOwner>();
+        EditingRecord.EntityOwners ??= new List<DominateDocsData.Models.EntityOwner>();
+        EditingRecord.Liens ??= new List<DominateDocsData.Models.Lien>();
+        EditingRecord.UserId = userId;
 
         await dbApp.UpSertRecordAsync<DominateDocsData.Models.PropertyRecord>(EditingRecord);
-    }
 
-    [RelayCommand]
-    private async Task DeleteRecord(DominateDocsData.Models.PropertyRecord r)
-    {
-        int index = MyList.FindIndex(x => x.Id == r.Id);
-
+        int index = RecordList.FindIndex(x => x.Id == EditingRecord.Id);
         if (index > -1)
-        {
-            MyList.RemoveAt(index);
-        }
+            RecordList[index] = EditingRecord;
+        else
+            RecordList.Add(EditingRecord);
 
-      
+        index = MyList.FindIndex(x => x.Id == EditingRecord.Id);
+        if (index > -1)
+            MyList[index] = EditingRecord;
+        else
+            MyList.Add(EditingRecord);
+
+        LastUpsertSucceeded = true;
+        LastValidationFailureField = DominateDocsSite.ViewModels.LoanWizardPropertyViewModel.ValidationFailureField.None;
+        snackbar?.Add("Property saved successfully.", Severity.Success);
     }
 
-    
-
     [RelayCommand]
-    private void SelectRecord(DominateDocsData.Models.PropertyRecord r)
+    public void SelectRecord(DominateDocsData.Models.PropertyRecord property)
     {
-        if (r != null)
-        {
-            SelectedRecord = r;
-            EditingRecord = r;
-        }
+        if (property is null)
+            return;
+
+        SelectedRecord = property;
+        EditingRecord = DeepCopy(property);
     }
 
     [RelayCommand]
-    private void ClearSelection()
+    public void ClearSelection()
     {
-        if (SelectedRecord != null)
-        {
-            SelectedRecord = null;
-            GetNewRecord();
-        }
+        SelectedRecord = null;
+        GetNewRecord();
     }
 
     [RelayCommand]
-    private void GetNewRecord()
+    public void GetNewRecord()
     {
         EditingRecord = new DominateDocsData.Models.PropertyRecord()
         {
-            UserId = userId
+            UserId = userId,
+            PropertyType = Property.Types.SingleFamily,
+            PropertyOwners = new List<DominateDocsData.Models.PropertyOwner>(),
+            EntityOwners = new List<DominateDocsData.Models.EntityOwner>(),
+            Liens = new List<DominateDocsData.Models.Lien>(),
+            IsPropertyOwnerSameAsBorrower = true,
+            IsPropertyOwnerSameAsGuarantor = false,
+            IsPropertyOwnerThridPartyOwner = false
         };
+    }
+
+    private static DominateDocsData.Models.PropertyRecord DeepCopy(DominateDocsData.Models.PropertyRecord source)
+    {
+        var json = JsonSerializer.Serialize(source);
+        return JsonSerializer.Deserialize<DominateDocsData.Models.PropertyRecord>(json)!;
     }
 }

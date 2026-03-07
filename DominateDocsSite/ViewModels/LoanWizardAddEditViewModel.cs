@@ -171,63 +171,71 @@ public partial class LoanWizardAddEditViewModel : ObservableObject
 
     public string GetIconForLoanType(string? iconKey)
     {
-        var normalized = NormalizeMaterialIconKey(iconKey);
-        return string.IsNullOrWhiteSpace(normalized)
-            ? Icons.Material.Filled.Description
-            : normalized;
-    }
+        var key = (iconKey ?? string.Empty).Trim();
 
-    private static string NormalizeMaterialIconKey(string? iconKey)
-    {
-        if (string.IsNullOrWhiteSpace(iconKey))
+        if (string.IsNullOrWhiteSpace(key))
             return Icons.Material.Filled.Description;
 
-        var raw = iconKey.Trim();
-        if (raw.StartsWith("Icons.", StringComparison.Ordinal))
-            return raw;
+        if (key.StartsWith("Icons.", StringComparison.Ordinal))
+            return key;
 
-        var sb = new StringBuilder(raw.Length + 8);
-        for (int i = 0; i < raw.Length; i++)
+        return key switch
         {
-            char current = raw[i];
-            char previous = i > 0 ? raw[i - 1] : ' ';
-            char next = i < raw.Length - 1 ? raw[i + 1] : ' ';
+            "Inventory2" => Icons.Material.Filled.Inventory2,
+            "CreditCard" => Icons.Material.Filled.CreditCard,
+            "Apartment" => Icons.Material.Filled.Apartment,
+            "Group" => Icons.Material.Filled.Group,
+            "Business" => Icons.Material.Filled.Business,
+            "Construction" => Icons.Material.Filled.Construction,
+            "Home" => Icons.Material.Filled.Home,
+            "Landscape" => Icons.Material.Filled.Landscape,
+            "HomeRepairService" => Icons.Material.Filled.HomeRepairService,
+            "Description" => Icons.Material.Filled.Description,
+            "Construction / Rehab" => Icons.Material.Filled.Construction,
+            "Construction/Rehab" => Icons.Material.Filled.Construction,
+            "Rehab" => Icons.Material.Filled.Construction,
+            "DSCR" => Icons.Material.Filled.CreditCard,
+            "DSCR / Rental" => Icons.Material.Filled.CreditCard,
+            "Rental" => Icons.Material.Filled.CreditCard,
+            "Commercial" => Icons.Material.Filled.Business,
+            "Multifamily" => Icons.Material.Filled.Apartment,
+            "Land" => Icons.Material.Filled.Landscape,
+            "Lot" => Icons.Material.Filled.Landscape,
+            "Land / Lot" => Icons.Material.Filled.Landscape,
+            "Bridge" => Icons.Material.Filled.HomeRepairService,
+            "FixFlip" => Icons.Material.Filled.HomeRepairService,
+            "Fix&Flip" => Icons.Material.Filled.HomeRepairService,
+            "Fix Flip" => Icons.Material.Filled.HomeRepairService,
+            _ => MapNormalizedLoanTypeIcon(key)
+        };
+    }
 
-            if (current == ' ' || current == '-' || current == '.')
-            {
-                if (sb.Length > 0 && sb[^1] != '_')
-                    sb.Append('_');
-                continue;
-            }
+    private static string MapNormalizedLoanTypeIcon(string key)
+    {
+        var normalized = key
+            .Replace("_", string.Empty, StringComparison.Ordinal)
+            .Replace("-", string.Empty, StringComparison.Ordinal)
+            .Replace(" ", string.Empty, StringComparison.Ordinal)
+            .Trim()
+            .ToLowerInvariant();
 
-            if (char.IsUpper(current))
-            {
-                bool addUnderscore =
-                    i > 0 &&
-                    sb.Length > 0 &&
-                    sb[^1] != '_' &&
-                    (char.IsLower(previous) || char.IsDigit(previous) || (char.IsUpper(previous) && char.IsLower(next)));
-
-                if (addUnderscore)
-                    sb.Append('_');
-
-                sb.Append(char.ToLowerInvariant(current));
-                continue;
-            }
-
-            if (char.IsDigit(current))
-            {
-                if (i > 0 && char.IsLetter(previous) && sb.Length > 0 && sb[^1] != '_')
-                    sb.Append('_');
-
-                sb.Append(current);
-                continue;
-            }
-
-            sb.Append(char.ToLowerInvariant(current));
-        }
-
-        return sb.ToString();
+        return normalized switch
+        {
+            "inventory2" => Icons.Material.Filled.Inventory2,
+            "creditcard" => Icons.Material.Filled.CreditCard,
+            "apartment" => Icons.Material.Filled.Apartment,
+            "group" => Icons.Material.Filled.Group,
+            "business" => Icons.Material.Filled.Business,
+            "construction" => Icons.Material.Filled.Construction,
+            "home" => Icons.Material.Filled.Home,
+            "landscape" => Icons.Material.Filled.Landscape,
+            "homerepairservice" => Icons.Material.Filled.HomeRepairService,
+            "constructionrehab" => Icons.Material.Filled.Construction,
+            "dscrrental" => Icons.Material.Filled.CreditCard,
+            "multifamily" => Icons.Material.Filled.Apartment,
+            "landlot" => Icons.Material.Filled.Landscape,
+            _ => Icons.Material.Filled.Description
+        };
     }
 
     public string GetLoanTypeSummary()

@@ -285,6 +285,7 @@ builder.Services.TryAddScoped<LoanWizardLenderViewModel>();
 builder.Services.TryAddScoped<LoanWizardGuarantorViewModel>();
 builder.Services.TryAddScoped<LoanWizardBrokerViewModel>();
 builder.Services.TryAddScoped<LoanWizardPropertyViewModel>();
+builder.Services.TryAddScoped<LoanWizardPropertyOwnerViewModel>();
 builder.Services.TryAddScoped<ReportsViewModel>();
 builder.Services.TryAddScoped<DashboardViewModelNew>();
 builder.Services.TryAddScoped<LoanWizardAddEditViewModel>();

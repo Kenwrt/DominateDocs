@@ -599,6 +599,53 @@
                     </ChildContent>
                 </MudExpansionPanel>
 
+                @* ═══ SECTION 4: Property ═══ *@
+                <MudExpansionPanel @bind-IsExpanded="_propertyOpen" Style="border:1px solid #e2e8f0;border-radius:12px !important;margin-bottom:12px;">
+                    <TitleContent>
+                        <div class="d-flex align-center gap-3">
+                            <MudIcon Icon="@Icons.Material.Filled.Home" Color="@(vm.IsSectionComplete("property") ? Color.Success : Color.Default)" />
+                            <MudText Style="font-weight:700;font-size:15px;color:#0f2b4a;">Property</MudText>
+                        </div>
+                    </TitleContent>
+                    <ChildContent>
+                        <div class="d-flex align-center justify-space-between mb-3">
+                            <MudText Typo="Typo.subtitle2" Style="font-weight:700;color:#0f2b4a;">Properties (@vm.EditingAgreement.Properties.Count)</MudText>
+                            <MudButton StartIcon="@Icons.Material.Filled.Add" Size="Size.Small" Variant="Variant.Text" Color="Color.Primary" OnClick="OnAddProperty" Style="text-transform:none;">Add Property</MudButton>
+                        </div>
+
+                        @foreach (var property in vm.EditingAgreement.Properties)
+                        {
+                            <div class="pa-3 mb-3" style="background:#f1f5f9; border-radius:8px; border:1px solid #e2e8f0;">
+                                <div class="d-flex justify-space-between align-start">
+                                    <div>
+                                        <MudText Typo="Typo.body2" Style="font-weight:700; color:#0f2b4a;">@(string.IsNullOrWhiteSpace(property.FullAddress) ? (string.IsNullOrWhiteSpace(property.LegalDescription) ? "Untitled Property" : property.LegalDescription) : property.FullAddress)</MudText>
+                                        <MudText Typo="Typo.caption" Style="color:#64748b;">@property.PropertyType.GetDescription() @(string.IsNullOrWhiteSpace(property.ParcelNumber) ? "" : $" · APN {property.ParcelNumber}")</MudText>
+                                        @if (property.PropertyOwners?.Any() == true)
+                                        {
+                                            <MudText Typo="Typo.caption" Style="color:#64748b;display:block;margin-top:4px;">Owners: @string.Join(", ", property.PropertyOwners.Select(GetPropertyOwnerDisplayName))</MudText>
+                                        }
+                                    </div>
+                                    <div class="d-flex">
+                                        <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" OnClick="@(() => OnSelectedProperty(property))" />
+                                        <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error" OnClick="@(() => OnRemoveProperty(property))" />
+                                    </div>
+                                </div>
+                            </div>
+                        }
+
+                        @if (AddEditProperty)
+                        {
+                            <LoanWizardProperty SelectedProperty="vm.SelectedProperty"
+                                                CurrentProperties="vm.EditingAgreement.Properties"
+                                                Borrowers="vm.EditingAgreement.Borrowers"
+                                                Guarantors="vm.EditingAgreement.Guarantors"
+                                                OnPropertyComplete="@(new Microsoft.AspNetCore.Components.EventCallback<DominateDocsData.Models.PropertyRecord>(null, (DominateDocsData.Models.PropertyRecord p) => OnPropertyComplete(p)))"
+                                                OnPropertyCanceled="OnPropertyCanceled" />
+                        }
+                    </ChildContent>
+                </MudExpansionPanel>
+
+
             </MudExpansionPanels>
         </MudItem>
     </MudGrid>
@@ -687,4 +734,17 @@
     private void OnBrokerCanceled() { AddEditBroker = false; StateHasChanged(); }
 
     private void OnPropertyComplete(DominateDocsData.Models.PropertyRecord p) { vm.UpsertAgreementPropertyCommand.Execute(p); AddEditProperty = false; StateHasChanged(); }
+    private void OnSelectedProperty(DominateDocsData.Models.PropertyRecord r) { vm.SelectedProperty = r; AddEditProperty = true; StateHasChanged(); }
+    private void OnPropertyCanceled() { AddEditProperty = false; vm.SelectedProperty = null; StateHasChanged(); }
+
+    private static string GetPropertyOwnerDisplayName(DominateDocsData.Models.PropertyOwner value)
+    {
+        if (!string.IsNullOrWhiteSpace(value.EntityName))
+            return value.EntityName;
+
+        if (!string.IsNullOrWhiteSpace(value.ContactName))
+            return value.ContactName;
+
+        return "Owner";
+    }
 }
